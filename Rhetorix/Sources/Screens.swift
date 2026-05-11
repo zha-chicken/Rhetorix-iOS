@@ -689,6 +689,8 @@ struct FallacyDetectorView: View {
     @State private var text = ""
     @State private var provider: AiProvider = .openAI
     @State private var results: [FallacyFinding] = []
+    @State private var isAnalyzing = false
+    @State private var hasAnalyzed = false
 
     var body: some View {
         ScrollView {
@@ -702,9 +704,39 @@ struct FallacyDetectorView: View {
                     ForEach(AiProvider.allCases) { Text($0.rawValue).tag($0) }
                 }
                 Button("Analyze for Fallacies") {
-                    Task { results = await store.generateFallacies(text: text, provider: provider) }
+                    Task {
+                        hasAnalyzed = false
+                        isAnalyzing = true
+                        results = await store.generateFallacies(text: text, provider: provider)
+                        isAnalyzing = false
+                        hasAnalyzed = store.activeError == nil
+                    }
                 }
                 .buttonStyle(.borderedProminent)
+                .disabled(isAnalyzing || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                if isAnalyzing {
+                    GlassCard(accent: RhetorixColors.cyan) {
+                        HStack(spacing: 12) {
+                            ProgressView()
+                            Text("Analyzing fallacies...")
+                                .font(.subheadline)
+                                .foregroundStyle(RhetorixColors.textSecondary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                } else if hasAnalyzed && results.isEmpty {
+                    GlassCard(accent: RhetorixColors.green) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("未检出")
+                                .font(.headline)
+                            Text("No logical fallacies were detected in this text.")
+                                .font(.subheadline)
+                                .foregroundStyle(RhetorixColors.textSecondary)
+                            AIDisclaimer()
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
                 ForEach(results) { result in
                     GlassCard(accent: RhetorixColors.salmon) {
                         VStack(alignment: .leading, spacing: 8) {
@@ -721,6 +753,10 @@ struct FallacyDetectorView: View {
         .navigationTitle("Fallacy Detector")
         .onAppear {
             provider = store.preferredProvider
+        }
+        .onChange(of: text) {
+            hasAnalyzed = false
+            results = []
         }
         .appScreen()
     }

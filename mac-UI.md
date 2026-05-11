@@ -334,11 +334,18 @@ Content:
 
 - Input area
 - Analyze action
+- Loading indicator while analysis is running
 - Results from actual analysis
 - Severity indicators
 - Clear action
 
 Before analysis, show an empty state. Do not display sample findings as real results.
+
+If analysis finishes successfully and no logical fallacies are detected, show an explicit empty result state:
+
+`未检出`
+
+Do not leave the results area blank after a completed analysis.
 
 ### Rebuttal Trainer
 
