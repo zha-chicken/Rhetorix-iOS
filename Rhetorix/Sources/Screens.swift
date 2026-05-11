@@ -28,6 +28,8 @@ struct RootView: View {
                     DebateView(path: $path, sessionID: id)
                 case .result(let id):
                     ResultView(sessionID: id)
+                case .argumentGraphTopicSelection:
+                    ArgumentGraphTopicSelectionView(path: $path)
                 case .argumentGraph(let topic):
                     ArgumentGraphView(topic: topic)
                 case .rebuttalTrainer:
@@ -118,7 +120,7 @@ struct HomeView: View {
                 SectionTitle(text: "Preparation Tools")
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                     FeatureCard(title: "Argument Graph", subtitle: "", icon: "point.3.connected.trianglepath.dotted", accent: RhetorixColors.cyan) {
-                        path.append(AppRoute.argumentGraph(store.topics.first ?? AppStore.defaultTopics[0]))
+                        path.append(AppRoute.argumentGraphTopicSelection)
                     }
                     FeatureCard(title: "Rebuttal", subtitle: "", icon: "timer", accent: RhetorixColors.amber) {
                         path.append(AppRoute.rebuttalTrainer)
@@ -224,6 +226,49 @@ struct TopicRow: View {
             Spacer()
             Image(systemName: "chevron.right").foregroundStyle(RhetorixColors.textTertiary)
         }
+    }
+}
+
+struct ArgumentGraphTopicSelectionView: View {
+    @EnvironmentObject private var store: AppStore
+    @Binding var path: NavigationPath
+    @State private var search = ""
+
+    private var filtered: [DebateTopic] {
+        search.isEmpty ? store.topics : store.topics.filter {
+            $0.title.localizedCaseInsensitiveContains(search) ||
+            $0.category.localizedCaseInsensitiveContains(search) ||
+            $0.details.localizedCaseInsensitiveContains(search)
+        }
+    }
+
+    var body: some View {
+        List {
+            Section {
+                TextField("Search topics...", text: $search)
+            }
+            .listRowBackground(RhetorixColors.glass)
+
+            Section("Choose a Topic") {
+                ForEach(filtered) { topic in
+                    Button {
+                        path.append(AppRoute.argumentGraph(topic))
+                    } label: {
+                        TopicRow(topic: topic)
+                    }
+                    .listRowBackground(RhetorixColors.glass)
+                }
+            }
+        }
+        .navigationTitle("Graph Topic")
+        .toolbar {
+            Button("Add Topic") {
+                let topic = DebateTopic(title: "Custom graph topic", category: "Custom", details: "Edit this topic in a future build.")
+                store.topics.insert(topic, at: 0)
+                path.append(AppRoute.argumentGraph(topic))
+            }
+        }
+        .appScreen()
     }
 }
 
@@ -453,7 +498,7 @@ struct ToolsView: View {
         ScrollView {
             VStack(spacing: 12) {
                 FeatureCard(title: "Argument Relationship Graph", subtitle: "Map claims and rebuttals", icon: "point.3.connected.trianglepath.dotted", accent: RhetorixColors.cyan) {
-                    path.append(AppRoute.argumentGraph(store.topics.first ?? AppStore.defaultTopics[0]))
+                    path.append(AppRoute.argumentGraphTopicSelection)
                 }
                 FeatureCard(title: "Rebuttal Trainer", subtitle: "Timed rebuttal practice", icon: "timer", accent: RhetorixColors.amber) {
                     path.append(AppRoute.rebuttalTrainer)

@@ -296,6 +296,13 @@ The hallucination detector opens `https://gptzero.me/hallucination-detector` ext
 
 Purpose: generate and inspect relationships between claims, evidence, objections, and rebuttals.
 
+Entry behavior:
+
+- The Argument Relationship Graph entry opens a dedicated topic library first.
+- The user must independently choose or search for a debate topic before graph generation.
+- Do not auto-select the first/default topic when entering from Home or Tools.
+- After the user chooses a topic, open the graph generation screen for that topic.
+
 Generation behavior:
 
 - AI generation first simulates a concise 3-round AI vs AI debate.

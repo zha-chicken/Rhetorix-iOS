@@ -196,6 +196,7 @@ enum AppRoute: Hashable {
     case setup(DebateTopic)
     case debate(String)
     case result(String)
+    case argumentGraphTopicSelection
     case argumentGraph(DebateTopic)
     case rebuttalTrainer
     case fallacyDetector
