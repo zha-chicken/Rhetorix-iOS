@@ -125,7 +125,7 @@ struct HomeView: View {
                     FeatureCard(title: "Rebuttal", subtitle: "", icon: "timer", accent: RhetorixColors.amber) {
                         path.append(AppRoute.rebuttalTrainer)
                     }
-                    FeatureCard(title: "Fallacy", subtitle: "", icon: "search", accent: RhetorixColors.green) {
+                    FeatureCard(title: "Fallacy", subtitle: "", icon: "magnifyingglass", accent: RhetorixColors.green) {
                         path.append(AppRoute.fallacyDetector)
                     }
                 }
