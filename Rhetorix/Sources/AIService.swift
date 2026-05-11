@@ -23,7 +23,7 @@ enum RhetorixError: LocalizedError {
     }
 }
 
-final class AIService {
+final class AIService: Sendable {
     func chat(systemPrompt: String, messages: [ChatMessage], config: ProviderConfig) async throws -> ChatResult {
         for message in messages where message.role != "assistant" {
             try await assertSafe(message.content, source: "user", config: config)
@@ -240,4 +240,3 @@ final class AIService {
         return nil
     }
 }
-
