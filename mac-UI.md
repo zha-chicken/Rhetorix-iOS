@@ -307,9 +307,11 @@ Generation behavior:
 
 - AI generation first simulates a concise 3-round AI vs AI debate.
 - The graph is extracted from that debate transcript.
-- The graph should include multiple claims, objections, evidence nodes, and directed relationships.
-- A successful generated graph should aim for at least 12 meaningful relationships.
-- If graph extraction fails after debate generation, build a fallback graph from the transcript instead of returning to an empty canvas.
+- The graph should include multiple independent branches for each side, not only `topic -> support -> oppose`.
+- Each major position should branch into specific claims, evidence, warrants, objections, and rebuttals.
+- A successful generated graph should aim for 18 to 24 nodes and at least 12 meaningful relationships.
+- Key evidence, decisive arguments, or pivotal claims should be highlighted as key nodes.
+- If graph extraction fails or returns an overly simple graph after debate generation, build a multi-branch fallback graph from the transcript instead of returning to a three-node graph or empty canvas.
 
 Loading state:
 
@@ -322,6 +324,7 @@ Graph canvas:
 - Node spacing must prioritize readable titles.
 - Initial scale should show the full structure without heavy overlap.
 - Relationship labels should remain readable.
+- Key nodes should use a visible star/key treatment and stronger accent border.
 - Supportive edges use cool green/cyan.
 - Refuting edges use salmon.
 - Related/neutral edges use amber.

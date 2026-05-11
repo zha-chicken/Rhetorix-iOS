@@ -227,8 +227,22 @@ final class AppStore: ObservableObject {
                 preview.append(DebateTurn(sessionID: "graph", role: .oppose, content: con.content, provider: config.provider, model: config.resolvedModel))
             }
             let graphResponse = try await ai.chat(
-                systemPrompt: "Extract an argument relationship graph. Return strict JSON only.",
-                messages: [ChatMessage(role: "user", content: "Topic: \(topic.title)\nTranscript:\n\(preview.map { $0.content }.joined(separator: "\n\n"))\nReturn {\"nodes\":[{\"title\":\"\",\"detail\":\"\",\"type\":\"support|oppose|evidence\",\"x\":0,\"y\":0}],\"edges\":[{\"from\":0,\"to\":1,\"relation\":\"supports|refutes|relates\"}]}")],
+                systemPrompt: """
+                Extract a dense argument relationship graph from the debate transcript. Return strict JSON only.
+                The graph must not be a simple topic/support/oppose triangle.
+                Requirements:
+                - 18 to 24 nodes.
+                - node 0 is the central topic.
+                - include independent branches for support and oppose positions.
+                - each main claim should have child evidence, warrants, objections, or rebuttals.
+                - mark 3 to 5 decisive claims/evidence as isKey=true.
+                - use short readable titles under 32 characters.
+                - details must explain the viewpoint or evidence in 1 to 2 sentences.
+                - edges use integer node indexes and relation supports, refutes, proves, qualifies, or depends_on.
+                Return schema:
+                {"nodes":[{"title":"","detail":"","type":"topic|support|oppose|evidence|rebuttal","isKey":true|false,"x":0,"y":0}],"edges":[{"from":0,"to":1,"relation":"supports|refutes|proves|qualifies|depends_on"}]}
+                """,
+                messages: [ChatMessage(role: "user", content: "Topic: \(topic.title)\nTranscript:\n\(preview.map { "\($0.role.rawValue): \($0.content)" }.joined(separator: "\n\n"))")],
                 config: config
             )
             return parseGraph(graphResponse.content, topic: topic, preview: preview)
@@ -286,8 +300,9 @@ final class AppStore: ObservableObject {
                 title: item["title"] as? String ?? "Claim \(index + 1)",
                 detail: item["detail"] as? String ?? "",
                 type: GraphNodeType(rawValue: item["type"] as? String ?? "") ?? (index.isMultiple(of: 2) ? .support : .oppose),
-                x: item["x"] as? Double ?? Double((index % 3 - 1) * 130),
-                y: item["y"] as? Double ?? Double((index / 3 - 1) * 120)
+                x: item["x"] as? Double ?? 0,
+                y: item["y"] as? Double ?? 0,
+                isKey: item["isKey"] as? Bool ?? item["key"] as? Bool ?? ((item["importance"] as? String)?.localizedCaseInsensitiveContains("key") == true)
             )
         }
         let rawEdges = json["edges"] as? [[String: Any]] ?? []
@@ -295,14 +310,114 @@ final class AppStore: ObservableObject {
             guard let fromIndex = item["from"] as? Int, let toIndex = item["to"] as? Int, nodes.indices.contains(fromIndex), nodes.indices.contains(toIndex) else { return nil }
             return GraphEdge(from: nodes[fromIndex].id, to: nodes[toIndex].id, relation: item["relation"] as? String ?? "relates")
         }
-        return ArgumentGraph(topic: topic, debatePreview: preview, nodes: nodes.isEmpty ? fallbackGraph(topic: topic, preview: preview).nodes : nodes, edges: edges)
+        let laidOutNodes = layoutGraphNodes(nodes)
+        let graph = ArgumentGraph(topic: topic, debatePreview: preview, nodes: laidOutNodes, edges: edges)
+        return isGraphUseful(graph) ? graph : fallbackGraph(topic: topic, preview: preview)
     }
 
     private func fallbackGraph(topic: DebateTopic, preview: [DebateTurn]) -> ArgumentGraph {
-        let center = GraphNode(title: topic.title, detail: topic.details, type: .topic, x: 0, y: 0)
-        let pro = GraphNode(title: "Support case", detail: preview.first(where: { $0.role == .support })?.content ?? "", type: .support, x: -130, y: -80)
-        let con = GraphNode(title: "Opposition case", detail: preview.first(where: { $0.role == .oppose })?.content ?? "", type: .oppose, x: 130, y: -80)
-        return ArgumentGraph(topic: topic, debatePreview: preview, nodes: [center, pro, con], edges: [GraphEdge(from: pro.id, to: center.id, relation: "supports"), GraphEdge(from: con.id, to: pro.id, relation: "refutes")])
+        let supportText = preview.filter { $0.role == .support }.map(\.content).joined(separator: " ")
+        let opposeText = preview.filter { $0.role == .oppose }.map(\.content).joined(separator: " ")
+        var nodes: [GraphNode] = [
+            GraphNode(title: shortTitle(topic.title), detail: topic.details, type: .topic, x: 0, y: 0, isKey: true),
+            GraphNode(title: "Support thesis", detail: excerpt(supportText, fallback: "The supporting side presents the core affirmative case."), type: .support, x: -150, y: -40, isKey: true),
+            GraphNode(title: "Opposition thesis", detail: excerpt(opposeText, fallback: "The opposing side presents the core negative case."), type: .oppose, x: 150, y: -40, isKey: true)
+        ]
+
+        let supportBranches = claimFragments(from: supportText, fallbackPrefix: "Support")
+        let opposeBranches = claimFragments(from: opposeText, fallbackPrefix: "Oppose")
+        let supportTemplates: [(GraphNodeType, String, String, Bool)] = [
+            (.support, "Benefit claim", "supports", true),
+            (.evidence, "Practical evidence", "proves", true),
+            (.support, "Ethical warrant", "depends_on", false),
+            (.evidence, "Impact evidence", "proves", false),
+            (.rebuttal, "Answer to objection", "refutes", false),
+            (.evidence, "Constraint detail", "qualifies", false)
+        ]
+        let opposeTemplates: [(GraphNodeType, String, String, Bool)] = [
+            (.oppose, "Risk claim", "refutes", true),
+            (.evidence, "Risk evidence", "proves", true),
+            (.oppose, "Governance worry", "depends_on", false),
+            (.evidence, "Cost evidence", "proves", false),
+            (.rebuttal, "Counter-rebuttal", "refutes", false),
+            (.evidence, "Tradeoff detail", "qualifies", false)
+        ]
+        var edges: [GraphEdge] = [
+            GraphEdge(from: nodes[1].id, to: nodes[0].id, relation: "supports"),
+            GraphEdge(from: nodes[2].id, to: nodes[0].id, relation: "refutes")
+        ]
+
+        for (index, template) in supportTemplates.enumerated() {
+            let node = GraphNode(title: template.1, detail: supportBranches[index % supportBranches.count], type: template.0, x: 0, y: 0, isKey: template.3)
+            nodes.append(node)
+            edges.append(GraphEdge(from: node.id, to: index < 2 ? nodes[1].id : nodes[max(3, nodes.count - 2)].id, relation: template.2))
+        }
+        for (index, template) in opposeTemplates.enumerated() {
+            let node = GraphNode(title: template.1, detail: opposeBranches[index % opposeBranches.count], type: template.0, x: 0, y: 0, isKey: template.3)
+            nodes.append(node)
+            edges.append(GraphEdge(from: node.id, to: index < 2 ? nodes[2].id : nodes[max(9, nodes.count - 2)].id, relation: template.2))
+        }
+        if nodes.count > 9 {
+            edges.append(GraphEdge(from: nodes[9].id, to: nodes[3].id, relation: "refutes"))
+        }
+        if nodes.count > 12 {
+            edges.append(GraphEdge(from: nodes[12].id, to: nodes[5].id, relation: "qualifies"))
+        }
+
+        return ArgumentGraph(topic: topic, debatePreview: preview, nodes: layoutGraphNodes(nodes), edges: edges)
+    }
+
+    private func isGraphUseful(_ graph: ArgumentGraph) -> Bool {
+        guard graph.nodes.count >= 12, graph.edges.count >= 12 else { return false }
+        let supportCount = graph.nodes.filter { $0.type == .support }.count
+        let opposeCount = graph.nodes.filter { $0.type == .oppose }.count
+        let evidenceCount = graph.nodes.filter { $0.type == .evidence || $0.type == .rebuttal }.count
+        let keyCount = graph.nodes.filter(\.isKey).count
+        return supportCount >= 3 && opposeCount >= 3 && evidenceCount >= 4 && keyCount >= 2
+    }
+
+    private func layoutGraphNodes(_ nodes: [GraphNode]) -> [GraphNode] {
+        var result = nodes
+        let supportIndexes = result.indices.filter { result[$0].type == .support || (result[$0].type == .evidence && $0.isMultiple(of: 2)) }
+        let opposeIndexes = result.indices.filter { result[$0].type == .oppose || result[$0].type == .rebuttal || (result[$0].type == .evidence && !$0.isMultiple(of: 2)) }
+        for index in result.indices where result[index].type == .topic {
+            result[index].x = 0
+            result[index].y = 0
+        }
+        placeBranch(indexes: supportIndexes, side: -1, nodes: &result)
+        placeBranch(indexes: opposeIndexes, side: 1, nodes: &result)
+        return result
+    }
+
+    private func placeBranch(indexes: [Array<GraphNode>.Index], side: Double, nodes: inout [GraphNode]) {
+        guard indexes.isEmpty == false else { return }
+        for (offset, index) in indexes.enumerated() {
+            let column = Double(offset % 3)
+            let row = Double(offset / 3)
+            nodes[index].x = side * (115 + column * 95)
+            nodes[index].y = -150 + row * 105 + (column == 1 ? 32 : 0)
+        }
+    }
+
+    private func claimFragments(from text: String, fallbackPrefix: String) -> [String] {
+        let pieces = text
+            .replacingOccurrences(of: "\n", with: " ")
+            .components(separatedBy: CharacterSet(charactersIn: ".。!?！？;；"))
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { $0.count > 18 }
+        let selected = Array(pieces.prefix(6)).map { excerpt($0, fallback: $0) }
+        if selected.isEmpty == false { return selected }
+        return (1...6).map { "\(fallbackPrefix) branch \($0): this node preserves a distinct part of the debate case for inspection." }
+    }
+
+    private func excerpt(_ text: String, fallback: String) -> String {
+        let clean = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard clean.isEmpty == false else { return fallback }
+        return clean.count > 180 ? String(clean.prefix(177)) + "..." : clean
+    }
+
+    private func shortTitle(_ text: String) -> String {
+        text.count > 30 ? String(text.prefix(27)) + "..." : text
     }
 
     private func cleanJSON(_ raw: String) -> String {

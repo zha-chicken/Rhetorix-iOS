@@ -138,6 +138,7 @@ enum GraphNodeType: String, Codable {
     case support
     case oppose
     case evidence
+    case rebuttal
 }
 
 struct GraphNode: Identifiable, Codable, Equatable {
@@ -147,6 +148,7 @@ struct GraphNode: Identifiable, Codable, Equatable {
     var type: GraphNodeType
     var x: Double
     var y: Double
+    var isKey: Bool = false
 }
 
 struct GraphEdge: Identifiable, Codable, Equatable {

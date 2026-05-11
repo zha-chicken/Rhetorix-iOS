@@ -607,7 +607,14 @@ struct ArgumentGraphView: View {
                     if let selected {
                         GlassCard(accent: selected.type == .oppose ? RhetorixColors.salmon : RhetorixColors.cyan) {
                             VStack(alignment: .leading) {
-                                Text(selected.title).font(.headline)
+                                HStack {
+                                    Text(selected.title).font(.headline)
+                                    if selected.isKey {
+                                        Label("Key", systemImage: "star.fill")
+                                            .font(.caption.bold())
+                                            .foregroundStyle(RhetorixColors.amber)
+                                    }
+                                }
                                 Text(selected.detail).font(.caption).foregroundStyle(RhetorixColors.textSecondary)
                                 AIDisclaimer()
                             }
@@ -657,12 +664,29 @@ struct GraphCanvas: View {
                 }
                 ForEach(graph.nodes) { node in
                     Button { selected = node } label: {
-                        Text(node.title)
-                            .font(.caption.bold())
-                            .lineLimit(2)
-                            .frame(width: 96, height: 64)
-                            .background(Circle().fill(color(node.type).opacity(0.82)))
-                            .foregroundStyle(.white)
+                        VStack(spacing: 3) {
+                            if node.isKey {
+                                Image(systemName: "star.fill")
+                                    .font(.caption2.bold())
+                                    .foregroundStyle(RhetorixColors.amber)
+                            }
+                            Text(node.title)
+                                .font(.caption.bold())
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.7)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(width: node.isKey ? 116 : 102, height: node.isKey ? 78 : 68)
+                        .background(
+                            RoundedRectangle(cornerRadius: node.isKey ? 18 : 16)
+                                .fill(color(node.type).opacity(node.isKey ? 0.94 : 0.78))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: node.isKey ? 18 : 16)
+                                .stroke(node.isKey ? RhetorixColors.amber : .white.opacity(0.25), lineWidth: node.isKey ? 2.5 : 1)
+                        )
+                        .shadow(color: node.isKey ? RhetorixColors.amber.opacity(0.35) : .clear, radius: 12)
+                        .foregroundStyle(.white)
                     }
                     .position(point(node, geo))
                 }
@@ -680,6 +704,7 @@ struct GraphCanvas: View {
         case .support: RhetorixColors.green
         case .oppose: RhetorixColors.salmon
         case .evidence: RhetorixColors.amber
+        case .rebuttal: RhetorixColors.peach
         }
     }
 }
