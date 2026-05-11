@@ -30,6 +30,18 @@ final class AppStore: ObservableObject {
         }
         return count
     }
+    var preferredProvider: AiProvider {
+        if let configured = providerConfigs.first(where: { $0.isEnabled && $0.apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false }) {
+            return configured.provider
+        }
+        if let configured = providerConfigs.first(where: { $0.apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false }) {
+            return configured.provider
+        }
+        if let enabled = providerConfigs.first(where: \.isEnabled) {
+            return enabled.provider
+        }
+        return .openAI
+    }
 
     func bootstrap() {
         load()
@@ -335,4 +347,3 @@ final class AppStore: ObservableObject {
         DebateTopic(title: "Is cryptocurrency the future of money?", category: "Economics", details: "Compare decentralization, volatility, regulation, and adoption.", debateCount: 870)
     ]
 }
-

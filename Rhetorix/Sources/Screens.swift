@@ -273,6 +273,9 @@ struct DebateSetupView: View {
             .padding()
         }
         .navigationTitle("Debate Setup")
+        .onAppear {
+            provider = store.preferredProvider
+        }
         .appScreen()
     }
 }
@@ -586,6 +589,9 @@ struct ArgumentGraphView: View {
             if store.isWorking { ProgressView("Generating...").padding().background(.ultraThinMaterial).clipShape(RoundedRectangle(cornerRadius: 12)) }
         }
         .navigationTitle(topic.title)
+        .onAppear {
+            provider = store.preferredProvider
+        }
     }
 }
 
@@ -668,6 +674,9 @@ struct FallacyDetectorView: View {
             .padding()
         }
         .navigationTitle("Fallacy Detector")
+        .onAppear {
+            provider = store.preferredProvider
+        }
         .appScreen()
     }
 }
@@ -724,6 +733,9 @@ struct RebuttalTrainerView: View {
             .padding()
         }
         .navigationTitle("Rebuttal Trainer")
+        .onAppear {
+            provider = store.preferredProvider
+        }
         .appScreen()
     }
 }
