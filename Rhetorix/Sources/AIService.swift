@@ -24,11 +24,11 @@ enum RhetorixError: LocalizedError {
 }
 
 final class AIService: Sendable {
-    func chat(systemPrompt: String, messages: [ChatMessage], config: ProviderConfig) async throws -> ChatResult {
+    func chat(systemPrompt: String, messages: [ChatMessage], config: ProviderConfig, maxTokens: Int = 900) async throws -> ChatResult {
         for message in messages where message.role != "assistant" {
             try await assertSafe(message.content, source: "user", config: config)
         }
-        let result = try await rawChat(systemPrompt: systemPrompt, messages: messages, config: config)
+        let result = try await rawChat(systemPrompt: systemPrompt, messages: messages, config: config, maxTokens: maxTokens)
         try await assertSafe(result.content, source: "assistant", config: config)
         return result
     }
@@ -61,25 +61,25 @@ final class AIService: Sendable {
         }
     }
 
-    private func rawChat(systemPrompt: String, messages: [ChatMessage], config: ProviderConfig) async throws -> ChatResult {
+    private func rawChat(systemPrompt: String, messages: [ChatMessage], config: ProviderConfig, maxTokens: Int = 900) async throws -> ChatResult {
         guard config.isEnabled, config.apiKey.isEmpty == false else { throw RhetorixError.missingProviderKey }
         switch config.provider {
         case .openAI, .deepSeek, .groq, .ollama:
-            return try await openAICompatibleChat(systemPrompt: systemPrompt, messages: messages, config: config)
+            return try await openAICompatibleChat(systemPrompt: systemPrompt, messages: messages, config: config, maxTokens: maxTokens)
         case .anthropic:
-            return try await anthropicChat(systemPrompt: systemPrompt, messages: messages, config: config)
+            return try await anthropicChat(systemPrompt: systemPrompt, messages: messages, config: config, maxTokens: maxTokens)
         case .gemini:
-            return try await geminiChat(systemPrompt: systemPrompt, messages: messages, config: config)
+            return try await geminiChat(systemPrompt: systemPrompt, messages: messages, config: config, maxTokens: maxTokens)
         }
     }
 
-    private func openAICompatibleChat(systemPrompt: String, messages: [ChatMessage], config: ProviderConfig) async throws -> ChatResult {
+    private func openAICompatibleChat(systemPrompt: String, messages: [ChatMessage], config: ProviderConfig, maxTokens: Int) async throws -> ChatResult {
         let url = try endpoint(base: config.resolvedBaseURL, path: "v1/chat/completions")
         let payload: [String: Any] = [
             "model": config.resolvedModel,
             "messages": [["role": "system", "content": systemPrompt]] + messages.map { ["role": $0.role, "content": $0.content] },
             "temperature": 0.7,
-            "max_tokens": 900
+            "max_tokens": maxTokens
         ]
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -97,11 +97,11 @@ final class AIService: Sendable {
         return ChatResult(content: content, finishReason: nil)
     }
 
-    private func anthropicChat(systemPrompt: String, messages: [ChatMessage], config: ProviderConfig) async throws -> ChatResult {
+    private func anthropicChat(systemPrompt: String, messages: [ChatMessage], config: ProviderConfig, maxTokens: Int) async throws -> ChatResult {
         let url = try endpoint(base: config.resolvedBaseURL, path: "v1/messages")
         let payload: [String: Any] = [
             "model": config.resolvedModel,
-            "max_tokens": 900,
+            "max_tokens": maxTokens,
             "system": systemPrompt,
             "temperature": 0.7,
             "messages": messages.map { ["role": $0.role == "assistant" ? "assistant" : "user", "content": [["type": "text", "text": $0.content]]] }
@@ -122,7 +122,7 @@ final class AIService: Sendable {
         return ChatResult(content: text, finishReason: nil)
     }
 
-    private func geminiChat(systemPrompt: String, messages: [ChatMessage], config: ProviderConfig) async throws -> ChatResult {
+    private func geminiChat(systemPrompt: String, messages: [ChatMessage], config: ProviderConfig, maxTokens: Int) async throws -> ChatResult {
         let model = config.resolvedModel.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? config.resolvedModel
         let base = config.resolvedBaseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         guard let url = URL(string: "\(base)/v1beta/models/\(model):generateContent?key=\(config.apiKey)") else {
@@ -133,7 +133,7 @@ final class AIService: Sendable {
             .joined(separator: "\n\n")
         let payload: [String: Any] = [
             "contents": [["role": "user", "parts": [["text": prompt]]]],
-            "generationConfig": ["temperature": 0.7, "maxOutputTokens": 900]
+            "generationConfig": ["temperature": 0.7, "maxOutputTokens": maxTokens]
         ]
         var request = URLRequest(url: url)
         request.httpMethod = "POST"

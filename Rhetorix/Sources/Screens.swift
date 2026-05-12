@@ -196,7 +196,7 @@ struct TopicSelectionView: View {
             Section("Trending") {
                 ForEach(filtered) { topic in
                     Button { path.append(AppRoute.setup(topic)) } label: {
-                        TopicRow(topic: topic)
+                        TopicRow(topic: topic, debateCount: store.debateCount(for: topic))
                     }
                     .listRowBackground(RhetorixColors.glass)
                 }
@@ -216,11 +216,12 @@ struct TopicSelectionView: View {
 
 struct TopicRow: View {
     var topic: DebateTopic
+    var debateCount: Int
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text(topic.title).foregroundStyle(RhetorixColors.textPrimary)
-                Text("\(topic.category) · \(topic.debateCount) debates")
+                Text("\(topic.category) · \(debateCount) \(debateCount == 1 ? "debate" : "debates")")
                     .font(.caption)
                     .foregroundStyle(RhetorixColors.textSecondary)
             }
@@ -255,7 +256,7 @@ struct ArgumentGraphTopicSelectionView: View {
                     Button {
                         path.append(AppRoute.argumentGraph(topic))
                     } label: {
-                        TopicRow(topic: topic)
+                        TopicRow(topic: topic, debateCount: store.debateCount(for: topic))
                     }
                     .listRowBackground(RhetorixColors.glass)
                 }

@@ -45,7 +45,7 @@ final class AppStore: ObservableObject {
 
     func bootstrap() {
         load()
-        if topics.isEmpty { topics = Self.defaultTopics }
+        topics = mergedTopics(existing: topics, defaults: Self.defaultTopics)
         if providerConfigs.isEmpty {
             providerConfigs = AiProvider.allCases.map { ProviderConfig(provider: $0, baseURL: $0.defaultBaseURL) }
         }
@@ -63,6 +63,13 @@ final class AppStore: ObservableObject {
             providerConfigs.append(config)
         }
         save()
+    }
+
+    func debateCount(for topic: DebateTopic) -> Int {
+        sessions.filter { session in
+            normalizedTopicTitle(session.topic.title) == normalizedTopicTitle(topic.title) &&
+            (session.isCompleted || session.turns.isEmpty == false)
+        }.count
     }
 
     func createSession(topic: DebateTopic, mode: DebateMode, format: DebateFormat, difficulty: DebateDifficulty, side: DebateSide, provider: AiProvider) -> DebateSession {
@@ -219,33 +226,27 @@ final class AppStore: ObservableObject {
         isWorking = true
         defer { isWorking = false }
         do {
-            var preview: [DebateTurn] = []
-            for round in 1...3 {
-                let pro = try await ai.chat(systemPrompt: debatePrompt(topic: topic.title, side: .support, difficulty: .medium), messages: preview.map { ChatMessage(role: "assistant", content: $0.content) } + [ChatMessage(role: "user", content: "Round \(round), support side.")], config: config)
-                preview.append(DebateTurn(sessionID: "graph", role: .support, content: pro.content, provider: config.provider, model: config.resolvedModel))
-                let con = try await ai.chat(systemPrompt: debatePrompt(topic: topic.title, side: .oppose, difficulty: .medium), messages: preview.map { ChatMessage(role: "assistant", content: $0.content) } + [ChatMessage(role: "user", content: "Round \(round), oppose side.")], config: config)
-                preview.append(DebateTurn(sessionID: "graph", role: .oppose, content: con.content, provider: config.provider, model: config.resolvedModel))
-            }
             let graphResponse = try await ai.chat(
                 systemPrompt: """
-                Extract a dense argument relationship graph from the debate transcript. Return strict JSON only.
-                The graph must not be a simple topic/support/oppose triangle.
+                Generate a concise internal three-round debate and extract a dense argument relationship graph. Return strict JSON only.
                 Requirements:
-                - 18 to 24 nodes.
+                - Do the debate internally in the preview array: exactly 6 short turns, alternating support and oppose.
+                - Build 16 to 20 graph nodes.
                 - node 0 is the central topic.
                 - include independent branches for support and oppose positions.
                 - each main claim should have child evidence, warrants, objections, or rebuttals.
                 - mark 3 to 5 decisive claims/evidence as isKey=true.
                 - use short readable titles under 32 characters.
-                - details must explain the viewpoint or evidence in 1 to 2 sentences.
+                - details must explain the viewpoint or evidence in one compact sentence.
                 - edges use integer node indexes and relation supports, refutes, proves, qualifies, or depends_on.
                 Return schema:
-                {"nodes":[{"title":"","detail":"","type":"topic|support|oppose|evidence|rebuttal","isKey":true|false,"x":0,"y":0}],"edges":[{"from":0,"to":1,"relation":"supports|refutes|proves|qualifies|depends_on"}]}
+                {"preview":[{"role":"support|oppose","content":""}],"nodes":[{"title":"","detail":"","type":"topic|support|oppose|evidence|rebuttal","isKey":true|false}],"edges":[{"from":0,"to":1,"relation":"supports|refutes|proves|qualifies|depends_on"}]}
                 """,
-                messages: [ChatMessage(role: "user", content: "Topic: \(topic.title)\nTranscript:\n\(preview.map { "\($0.role.rawValue): \($0.content)" }.joined(separator: "\n\n"))")],
-                config: config
+                messages: [ChatMessage(role: "user", content: "Topic: \(topic.title)\nContext: \(topic.details)")],
+                config: config,
+                maxTokens: 1600
             )
-            return parseGraph(graphResponse.content, topic: topic, preview: preview)
+            return parseGraph(graphResponse.content, topic: topic, preview: [])
         } catch {
             activeError = error.localizedDescription
             return nil
@@ -292,9 +293,11 @@ final class AppStore: ObservableObject {
     private func parseGraph(_ raw: String, topic: DebateTopic, preview: [DebateTurn]) -> ArgumentGraph {
         guard
             let data = cleanJSON(raw).data(using: .utf8),
-            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-            let rawNodes = json["nodes"] as? [[String: Any]]
+            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
         else { return fallbackGraph(topic: topic, preview: preview) }
+        let rawNodes = (json["nodes"] as? [[String: Any]]) ?? ((json["graph"] as? [String: Any])?["nodes"] as? [[String: Any]])
+        guard let rawNodes else { return fallbackGraph(topic: topic, preview: preview) }
+        let parsedPreview = parseGraphPreview(json, fallback: preview)
         let nodes = rawNodes.enumerated().map { index, item in
             GraphNode(
                 title: item["title"] as? String ?? "Claim \(index + 1)",
@@ -305,14 +308,25 @@ final class AppStore: ObservableObject {
                 isKey: item["isKey"] as? Bool ?? item["key"] as? Bool ?? ((item["importance"] as? String)?.localizedCaseInsensitiveContains("key") == true)
             )
         }
-        let rawEdges = json["edges"] as? [[String: Any]] ?? []
+        let rawEdges = (json["edges"] as? [[String: Any]]) ?? ((json["graph"] as? [String: Any])?["edges"] as? [[String: Any]]) ?? []
         let edges = rawEdges.compactMap { item -> GraphEdge? in
             guard let fromIndex = item["from"] as? Int, let toIndex = item["to"] as? Int, nodes.indices.contains(fromIndex), nodes.indices.contains(toIndex) else { return nil }
             return GraphEdge(from: nodes[fromIndex].id, to: nodes[toIndex].id, relation: item["relation"] as? String ?? "relates")
         }
         let laidOutNodes = layoutGraphNodes(nodes)
-        let graph = ArgumentGraph(topic: topic, debatePreview: preview, nodes: laidOutNodes, edges: edges)
-        return isGraphUseful(graph) ? graph : fallbackGraph(topic: topic, preview: preview)
+        let graph = ArgumentGraph(topic: topic, debatePreview: parsedPreview, nodes: laidOutNodes, edges: edges)
+        return isGraphUseful(graph) ? graph : fallbackGraph(topic: topic, preview: parsedPreview)
+    }
+
+    private func parseGraphPreview(_ json: [String: Any], fallback: [DebateTurn]) -> [DebateTurn] {
+        guard let rawPreview = json["preview"] as? [[String: Any]] else { return fallback }
+        let turns = rawPreview.compactMap { item -> DebateTurn? in
+            guard let content = item["content"] as? String, content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false else { return nil }
+            let roleText = (item["role"] as? String ?? "").lowercased()
+            let role: SpeakerRole = roleText.contains("oppose") ? .oppose : .support
+            return DebateTurn(sessionID: "graph", role: role, content: content)
+        }
+        return turns.isEmpty ? fallback : turns
     }
 
     private func fallbackGraph(topic: DebateTopic, preview: [DebateTurn]) -> ArgumentGraph {
@@ -426,6 +440,20 @@ final class AppStore: ObservableObject {
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    private func mergedTopics(existing: [DebateTopic], defaults: [DebateTopic]) -> [DebateTopic] {
+        var merged = existing.map { topic in
+            DebateTopic(id: topic.id, title: topic.title, category: topic.category, details: topic.details, debateCount: 0)
+        }
+        let existingTitles = Set(merged.map { normalizedTopicTitle($0.title) })
+        let missingDefaults = defaults.filter { existingTitles.contains(normalizedTopicTitle($0.title)) == false }
+        merged.append(contentsOf: missingDefaults)
+        return merged
+    }
+
+    private func normalizedTopicTitle(_ title: String) -> String {
+        title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
     private func save() {
         let snapshot = Snapshot(topics: topics, sessions: sessions, rebuttalAttempts: rebuttalAttempts, providerConfigs: providerConfigs, selectedLanguage: selectedLanguage)
         if let data = try? JSONEncoder().encode(snapshot) {
@@ -454,11 +482,29 @@ final class AppStore: ObservableObject {
     }
 
     static let defaultTopics: [DebateTopic] = [
-        DebateTopic(title: "Should AI be regulated by governments?", category: "Technology", details: "Discuss whether governments should regulate artificial intelligence development and usage.", debateCount: 2300),
-        DebateTopic(title: "Is universal basic income a good idea?", category: "Society", details: "Consider economic security, work incentives, and public cost.", debateCount: 1800),
-        DebateTopic(title: "Is social media doing more harm than good?", category: "Society", details: "Evaluate mental health, public discourse, misinformation, and connection.", debateCount: 1600),
-        DebateTopic(title: "Will AI replace most human jobs?", category: "Technology", details: "Debate automation, new job creation, and economic transition.", debateCount: 1400),
-        DebateTopic(title: "Should euthanasia be legal?", category: "Ethics", details: "Discuss autonomy, safeguards, suffering, and medical responsibility.", debateCount: 960),
-        DebateTopic(title: "Is cryptocurrency the future of money?", category: "Economics", details: "Compare decentralization, volatility, regulation, and adoption.", debateCount: 870)
+        DebateTopic(title: "Should AI be regulated by governments?", category: "Technology", details: "Discuss whether governments should regulate artificial intelligence development and usage."),
+        DebateTopic(title: "Is universal basic income a good idea?", category: "Society", details: "Consider economic security, work incentives, and public cost."),
+        DebateTopic(title: "Is social media doing more harm than good?", category: "Society", details: "Evaluate mental health, public discourse, misinformation, and connection."),
+        DebateTopic(title: "Will AI replace most human jobs?", category: "Technology", details: "Debate automation, new job creation, and economic transition."),
+        DebateTopic(title: "Should euthanasia be legal?", category: "Ethics", details: "Discuss autonomy, safeguards, suffering, and medical responsibility."),
+        DebateTopic(title: "Is cryptocurrency the future of money?", category: "Economics", details: "Compare decentralization, volatility, regulation, and adoption."),
+        DebateTopic(title: "Should schools ban smartphones?", category: "Education", details: "Weigh attention, safety, learning tools, and student independence."),
+        DebateTopic(title: "Is homework still useful?", category: "Education", details: "Debate practice, stress, equity, and learning outcomes."),
+        DebateTopic(title: "Should college admissions use standardized tests?", category: "Education", details: "Compare fairness, predictive value, tutoring advantages, and alternatives."),
+        DebateTopic(title: "Should governments tax sugary drinks?", category: "Health", details: "Discuss public health, personal choice, regressivity, and healthcare costs."),
+        DebateTopic(title: "Is nuclear energy necessary for climate goals?", category: "Environment", details: "Evaluate safety, reliability, waste, cost, and emissions."),
+        DebateTopic(title: "Should cities prioritize public transit over cars?", category: "Urban Policy", details: "Debate congestion, affordability, climate, convenience, and business impact."),
+        DebateTopic(title: "Should voting be mandatory?", category: "Politics", details: "Consider civic duty, freedom, turnout, and uninformed voting."),
+        DebateTopic(title: "Should animals have legal rights?", category: "Ethics", details: "Discuss moral status, human responsibility, farming, research, and enforcement."),
+        DebateTopic(title: "Is remote work better than office work?", category: "Work", details: "Compare productivity, collaboration, flexibility, and career development."),
+        DebateTopic(title: "Should companies use AI to screen job applicants?", category: "Work", details: "Debate efficiency, bias, transparency, privacy, and accountability."),
+        DebateTopic(title: "Should gene editing of embryos be allowed?", category: "Science", details: "Examine disease prevention, inequality, consent, and unintended consequences."),
+        DebateTopic(title: "Is space exploration worth the cost?", category: "Science", details: "Weigh discovery, innovation, national prestige, and urgent Earth priorities."),
+        DebateTopic(title: "Should online anonymity be protected?", category: "Law", details: "Debate free speech, harassment, privacy, crime prevention, and accountability."),
+        DebateTopic(title: "Should streaming platforms regulate misinformation?", category: "Media", details: "Consider speech rights, harm reduction, platform power, and enforcement."),
+        DebateTopic(title: "Is capitalism the best economic system?", category: "Economics", details: "Compare innovation, inequality, freedom, stability, and alternatives."),
+        DebateTopic(title: "Should students be allowed to use AI for homework?", category: "Education", details: "Debate learning, cheating, access, creativity, and assessment design."),
+        DebateTopic(title: "Should surveillance cameras use facial recognition?", category: "Technology", details: "Evaluate safety, privacy, bias, consent, and oversight."),
+        DebateTopic(title: "Is free will an illusion?", category: "Philosophy", details: "Discuss neuroscience, moral responsibility, determinism, and lived experience.")
     ]
 }

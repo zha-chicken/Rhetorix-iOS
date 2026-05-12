@@ -206,9 +206,10 @@ Content:
 - Category chips
 - Trending topics
 - All topics
-- Topic rows with title, category, usage count, and navigation affordance
+- Topic rows with title, category, local usage count, and navigation affordance
 
 Search and category filters must be functional.
+Topic usage counts must be dynamic local data. A new user starts at `0 debates`; rows must not display fake global popularity numbers.
 
 ### Debate Setup
 
@@ -305,19 +306,19 @@ Entry behavior:
 
 Generation behavior:
 
-- AI generation first simulates a concise 3-round AI vs AI debate.
-- The graph is extracted from that debate transcript.
+- AI generation should use a single structured request that simulates a concise 3-round AI vs AI debate and extracts the graph in the same response, reducing wait time.
+- The graph is extracted from the generated debate preview.
 - The graph should include multiple independent branches for each side, not only `topic -> support -> oppose`.
 - Each major position should branch into specific claims, evidence, warrants, objections, and rebuttals.
-- A successful generated graph should aim for 18 to 24 nodes and at least 12 meaningful relationships.
+- A successful generated graph should aim for 16 to 20 nodes and at least 12 meaningful relationships.
 - Key evidence, decisive arguments, or pivotal claims should be highlighted as key nodes.
 - If graph extraction fails or returns an overly simple graph after debate generation, build a multi-branch fallback graph from the transcript instead of returning to a three-node graph or empty canvas.
 
 Loading state:
 
-- Show part of the AI vs AI debate in the center of the screen.
+- Show a clear centered generation state while the single structured request is running.
 - Top and bottom areas should use dark blur/scrim treatment.
-- The preview must reflect real generation progress, not static fake content.
+- Do not show static fake debate progress. Only show generated preview content after the provider returns it.
 
 Graph canvas:
 
