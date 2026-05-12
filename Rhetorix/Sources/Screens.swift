@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct RootView: View {
     @EnvironmentObject private var store: AppStore
@@ -854,11 +855,19 @@ struct DonationView: View {
                 Text("Thank you for supporting Rhetorix").font(.title2.bold()).multilineTextAlignment(.center)
                 GlassCard(accent: RhetorixColors.peach) {
                     VStack(spacing: 8) {
-                        Image("qrcode_donation")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxWidth: 240)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        if let url = Bundle.main.url(forResource: "qrcode_donation", withExtension: "jpg"),
+                           let image = UIImage(contentsOfFile: url.path) {
+                            Image(uiImage: image)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(maxWidth: 240)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                        } else {
+                            Image(systemName: "qrcode")
+                                .font(.system(size: 96))
+                                .foregroundStyle(RhetorixColors.textSecondary)
+                                .frame(width: 220, height: 220)
+                        }
                         Text("Scan with WeChat or Alipay")
                             .font(.caption)
                             .foregroundStyle(RhetorixColors.textSecondary)
