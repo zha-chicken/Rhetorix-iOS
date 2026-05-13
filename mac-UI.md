@@ -326,13 +326,18 @@ Graph canvas:
 - `Prep` shows the full case construction map.
 - `Clash` emphasizes impacts, weighing, key claims, and clash points.
 - `Drill` emphasizes attacks, defenses, rebuttals, and key nodes for practice.
-- Node spacing must prioritize readable titles.
-- Initial scale should show the full structure without heavy overlap.
+- Node spacing must prioritize readable titles and should start in neat debate-prep lanes instead of chaotic radial scatter.
+- Initial scale should show the full structure without heavy overlap or off-screen node clusters.
+- Users can manually reposition nodes by dragging them on the canvas.
+- Node colors should remain muted and serious, not bright neon blocks.
 - Relationship labels should remain readable.
-- Key nodes should use a visible star/key treatment and stronger accent border.
+- Key nodes should use a visible but restrained star/key treatment and stronger accent border.
 - Supportive edges use cool green/cyan.
 - Refuting edges use salmon.
 - Related/neutral edges use amber.
+- Tapping a node opens the detail panel and triggers a real provider-backed AI prep text request for that node.
+- Node prep output should be specific to the node type: constructive block, warrant explanation, evidence-search note, impact framing, attack, defense, rebuttal, clash comparison, or weighing language.
+- Do not represent AI node expansion as a fake static preview; if the configured provider/key fails, show the real app error state.
 
 ### Fallacy Detector
 

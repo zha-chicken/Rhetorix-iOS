@@ -600,12 +600,14 @@ struct ArgumentGraphView: View {
     @State private var graph: ArgumentGraph?
     @State private var selected: GraphNode?
     @State private var mode: BattleMapMode = .prep
+    @State private var nodeBriefs: [String: String] = [:]
+    @State private var expandingNodeID: String?
 
     var body: some View {
         ZStack {
             AppBackdrop()
             VStack {
-                if let graph {
+                if let currentGraph = graph {
                     Picker("Map Mode", selection: $mode) {
                         ForEach(BattleMapMode.allCases) { item in
                             Text(item.rawValue).tag(item)
@@ -613,10 +615,17 @@ struct ArgumentGraphView: View {
                     }
                     .pickerStyle(.segmented)
                     .padding(.horizontal)
-                    GraphCanvas(graph: graph, mode: mode, selected: $selected)
+                    GraphCanvas(
+                        graph: Binding(
+                            get: { graph ?? currentGraph },
+                            set: { graph = $0 }
+                        ),
+                        mode: mode,
+                        selected: $selected
+                    )
                     if let selected {
                         GlassCard(accent: accent(for: selected.type)) {
-                            VStack(alignment: .leading) {
+                            VStack(alignment: .leading, spacing: 10) {
                                 HStack {
                                     Text(selected.title).font(.headline)
                                     if selected.isKey {
@@ -630,11 +639,35 @@ struct ArgumentGraphView: View {
                                         .foregroundStyle(RhetorixColors.textSecondary)
                                 }
                                 Text(selected.detail).font(.caption).foregroundStyle(RhetorixColors.textSecondary)
+                                if expandingNodeID == selected.id {
+                                    HStack(spacing: 8) {
+                                        ProgressView()
+                                        Text("Preparing node text...")
+                                            .font(.caption)
+                                            .foregroundStyle(RhetorixColors.textSecondary)
+                                    }
+                                }
+                                if let brief = nodeBriefs[selected.id] {
+                                    Divider().overlay(.white.opacity(0.14))
+                                    Text("AI Prep Text")
+                                        .font(.caption.bold())
+                                        .foregroundStyle(RhetorixColors.textPrimary)
+                                    Text(brief)
+                                        .font(.caption)
+                                        .foregroundStyle(RhetorixColors.textSecondary)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
                                 if selected.type == .attack || selected.type == .defense || selected.type == .weighing || selected.type == .clash {
                                     Text(mode.tip)
                                         .font(.caption2)
                                         .foregroundStyle(RhetorixColors.amber)
                                 }
+                                Button("Refresh AI Text") {
+                                    requestNodeBrief(force: true)
+                                }
+                                .font(.caption.bold())
+                                .buttonStyle(.bordered)
+                                .disabled(expandingNodeID == selected.id)
                                 AIDisclaimer()
                             }
                         }
@@ -657,11 +690,19 @@ struct ArgumentGraphView: View {
                     .padding()
                 }
             }
-            if store.isWorking { ProgressView("Generating...").padding().background(.ultraThinMaterial).clipShape(RoundedRectangle(cornerRadius: 12)) }
+            if store.isWorking && graph == nil {
+                ProgressView("Generating...")
+                    .padding()
+                    .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
         }
         .navigationTitle(topic.title)
         .onAppear {
             provider = store.preferredProvider
+        }
+        .onChange(of: selected?.id) { _, _ in
+            requestNodeBrief(force: false)
         }
     }
 
@@ -672,6 +713,22 @@ struct ArgumentGraphView: View {
         case .defense, .rebuttal: RhetorixColors.peach
         case .support: RhetorixColors.green
         default: RhetorixColors.cyan
+        }
+    }
+
+    private func requestNodeBrief(force: Bool) {
+        guard let node = selected else { return }
+        if force == false, nodeBriefs[node.id] != nil { return }
+        let nodeID = node.id
+        expandingNodeID = nodeID
+        Task { @MainActor in
+            let brief = await store.expandGraphNode(topic: topic, node: node, provider: provider)
+            if brief.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false, selected?.id == nodeID {
+                nodeBriefs[nodeID] = brief
+            }
+            if expandingNodeID == nodeID {
+                expandingNodeID = nil
+            }
         }
     }
 }
@@ -693,9 +750,10 @@ enum BattleMapMode: String, CaseIterable, Identifiable {
 }
 
 struct GraphCanvas: View {
-    var graph: ArgumentGraph
+    @Binding var graph: ArgumentGraph
     var mode: BattleMapMode
     @Binding var selected: GraphNode?
+    @State private var dragOrigins: [String: CGPoint] = [:]
 
     private var visibleNodes: [GraphNode] {
         switch mode {
@@ -726,49 +784,82 @@ struct GraphCanvas: View {
                     }
                 }
                 ForEach(visibleNodes) { node in
-                    Button { selected = node } label: {
-                        VStack(spacing: 3) {
-                            if node.isKey {
-                                Image(systemName: "star.fill")
-                                    .font(.caption2.bold())
-                                    .foregroundStyle(RhetorixColors.amber)
-                            }
-                            Text(node.title)
-                                .font(.caption.bold())
-                                .lineLimit(2)
-                                .minimumScaleFactor(0.7)
-                                .multilineTextAlignment(.center)
-                            Text(shortLabel(node.type))
-                                .font(.system(size: 8, weight: .bold))
-                                .foregroundStyle(.white.opacity(0.76))
-                        }
-                        .frame(width: node.isKey ? 116 : 102, height: node.isKey ? 78 : 68)
-                        .background(
-                            RoundedRectangle(cornerRadius: node.isKey ? 18 : 16)
-                                .fill(color(node.type).opacity(node.isKey ? 0.94 : 0.78))
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: node.isKey ? 18 : 16)
-                                .stroke(node.isKey ? RhetorixColors.amber : .white.opacity(0.25), lineWidth: node.isKey ? 2.5 : 1)
-                        )
-                        .shadow(color: node.isKey ? RhetorixColors.amber.opacity(0.35) : .clear, radius: 12)
-                        .foregroundStyle(.white)
-                    }
+                    nodeView(node)
                     .position(point(node, geo))
+                    .onTapGesture {
+                        selected = currentNode(node.id) ?? node
+                    }
+                    .gesture(dragGesture(for: node, in: geo))
                 }
             }
         }
+        .frame(minHeight: 520)
     }
 
     private func point(_ node: GraphNode, _ geo: GeometryProxy) -> CGPoint {
-        CGPoint(x: geo.size.width / 2 + node.x, y: geo.size.height / 2 + node.y)
+        let scale = graphScale(geo)
+        return CGPoint(x: geo.size.width / 2 + CGFloat(node.x) * scale, y: geo.size.height / 2 + CGFloat(node.y) * scale)
+    }
+
+    private func graphScale(_ geo: GeometryProxy) -> CGFloat {
+        min(1, max(0.78, min(geo.size.width / 390, geo.size.height / 640)))
+    }
+
+    private func nodeView(_ node: GraphNode) -> some View {
+        VStack(spacing: 3) {
+            if node.isKey {
+                Image(systemName: "star.fill")
+                    .font(.caption2.bold())
+                    .foregroundStyle(RhetorixColors.amber.opacity(0.9))
+            }
+            Text(node.title)
+                .font(.system(size: node.isKey ? 12 : 11, weight: .bold))
+                .lineLimit(2)
+                .minimumScaleFactor(0.68)
+                .multilineTextAlignment(.center)
+            Text(shortLabel(node.type))
+                .font(.system(size: 7.5, weight: .bold))
+                .foregroundStyle(.white.opacity(0.68))
+        }
+        .frame(width: node.isKey ? 104 : 92, height: node.isKey ? 66 : 58)
+        .background(
+            RoundedRectangle(cornerRadius: node.isKey ? 16 : 14)
+                .fill(color(node.type).opacity(node.isKey ? 0.76 : 0.62))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: node.isKey ? 16 : 14)
+                .stroke(node.isKey ? RhetorixColors.amber.opacity(0.72) : .white.opacity(0.18), lineWidth: node.isKey ? 1.8 : 1)
+        )
+        .shadow(color: node.isKey ? RhetorixColors.amber.opacity(0.16) : .clear, radius: 8)
+        .foregroundStyle(.white)
+        .contentShape(RoundedRectangle(cornerRadius: node.isKey ? 16 : 14))
+    }
+
+    private func dragGesture(for node: GraphNode, in geo: GeometryProxy) -> some Gesture {
+        DragGesture(minimumDistance: 1)
+            .onChanged { value in
+                guard let index = graph.nodes.firstIndex(where: { $0.id == node.id }) else { return }
+                let origin = dragOrigins[node.id] ?? CGPoint(x: graph.nodes[index].x, y: graph.nodes[index].y)
+                dragOrigins[node.id] = origin
+                let scale = graphScale(geo)
+                graph.nodes[index].x = Double(origin.x + value.translation.width / scale)
+                graph.nodes[index].y = Double(origin.y + value.translation.height / scale)
+                selected = graph.nodes[index]
+            }
+            .onEnded { _ in
+                dragOrigins[node.id] = nil
+            }
+    }
+
+    private func currentNode(_ id: String) -> GraphNode? {
+        graph.nodes.first { $0.id == id }
     }
 
     private func edgeColor(_ relation: String) -> Color {
         switch relation {
-        case "refutes": RhetorixColors.salmon
-        case "qualifies", "depends_on": RhetorixColors.amber
-        default: RhetorixColors.green
+        case "refutes": Color(red: 0.77, green: 0.39, blue: 0.36).opacity(0.72)
+        case "qualifies", "depends_on": Color(red: 0.74, green: 0.58, blue: 0.36).opacity(0.66)
+        default: Color(red: 0.54, green: 0.68, blue: 0.61).opacity(0.66)
         }
     }
 
@@ -790,17 +881,17 @@ struct GraphCanvas: View {
 
     private func color(_ type: GraphNodeType) -> Color {
         switch type {
-        case .topic: RhetorixColors.cyan
-        case .support: RhetorixColors.green
-        case .oppose: RhetorixColors.salmon
-        case .evidence: RhetorixColors.amber
-        case .warrant: RhetorixColors.cyan
-        case .impact: RhetorixColors.amber
-        case .attack: RhetorixColors.salmon
-        case .defense: RhetorixColors.peach
-        case .weighing: RhetorixColors.amber
-        case .clash: RhetorixColors.peach
-        case .rebuttal: RhetorixColors.peach
+        case .topic: Color(red: 0.44, green: 0.72, blue: 0.72)
+        case .support: Color(red: 0.47, green: 0.63, blue: 0.55)
+        case .oppose: Color(red: 0.69, green: 0.41, blue: 0.38)
+        case .evidence: Color(red: 0.68, green: 0.55, blue: 0.36)
+        case .warrant: Color(red: 0.48, green: 0.67, blue: 0.67)
+        case .impact: Color(red: 0.70, green: 0.52, blue: 0.34)
+        case .attack: Color(red: 0.72, green: 0.38, blue: 0.36)
+        case .defense: Color(red: 0.67, green: 0.48, blue: 0.40)
+        case .weighing: Color(red: 0.68, green: 0.55, blue: 0.36)
+        case .clash: Color(red: 0.66, green: 0.45, blue: 0.42)
+        case .rebuttal: Color(red: 0.67, green: 0.48, blue: 0.40)
         }
     }
 }
