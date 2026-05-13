@@ -138,6 +138,12 @@ enum GraphNodeType: String, Codable {
     case support
     case oppose
     case evidence
+    case warrant
+    case impact
+    case attack
+    case defense
+    case weighing
+    case clash
     case rebuttal
 }
 

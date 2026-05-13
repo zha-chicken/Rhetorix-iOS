@@ -228,23 +228,27 @@ final class AppStore: ObservableObject {
         do {
             let graphResponse = try await ai.chat(
                 systemPrompt: """
-                Generate a concise internal three-round debate and extract a dense argument relationship graph. Return strict JSON only.
+                Generate a debate preparation battle map. Return strict JSON only.
+                This is for a student preparing for a real debate, so optimize for what to say, what the opponent will say, and how to answer it.
                 Requirements:
                 - Do the debate internally in the preview array: exactly 6 short turns, alternating support and oppose.
-                - Build 16 to 20 graph nodes.
+                - Build 24 to 30 graph nodes.
                 - node 0 is the central topic.
-                - include independent branches for support and oppose positions.
-                - each main claim should have child evidence, warrants, objections, or rebuttals.
-                - mark 3 to 5 decisive claims/evidence as isKey=true.
+                - include a definition/scope node near the topic.
+                - include 3 support contentions and 3 oppose contentions.
+                - each contention should connect to warrant/reasoning, evidence, impact, likely attack, and best defense nodes where relevant.
+                - include 3 clash nodes naming where the debate will be decided.
+                - include weighing nodes for magnitude, probability, timeframe, scope, reversibility, or principle.
+                - mark 5 to 7 decisive claims/evidence/clash/weighing nodes as isKey=true.
                 - use short readable titles under 32 characters.
                 - details must explain the viewpoint or evidence in one compact sentence.
                 - edges use integer node indexes and relation supports, refutes, proves, qualifies, or depends_on.
                 Return schema:
-                {"preview":[{"role":"support|oppose","content":""}],"nodes":[{"title":"","detail":"","type":"topic|support|oppose|evidence|rebuttal","isKey":true|false}],"edges":[{"from":0,"to":1,"relation":"supports|refutes|proves|qualifies|depends_on"}]}
+                {"preview":[{"role":"support|oppose","content":""}],"nodes":[{"title":"","detail":"","type":"topic|support|oppose|evidence|warrant|impact|attack|defense|weighing|clash|rebuttal","isKey":true|false}],"edges":[{"from":0,"to":1,"relation":"supports|refutes|proves|qualifies|depends_on"}]}
                 """,
                 messages: [ChatMessage(role: "user", content: "Topic: \(topic.title)\nContext: \(topic.details)")],
                 config: config,
-                maxTokens: 1600
+                maxTokens: 2400
             )
             return parseGraph(graphResponse.content, topic: topic, preview: [])
         } catch {
@@ -302,7 +306,7 @@ final class AppStore: ObservableObject {
             GraphNode(
                 title: item["title"] as? String ?? "Claim \(index + 1)",
                 detail: item["detail"] as? String ?? "",
-                type: GraphNodeType(rawValue: item["type"] as? String ?? "") ?? (index.isMultiple(of: 2) ? .support : .oppose),
+                type: parseGraphNodeType(item["type"] as? String, fallback: index.isMultiple(of: 2) ? .support : .oppose),
                 x: item["x"] as? Double ?? 0,
                 y: item["y"] as? Double ?? 0,
                 isKey: item["isKey"] as? Bool ?? item["key"] as? Bool ?? ((item["importance"] as? String)?.localizedCaseInsensitiveContains("key") == true)
@@ -329,77 +333,109 @@ final class AppStore: ObservableObject {
         return turns.isEmpty ? fallback : turns
     }
 
+    private func parseGraphNodeType(_ raw: String?, fallback: GraphNodeType) -> GraphNodeType {
+        let normalized = (raw ?? "")
+            .lowercased()
+            .replacingOccurrences(of: "-", with: "_")
+            .replacingOccurrences(of: " ", with: "_")
+        if let type = GraphNodeType(rawValue: normalized) { return type }
+        if normalized.contains("contention") || normalized.contains("claim") { return fallback }
+        if normalized.contains("reason") { return .warrant }
+        if normalized.contains("objection") { return .attack }
+        if normalized.contains("answer") || normalized.contains("response") { return .defense }
+        if normalized.contains("weigh") { return .weighing }
+        if normalized.contains("clash") { return .clash }
+        return fallback
+    }
+
     private func fallbackGraph(topic: DebateTopic, preview: [DebateTurn]) -> ArgumentGraph {
         let supportText = preview.filter { $0.role == .support }.map(\.content).joined(separator: " ")
         let opposeText = preview.filter { $0.role == .oppose }.map(\.content).joined(separator: " ")
-        var nodes: [GraphNode] = [
-            GraphNode(title: shortTitle(topic.title), detail: topic.details, type: .topic, x: 0, y: 0, isKey: true),
-            GraphNode(title: "Support thesis", detail: excerpt(supportText, fallback: "The supporting side presents the core affirmative case."), type: .support, x: -150, y: -40, isKey: true),
-            GraphNode(title: "Opposition thesis", detail: excerpt(opposeText, fallback: "The opposing side presents the core negative case."), type: .oppose, x: 150, y: -40, isKey: true)
-        ]
-
         let supportBranches = claimFragments(from: supportText, fallbackPrefix: "Support")
         let opposeBranches = claimFragments(from: opposeText, fallbackPrefix: "Oppose")
-        let supportTemplates: [(GraphNodeType, String, String, Bool)] = [
-            (.support, "Benefit claim", "supports", true),
-            (.evidence, "Practical evidence", "proves", true),
-            (.support, "Ethical warrant", "depends_on", false),
-            (.evidence, "Impact evidence", "proves", false),
-            (.rebuttal, "Answer to objection", "refutes", false),
-            (.evidence, "Constraint detail", "qualifies", false)
-        ]
-        let opposeTemplates: [(GraphNodeType, String, String, Bool)] = [
-            (.oppose, "Risk claim", "refutes", true),
-            (.evidence, "Risk evidence", "proves", true),
-            (.oppose, "Governance worry", "depends_on", false),
-            (.evidence, "Cost evidence", "proves", false),
-            (.rebuttal, "Counter-rebuttal", "refutes", false),
-            (.evidence, "Tradeoff detail", "qualifies", false)
-        ]
-        var edges: [GraphEdge] = [
-            GraphEdge(from: nodes[1].id, to: nodes[0].id, relation: "supports"),
-            GraphEdge(from: nodes[2].id, to: nodes[0].id, relation: "refutes")
-        ]
+        var nodes: [GraphNode] = []
+        var edges: [GraphEdge] = []
 
-        for (index, template) in supportTemplates.enumerated() {
-            let node = GraphNode(title: template.1, detail: supportBranches[index % supportBranches.count], type: template.0, x: 0, y: 0, isKey: template.3)
+        func add(_ title: String, _ detail: String, _ type: GraphNodeType, _ key: Bool = false) -> GraphNode {
+            let node = GraphNode(title: title, detail: detail, type: type, x: 0, y: 0, isKey: key)
             nodes.append(node)
-            edges.append(GraphEdge(from: node.id, to: index < 2 ? nodes[1].id : nodes[max(3, nodes.count - 2)].id, relation: template.2))
+            return node
         }
-        for (index, template) in opposeTemplates.enumerated() {
-            let node = GraphNode(title: template.1, detail: opposeBranches[index % opposeBranches.count], type: template.0, x: 0, y: 0, isKey: template.3)
-            nodes.append(node)
-            edges.append(GraphEdge(from: node.id, to: index < 2 ? nodes[2].id : nodes[max(9, nodes.count - 2)].id, relation: template.2))
+
+        func link(_ from: GraphNode, _ to: GraphNode, _ relation: String) {
+            edges.append(GraphEdge(from: from.id, to: to.id, relation: relation))
         }
-        if nodes.count > 9 {
-            edges.append(GraphEdge(from: nodes[9].id, to: nodes[3].id, relation: "refutes"))
+
+        let topicNode = add(shortTitle(topic.title), topic.details, .topic, true)
+        let scope = add("Definitions & scope", "Clarify key terms, actor, policy scope, and what burdens each side must prove.", .topic, true)
+        link(scope, topicNode, "depends_on")
+
+        for index in 0..<3 {
+            let contention = add("Support contention \(index + 1)", supportBranches[index % supportBranches.count], .support, index == 0)
+            let warrant = add("Support warrant \(index + 1)", "Explain the mechanism that makes this support argument logically work.", .warrant)
+            let evidence = add("Support evidence \(index + 1)", "Prepare a concrete example, statistic, precedent, or expert source for this claim.", .evidence, index == 1)
+            let impact = add("Support impact \(index + 1)", "State why this matters and who is affected if the support side wins.", .impact, index == 2)
+            let attack = add("Attack on support \(index + 1)", "Opponent may challenge causality, evidence quality, feasibility, or unintended consequences.", .attack)
+            let defense = add("Support defense \(index + 1)", "Answer the attack with comparison, mitigation, counter-evidence, or a turn.", .defense, index == 0)
+            link(contention, topicNode, "supports")
+            link(warrant, contention, "depends_on")
+            link(evidence, contention, "proves")
+            link(impact, contention, "supports")
+            link(attack, contention, "refutes")
+            link(defense, attack, "refutes")
         }
-        if nodes.count > 12 {
-            edges.append(GraphEdge(from: nodes[12].id, to: nodes[5].id, relation: "qualifies"))
+
+        for index in 0..<3 {
+            let contention = add("Oppose contention \(index + 1)", opposeBranches[index % opposeBranches.count], .oppose, index == 0)
+            let warrant = add("Oppose warrant \(index + 1)", "Explain the mechanism that makes this opposition argument logically work.", .warrant)
+            let evidence = add("Oppose evidence \(index + 1)", "Prepare a concrete example, statistic, precedent, or expert source for this claim.", .evidence, index == 1)
+            let impact = add("Oppose impact \(index + 1)", "State why this matters and who is affected if the oppose side wins.", .impact, index == 2)
+            let attack = add("Attack on oppose \(index + 1)", "Opponent may challenge causality, evidence quality, feasibility, or unintended consequences.", .attack)
+            let defense = add("Oppose defense \(index + 1)", "Answer the attack with comparison, mitigation, counter-evidence, or a turn.", .defense, index == 0)
+            link(contention, topicNode, "refutes")
+            link(warrant, contention, "depends_on")
+            link(evidence, contention, "proves")
+            link(impact, contention, "supports")
+            link(attack, contention, "refutes")
+            link(defense, attack, "refutes")
         }
+
+        let clash1 = add("Core clash", "Identify the main tradeoff both sides must directly compare.", .clash, true)
+        let clash2 = add("Feasibility clash", "Compare whether each side can realistically achieve its claimed outcome.", .clash)
+        let weighing = add("Impact weighing", "Compare magnitude, probability, timeframe, scope, reversibility, and principle.", .weighing, true)
+        link(clash1, topicNode, "qualifies")
+        link(clash2, clash1, "depends_on")
+        link(weighing, clash1, "supports")
 
         return ArgumentGraph(topic: topic, debatePreview: preview, nodes: layoutGraphNodes(nodes), edges: edges)
     }
 
     private func isGraphUseful(_ graph: ArgumentGraph) -> Bool {
-        guard graph.nodes.count >= 12, graph.edges.count >= 12 else { return false }
+        guard graph.nodes.count >= 18, graph.edges.count >= 18 else { return false }
         let supportCount = graph.nodes.filter { $0.type == .support }.count
         let opposeCount = graph.nodes.filter { $0.type == .oppose }.count
-        let evidenceCount = graph.nodes.filter { $0.type == .evidence || $0.type == .rebuttal }.count
+        let evidenceCount = graph.nodes.filter { $0.type == .evidence || $0.type == .warrant || $0.type == .impact }.count
+        let attackDefenseCount = graph.nodes.filter { $0.type == .attack || $0.type == .defense || $0.type == .rebuttal }.count
+        let clashCount = graph.nodes.filter { $0.type == .clash || $0.type == .weighing }.count
         let keyCount = graph.nodes.filter(\.isKey).count
-        return supportCount >= 3 && opposeCount >= 3 && evidenceCount >= 4 && keyCount >= 2
+        return supportCount >= 3 && opposeCount >= 3 && evidenceCount >= 5 && attackDefenseCount >= 4 && clashCount >= 2 && keyCount >= 3
     }
 
     private func layoutGraphNodes(_ nodes: [GraphNode]) -> [GraphNode] {
         var result = nodes
-        let supportIndexes = result.indices.filter { result[$0].type == .support || (result[$0].type == .evidence && $0.isMultiple(of: 2)) }
-        let opposeIndexes = result.indices.filter { result[$0].type == .oppose || result[$0].type == .rebuttal || (result[$0].type == .evidence && !$0.isMultiple(of: 2)) }
+        let supportIndexes = result.indices.filter { result[$0].type == .support || (result[$0].type == .evidence && $0.isMultiple(of: 2)) || (result[$0].type == .warrant && $0.isMultiple(of: 2)) || (result[$0].type == .impact && $0.isMultiple(of: 2)) || (result[$0].type == .defense && $0.isMultiple(of: 2)) }
+        let opposeIndexes = result.indices.filter { result[$0].type == .oppose || result[$0].type == .rebuttal || result[$0].type == .attack || (result[$0].type == .evidence && !$0.isMultiple(of: 2)) || (result[$0].type == .warrant && !$0.isMultiple(of: 2)) || (result[$0].type == .impact && !$0.isMultiple(of: 2)) || (result[$0].type == .defense && !$0.isMultiple(of: 2)) }
+        let clashIndexes = result.indices.filter { result[$0].type == .clash || result[$0].type == .weighing }
         for index in result.indices where result[index].type == .topic {
             result[index].x = 0
             result[index].y = 0
         }
         placeBranch(indexes: supportIndexes, side: -1, nodes: &result)
         placeBranch(indexes: opposeIndexes, side: 1, nodes: &result)
+        for (offset, index) in clashIndexes.enumerated() {
+            result[index].x = Double(offset - 1) * 145
+            result[index].y = 230
+        }
         return result
     }
 

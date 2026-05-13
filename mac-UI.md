@@ -293,9 +293,9 @@ Tool entries:
 
 The hallucination detector opens `https://gptzero.me/hallucination-detector` externally. Do not create a fake internal detector unless the feature is implemented.
 
-### Argument Relationship Graph
+### Argument Battle Map
 
-Purpose: generate and inspect relationships between claims, evidence, objections, and rebuttals.
+Purpose: generate and inspect a debate preparation map that helps the user decide what to say, what the opponent will say, and how to answer it.
 
 Entry behavior:
 
@@ -308,10 +308,10 @@ Generation behavior:
 
 - AI generation should use a single structured request that simulates a concise 3-round AI vs AI debate and extracts the graph in the same response, reducing wait time.
 - The graph is extracted from the generated debate preview.
-- The graph should include multiple independent branches for each side, not only `topic -> support -> oppose`.
-- Each major position should branch into specific claims, evidence, warrants, objections, and rebuttals.
-- A successful generated graph should aim for 16 to 20 nodes and at least 12 meaningful relationships.
-- Key evidence, decisive arguments, or pivotal claims should be highlighted as key nodes.
+- The graph should behave as a battle map, not a decorative mind map.
+- The graph should include definitions/scope, three support contentions, three oppose contentions, warrants, evidence, impacts, likely attacks, best defenses, clash points, and weighing nodes.
+- A successful generated graph should aim for 24 to 30 nodes and at least 18 meaningful relationships.
+- Key evidence, decisive arguments, clash points, or weighing nodes should be highlighted as key nodes.
 - If graph extraction fails or returns an overly simple graph after debate generation, build a multi-branch fallback graph from the transcript instead of returning to a three-node graph or empty canvas.
 
 Loading state:
@@ -322,6 +322,10 @@ Loading state:
 
 Graph canvas:
 
+- The graph has three modes: `Prep`, `Clash`, and `Drill`.
+- `Prep` shows the full case construction map.
+- `Clash` emphasizes impacts, weighing, key claims, and clash points.
+- `Drill` emphasizes attacks, defenses, rebuttals, and key nodes for practice.
 - Node spacing must prioritize readable titles.
 - Initial scale should show the full structure without heavy overlap.
 - Relationship labels should remain readable.

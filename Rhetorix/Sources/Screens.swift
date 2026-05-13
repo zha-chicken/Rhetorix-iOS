@@ -599,15 +599,23 @@ struct ArgumentGraphView: View {
     @State private var provider: AiProvider = .openAI
     @State private var graph: ArgumentGraph?
     @State private var selected: GraphNode?
+    @State private var mode: BattleMapMode = .prep
 
     var body: some View {
         ZStack {
             AppBackdrop()
             VStack {
                 if let graph {
-                    GraphCanvas(graph: graph, selected: $selected)
+                    Picker("Map Mode", selection: $mode) {
+                        ForEach(BattleMapMode.allCases) { item in
+                            Text(item.rawValue).tag(item)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal)
+                    GraphCanvas(graph: graph, mode: mode, selected: $selected)
                     if let selected {
-                        GlassCard(accent: selected.type == .oppose ? RhetorixColors.salmon : RhetorixColors.cyan) {
+                        GlassCard(accent: accent(for: selected.type)) {
                             VStack(alignment: .leading) {
                                 HStack {
                                     Text(selected.title).font(.headline)
@@ -616,8 +624,17 @@ struct ArgumentGraphView: View {
                                             .font(.caption.bold())
                                             .foregroundStyle(RhetorixColors.amber)
                                     }
+                                    Spacer()
+                                    Text(selected.type.rawValue.capitalized)
+                                        .font(.caption2.bold())
+                                        .foregroundStyle(RhetorixColors.textSecondary)
                                 }
                                 Text(selected.detail).font(.caption).foregroundStyle(RhetorixColors.textSecondary)
+                                if selected.type == .attack || selected.type == .defense || selected.type == .weighing || selected.type == .clash {
+                                    Text(mode.tip)
+                                        .font(.caption2)
+                                        .foregroundStyle(RhetorixColors.amber)
+                                }
                                 AIDisclaimer()
                             }
                         }
@@ -647,24 +664,68 @@ struct ArgumentGraphView: View {
             provider = store.preferredProvider
         }
     }
+
+    private func accent(for type: GraphNodeType) -> Color {
+        switch type {
+        case .oppose, .attack: RhetorixColors.salmon
+        case .weighing, .clash, .impact: RhetorixColors.amber
+        case .defense, .rebuttal: RhetorixColors.peach
+        case .support: RhetorixColors.green
+        default: RhetorixColors.cyan
+        }
+    }
+}
+
+enum BattleMapMode: String, CaseIterable, Identifiable {
+    case prep = "Prep"
+    case clash = "Clash"
+    case drill = "Drill"
+
+    var id: String { rawValue }
+
+    var tip: String {
+        switch self {
+        case .prep: "Use this node to build your constructive speech."
+        case .clash: "Use this node to compare which side wins the debate."
+        case .drill: "Practice answering this attack out loud before the round."
+        }
+    }
 }
 
 struct GraphCanvas: View {
     var graph: ArgumentGraph
+    var mode: BattleMapMode
     @Binding var selected: GraphNode?
+
+    private var visibleNodes: [GraphNode] {
+        switch mode {
+        case .prep:
+            graph.nodes
+        case .clash:
+            graph.nodes.filter { $0.type == .topic || $0.type == .clash || $0.type == .weighing || $0.type == .impact || $0.isKey }
+        case .drill:
+            graph.nodes.filter { $0.type == .topic || $0.type == .attack || $0.type == .defense || $0.type == .rebuttal || $0.isKey }
+        }
+    }
+
+    private var visibleNodeIDs: Set<String> {
+        Set(visibleNodes.map(\.id))
+    }
+
     var body: some View {
         GeometryReader { geo in
             ZStack {
                 ForEach(graph.edges) { edge in
-                    if let from = graph.nodes.first(where: { $0.id == edge.from }), let to = graph.nodes.first(where: { $0.id == edge.to }) {
+                    if visibleNodeIDs.contains(edge.from), visibleNodeIDs.contains(edge.to),
+                       let from = graph.nodes.first(where: { $0.id == edge.from }), let to = graph.nodes.first(where: { $0.id == edge.to }) {
                         Path { path in
                             path.move(to: point(from, geo))
                             path.addLine(to: point(to, geo))
                         }
-                        .stroke(edge.relation == "refutes" ? RhetorixColors.salmon : RhetorixColors.green, lineWidth: 2)
+                        .stroke(edgeColor(edge.relation), lineWidth: edge.relation == "refutes" ? 2.4 : 1.8)
                     }
                 }
-                ForEach(graph.nodes) { node in
+                ForEach(visibleNodes) { node in
                     Button { selected = node } label: {
                         VStack(spacing: 3) {
                             if node.isKey {
@@ -677,6 +738,9 @@ struct GraphCanvas: View {
                                 .lineLimit(2)
                                 .minimumScaleFactor(0.7)
                                 .multilineTextAlignment(.center)
+                            Text(shortLabel(node.type))
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundStyle(.white.opacity(0.76))
                         }
                         .frame(width: node.isKey ? 116 : 102, height: node.isKey ? 78 : 68)
                         .background(
@@ -700,12 +764,42 @@ struct GraphCanvas: View {
         CGPoint(x: geo.size.width / 2 + node.x, y: geo.size.height / 2 + node.y)
     }
 
+    private func edgeColor(_ relation: String) -> Color {
+        switch relation {
+        case "refutes": RhetorixColors.salmon
+        case "qualifies", "depends_on": RhetorixColors.amber
+        default: RhetorixColors.green
+        }
+    }
+
+    private func shortLabel(_ type: GraphNodeType) -> String {
+        switch type {
+        case .topic: "TOPIC"
+        case .support: "CASE"
+        case .oppose: "CASE"
+        case .evidence: "EVID"
+        case .warrant: "WHY"
+        case .impact: "IMPACT"
+        case .attack: "ATTACK"
+        case .defense: "DEFENSE"
+        case .weighing: "WEIGH"
+        case .clash: "CLASH"
+        case .rebuttal: "REBUT"
+        }
+    }
+
     private func color(_ type: GraphNodeType) -> Color {
         switch type {
         case .topic: RhetorixColors.cyan
         case .support: RhetorixColors.green
         case .oppose: RhetorixColors.salmon
         case .evidence: RhetorixColors.amber
+        case .warrant: RhetorixColors.cyan
+        case .impact: RhetorixColors.amber
+        case .attack: RhetorixColors.salmon
+        case .defense: RhetorixColors.peach
+        case .weighing: RhetorixColors.amber
+        case .clash: RhetorixColors.peach
         case .rebuttal: RhetorixColors.peach
         }
     }
