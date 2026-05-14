@@ -18,6 +18,18 @@ The interface should communicate:
 
 The product name shown in the app is always `Rhetorix`. Do not translate it in Chinese UI.
 
+## App Icon
+
+The iOS app icon uses a classical rhetoric/debate identity:
+
+- Deep navy background
+- Warm gold illustration and typography
+- Two opposing classical figures with swords to represent structured argument clash
+- Subtle laurel and column motifs to signal rhetoric, civic debate, and academic tradition
+- `Rhetorix` wordmark in gold
+
+The icon should feel serious, academic, and debate-focused. It should not use the pink-white UI theme as the icon identity, because the icon needs stronger contrast on the iOS home screen.
+
 ## Visual Direction
 
 The iPhone version uses the same dark glassmorphism direction as Android:
