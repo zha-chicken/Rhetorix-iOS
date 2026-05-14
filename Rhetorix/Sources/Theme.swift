@@ -1,19 +1,90 @@
 import SwiftUI
+import UIKit
 
 enum RhetorixColors {
-    static let background = Color(red: 0.075, green: 0.141, blue: 0.169)
-    static let backgroundDeep = Color(red: 0.055, green: 0.102, blue: 0.125)
-    static let glass = Color.white.opacity(0.085)
-    static let glassStrong = Color.white.opacity(0.145)
-    static let border = Color.white.opacity(0.14)
-    static let textPrimary = Color.white.opacity(0.94)
-    static let textSecondary = Color.white.opacity(0.66)
-    static let textTertiary = Color.white.opacity(0.44)
-    static let cyan = Color(red: 0.54, green: 0.88, blue: 0.89)
-    static let amber = Color(red: 0.96, green: 0.68, blue: 0.46)
-    static let peach = Color(red: 0.95, green: 0.55, blue: 0.48)
-    static let green = Color(red: 0.62, green: 0.76, blue: 0.69)
-    static let salmon = Color(red: 0.90, green: 0.45, blue: 0.42)
+    static let background = adaptive(
+        light: UIColor(red: 1.00, green: 0.965, blue: 0.972, alpha: 1.0),
+        dark: UIColor(red: 0.075, green: 0.141, blue: 0.169, alpha: 1.0)
+    )
+    static let backgroundDeep = adaptive(
+        light: UIColor(red: 1.00, green: 0.988, blue: 0.980, alpha: 1.0),
+        dark: UIColor(red: 0.055, green: 0.102, blue: 0.125, alpha: 1.0)
+    )
+    static let glass = adaptive(
+        light: UIColor(red: 1.00, green: 0.925, blue: 0.945, alpha: 0.66),
+        dark: UIColor(white: 1.0, alpha: 0.085)
+    )
+    static let glassStrong = adaptive(
+        light: UIColor(red: 1.00, green: 0.875, blue: 0.905, alpha: 0.78),
+        dark: UIColor(white: 1.0, alpha: 0.145)
+    )
+    static let border = adaptive(
+        light: UIColor(red: 0.95, green: 0.47, blue: 0.62, alpha: 0.18),
+        dark: UIColor(white: 1.0, alpha: 0.14)
+    )
+    static let textPrimary = adaptive(
+        light: UIColor(red: 0.135, green: 0.105, blue: 0.115, alpha: 0.96),
+        dark: UIColor(white: 1.0, alpha: 0.94)
+    )
+    static let textSecondary = adaptive(
+        light: UIColor(red: 0.36, green: 0.30, blue: 0.33, alpha: 0.76),
+        dark: UIColor(white: 1.0, alpha: 0.66)
+    )
+    static let textTertiary = adaptive(
+        light: UIColor(red: 0.54, green: 0.45, blue: 0.49, alpha: 0.64),
+        dark: UIColor(white: 1.0, alpha: 0.44)
+    )
+    static let cyan = adaptive(
+        light: UIColor(red: 0.94, green: 0.25, blue: 0.47, alpha: 1.0),
+        dark: UIColor(red: 0.54, green: 0.88, blue: 0.89, alpha: 1.0)
+    )
+    static let amber = adaptive(
+        light: UIColor(red: 0.96, green: 0.54, blue: 0.26, alpha: 1.0),
+        dark: UIColor(red: 0.96, green: 0.68, blue: 0.46, alpha: 1.0)
+    )
+    static let peach = adaptive(
+        light: UIColor(red: 0.96, green: 0.36, blue: 0.50, alpha: 1.0),
+        dark: UIColor(red: 0.95, green: 0.55, blue: 0.48, alpha: 1.0)
+    )
+    static let green = adaptive(
+        light: UIColor(red: 0.19, green: 0.66, blue: 0.58, alpha: 1.0),
+        dark: UIColor(red: 0.62, green: 0.76, blue: 0.69, alpha: 1.0)
+    )
+    static let salmon = adaptive(
+        light: UIColor(red: 0.92, green: 0.28, blue: 0.42, alpha: 1.0),
+        dark: UIColor(red: 0.90, green: 0.45, blue: 0.42, alpha: 1.0)
+    )
+
+    static let graphTopic = adaptive(
+        light: UIColor(red: 0.96, green: 0.46, blue: 0.60, alpha: 1.0),
+        dark: UIColor(red: 0.44, green: 0.72, blue: 0.72, alpha: 1.0)
+    )
+    static let graphSupport = adaptive(
+        light: UIColor(red: 0.94, green: 0.68, blue: 0.74, alpha: 1.0),
+        dark: UIColor(red: 0.47, green: 0.63, blue: 0.55, alpha: 1.0)
+    )
+    static let graphOppose = adaptive(
+        light: UIColor(red: 0.95, green: 0.52, blue: 0.42, alpha: 1.0),
+        dark: UIColor(red: 0.69, green: 0.41, blue: 0.38, alpha: 1.0)
+    )
+    static let graphEvidence = adaptive(
+        light: UIColor(red: 0.96, green: 0.70, blue: 0.36, alpha: 1.0),
+        dark: UIColor(red: 0.68, green: 0.55, blue: 0.36, alpha: 1.0)
+    )
+    static let graphWarrant = adaptive(
+        light: UIColor(red: 0.77, green: 0.50, blue: 0.68, alpha: 1.0),
+        dark: UIColor(red: 0.48, green: 0.67, blue: 0.67, alpha: 1.0)
+    )
+    static let graphDefense = adaptive(
+        light: UIColor(red: 0.91, green: 0.58, blue: 0.55, alpha: 1.0),
+        dark: UIColor(red: 0.67, green: 0.48, blue: 0.40, alpha: 1.0)
+    )
+
+    static func adaptive(light: UIColor, dark: UIColor) -> Color {
+        Color(UIColor { trait in
+            trait.userInterfaceStyle == .light ? light : dark
+        })
+    }
 }
 
 struct AppBackdrop: View {
@@ -31,7 +102,7 @@ struct AppBackdrop: View {
                 endRadius: 360
             )
             RadialGradient(
-                colors: [RhetorixColors.amber.opacity(0.14), .clear],
+                colors: [RhetorixColors.peach.opacity(0.14), .clear],
                 center: .topTrailing,
                 startRadius: 30,
                 endRadius: 420
@@ -95,4 +166,3 @@ extension View {
             .scrollContentBackground(.hidden)
     }
 }
-

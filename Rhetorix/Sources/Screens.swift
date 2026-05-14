@@ -543,6 +543,17 @@ struct SettingsView: View {
                 }
             }
             .listRowBackground(RhetorixColors.glass)
+            Section("Appearance") {
+                Picker("Theme", selection: Binding(
+                    get: { store.appTheme },
+                    set: { store.setAppTheme($0) }
+                )) {
+                    ForEach(AppTheme.allCases) { theme in
+                        Text(theme.rawValue).tag(theme)
+                    }
+                }
+            }
+            .listRowBackground(RhetorixColors.glass)
             Section("AI Providers") {
                 ForEach(AiProvider.allCases) { provider in
                     Button { path.append(AppRoute.provider(provider)) } label: {
@@ -857,9 +868,9 @@ struct GraphCanvas: View {
 
     private func edgeColor(_ relation: String) -> Color {
         switch relation {
-        case "refutes": Color(red: 0.77, green: 0.39, blue: 0.36).opacity(0.72)
-        case "qualifies", "depends_on": Color(red: 0.74, green: 0.58, blue: 0.36).opacity(0.66)
-        default: Color(red: 0.54, green: 0.68, blue: 0.61).opacity(0.66)
+        case "refutes": RhetorixColors.salmon.opacity(0.72)
+        case "qualifies", "depends_on": RhetorixColors.amber.opacity(0.66)
+        default: RhetorixColors.green.opacity(0.66)
         }
     }
 
@@ -881,17 +892,17 @@ struct GraphCanvas: View {
 
     private func color(_ type: GraphNodeType) -> Color {
         switch type {
-        case .topic: Color(red: 0.44, green: 0.72, blue: 0.72)
-        case .support: Color(red: 0.47, green: 0.63, blue: 0.55)
-        case .oppose: Color(red: 0.69, green: 0.41, blue: 0.38)
-        case .evidence: Color(red: 0.68, green: 0.55, blue: 0.36)
-        case .warrant: Color(red: 0.48, green: 0.67, blue: 0.67)
-        case .impact: Color(red: 0.70, green: 0.52, blue: 0.34)
-        case .attack: Color(red: 0.72, green: 0.38, blue: 0.36)
-        case .defense: Color(red: 0.67, green: 0.48, blue: 0.40)
-        case .weighing: Color(red: 0.68, green: 0.55, blue: 0.36)
-        case .clash: Color(red: 0.66, green: 0.45, blue: 0.42)
-        case .rebuttal: Color(red: 0.67, green: 0.48, blue: 0.40)
+        case .topic: RhetorixColors.graphTopic
+        case .support: RhetorixColors.graphSupport
+        case .oppose: RhetorixColors.graphOppose
+        case .evidence: RhetorixColors.graphEvidence
+        case .warrant: RhetorixColors.graphWarrant
+        case .impact: RhetorixColors.graphEvidence
+        case .attack: RhetorixColors.graphOppose
+        case .defense: RhetorixColors.graphDefense
+        case .weighing: RhetorixColors.graphEvidence
+        case .clash: RhetorixColors.graphDefense
+        case .rebuttal: RhetorixColors.graphDefense
         }
     }
 }

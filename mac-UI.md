@@ -41,7 +41,11 @@ Avoid:
 
 ## Color System
 
-The current SwiftUI baseline should mirror the Android palette.
+The app supports two real visual themes. The user can switch themes from Settings, and the choice is persisted locally.
+
+### Dark Graphite Theme
+
+The dark SwiftUI baseline should mirror the Android palette.
 
 Background:
 
@@ -72,6 +76,38 @@ Accents:
 - Salmon: errors, refutations, blocked content
 
 Color should clarify state and relationships, not act as decoration only.
+
+### Pink White Light Theme
+
+The light theme is a pink-white Rhetorix variant for users who prefer a bright interface.
+
+Background:
+
+- Warm white and very pale rose surfaces
+- Soft pink and peach radial glow accents
+- No pure flat white page that feels empty or clinical
+
+Surfaces:
+
+- Cards use translucent blush-white fill
+- Borders use pale rose with low opacity
+- Selected controls use stronger pink fill or pink border
+- Shadows, if used, should stay soft and low contrast
+
+Text:
+
+- Primary text is dark charcoal, not black
+- Secondary text is warm gray-brown
+- Text on saturated pink/coral controls remains white
+
+Accents:
+
+- Pink: primary actions, selected state, app identity
+- Peach/orange: debate tension, warning, relationship labels
+- Mint/teal: success and support-side signals
+- Rose/salmon: opposition, refutation, blocked/error states
+
+The light theme should feel calm, student-friendly, and readable, not like a marketing landing page.
 
 ## Typography
 

@@ -8,11 +8,10 @@ struct RhetorixApp: App {
         WindowGroup {
             RootView()
                 .environmentObject(store)
-                .preferredColorScheme(.dark)
+                .preferredColorScheme(store.appTheme.colorScheme)
                 .task {
                     store.bootstrap()
                 }
         }
     }
 }
-

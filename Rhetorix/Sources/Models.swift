@@ -1,6 +1,20 @@
 import Foundation
 import SwiftUI
 
+enum AppTheme: String, Codable, CaseIterable, Identifiable {
+    case dark = "Dark"
+    case light = "Pink White"
+
+    var id: String { rawValue }
+
+    var colorScheme: ColorScheme {
+        switch self {
+        case .dark: .dark
+        case .light: .light
+        }
+    }
+}
+
 enum DebateMode: String, Codable, CaseIterable, Identifiable {
     case userVsAi = "User vs AI"
     case aiVsAi = "AI vs AI"

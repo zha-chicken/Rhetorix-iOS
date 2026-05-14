@@ -8,6 +8,7 @@ final class AppStore: ObservableObject {
     @Published var rebuttalAttempts: [RebuttalAttempt] = []
     @Published var providerConfigs: [ProviderConfig] = []
     @Published var selectedLanguage = "English"
+    @Published var appTheme: AppTheme = .dark
     @Published var activeError: String?
     @Published var isWorking = false
 
@@ -62,6 +63,11 @@ final class AppStore: ObservableObject {
         } else {
             providerConfigs.append(config)
         }
+        save()
+    }
+
+    func setAppTheme(_ theme: AppTheme) {
+        appTheme = theme
         save()
     }
 
@@ -555,7 +561,7 @@ final class AppStore: ObservableObject {
     }
 
     private func save() {
-        let snapshot = Snapshot(topics: topics, sessions: sessions, rebuttalAttempts: rebuttalAttempts, providerConfigs: providerConfigs, selectedLanguage: selectedLanguage)
+        let snapshot = Snapshot(topics: topics, sessions: sessions, rebuttalAttempts: rebuttalAttempts, providerConfigs: providerConfigs, selectedLanguage: selectedLanguage, appTheme: appTheme)
         if let data = try? JSONEncoder().encode(snapshot) {
             try? data.write(to: storageURL)
         }
@@ -571,6 +577,7 @@ final class AppStore: ObservableObject {
         rebuttalAttempts = snapshot.rebuttalAttempts
         providerConfigs = snapshot.providerConfigs
         selectedLanguage = snapshot.selectedLanguage
+        appTheme = snapshot.appTheme ?? .dark
     }
 
     private struct Snapshot: Codable {
@@ -579,6 +586,7 @@ final class AppStore: ObservableObject {
         var rebuttalAttempts: [RebuttalAttempt]
         var providerConfigs: [ProviderConfig]
         var selectedLanguage: String
+        var appTheme: AppTheme?
     }
 
     static let defaultTopics: [DebateTopic] = [
