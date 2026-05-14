@@ -1,84 +1,488 @@
 # Rhetorix iOS
 
-Native SwiftUI iPhone implementation of Rhetorix.
+Rhetorix 是一款面向学生、辩论社成员、写作者和批判性思维学习者的 AI 辩论训练 App。这个仓库是 Rhetorix 的原生 iPhone 版本，使用 SwiftUI 和 Xcode 构建，目标是在 iOS 上复刻并延续 Android 版 Rhetorix 的核心体验。
 
-This project is a clean iOS port of the Android Rhetorix app. It keeps the same product direction:
+Rhetorix 的核心问题是：很多人想练习辩论、写作论证和反驳能力，但现实中很难随时找到合适的对手、评委和反馈来源。Rhetorix 通过用户自带 API Key 的 AI 模型，把“辩论对手、论点整理、反驳训练、谬误检测、赛后评分”整合到一个移动端工具里，让用户可以低成本、可重复地训练思辨能力。
 
-- Free debate and reasoning practice
-- User-provided AI provider API keys
-- No paywall
-- Optional donation/support screen
-- Fail-closed content safety checks
-- AI-generated content disclaimers
+## 项目定位
 
-## Current Scope
+Rhetorix 不是聊天机器人外壳，而是一个围绕“辩论训练”设计的工具型 App。
 
-Implemented in this first iOS pass:
+它希望帮助用户：
 
-- Home dashboard with dynamic debate stats
-- Topic selection
-- Debate setup
-- User vs AI and AI turn debate flow
-- Debate result judging
-- History
-- Tools page
-- Argument Relationship Graph generation
+- 快速围绕一个辩题形成正反双方观点
+- 模拟真实辩论中的攻防过程
+- 练习反驳、总结和权衡
+- 发现文本中的逻辑谬误
+- 将复杂辩题拆成可视化论点关系图
+- 保存历史辩论，复盘自己的表达和胜负结果
+- 在不依赖平台内置账号和付费墙的情况下使用自己的 AI Provider
+
+所有核心功能免费。项目没有付费墙，只有可选赞助页面。
+
+## 已实现功能
+
+### 1. 首页 Dashboard
+
+首页提供 Rhetorix 的主要入口和用户使用概览。
+
+功能包括：
+
+- 动态辩论总场数
+- 动态胜率
+- 动态连胜场数
+- 新建辩论入口
+- 面对面辩论入口
+- 历史记录入口
+- 论点图、反驳训练、谬误检测等准备工具入口
+- 赞助支持入口
+
+统计数据来自本地历史记录，新用户初始值为 0，不使用假的全局数据。
+
+### 2. 辩题选择
+
+用户可以在辩题库中选择辩论主题。
+
+功能包括：
+
+- 预设辩题列表
+- 分类信息
+- 搜索入口
+- 每个辩题的本地使用次数
+
+辩题下方的使用次数对应当前用户本地真正使用过的次数，而不是静态热门度。
+
+### 3. 辩论设置
+
+用户在开始前可以配置辩论参数。
+
+支持：
+
+- User vs AI
+- AI vs AI
+- Face to Face
+- Structured / Free Flow
+- Easy / Medium / Hard
+- Support / Oppose
+- AI Provider 选择
+
+AI Provider 默认选择用户已经配置 API Key 的模型。如果用户配置了多个 Provider，会默认选取其中一个可用 Provider。
+
+### 4. 实时辩论
+
+实时辩论界面用于进行人机或 AI 对 AI 辩论。
+
+功能包括：
+
+- 辩题标题展示
+- 当前回合和轮次状态
+- 双方发言卡片
+- AI 生成状态
+- 用户输入框
+- 提前结束并进入评分
+- AI 生成内容免责声明
+
+在人机辩论中，AI 的提示词被设计为“辩论对手”，不是普通助手。用户输入会被视为不可信辩论内容，不能覆盖系统行为。
+
+### 5. 辩论结果评分
+
+辩论结束后，App 会请求 AI 作为评委生成结果。
+
+结果页包括：
+
+- 获胜方
+- 比分
+- 简短总结
+- 关键时刻
+- 完整记录
+- AI 生成内容免责声明
+
+评分结果会保存到本地历史记录。
+
+### 6. 历史记录
+
+历史页面用于查看过去的辩论和训练记录。
+
+功能包括：
+
+- 已完成辩论列表
+- 未完成辩论继续入口
+- 反驳训练记录
+- 点击历史记录打开对应详情
+
+### 7. 工具页
+
+工具页是独立的功能集合，不是首页卡片的复制。
+
+包括：
+
+- Argument Relationship Graph
 - Rebuttal Trainer
 - Logic Fallacy Detector
-- AI Hallucination Detector external link
-- Settings and provider configuration
-- Donation screen with bundled QR image
-- Provider support for OpenAI, Anthropic, Gemini, DeepSeek, Groq, and Ollama/OpenAI-compatible endpoints
+- AI Hallucination Detector 外部入口
 
-## Safety Behavior
+其中 AI Hallucination Detector 会跳转到 GPTZero 的网页工具：
 
-Before a user prompt is sent to a model, and before AI output is displayed or saved, Rhetorix runs a safety check.
+```text
+https://gptzero.me/hallucination-detector
+```
 
-If a safety check fails because of timeout, invalid API key, invalid response, or provider error, the content is blocked and the UI shows:
+### 8. Argument Relationship Graph / Argument Battle Map
+
+论点图功能用于帮助用户准备辩论，而不是生成装饰性的思维导图。
+
+流程：
+
+1. 用户先进入独立辩题库
+2. 选择辩题
+3. App 调用 AI 生成一段简短 AI vs AI 辩论预览
+4. 从辩论预览中抽取论点、证据、攻击、防守和权衡关系
+5. 生成可视化 Argument Battle Map
+
+图中包含：
+
+- 中心辩题
+- 定义和范围
+- 支持方核心论点
+- 反对方核心论点
+- warrant / reasoning
+- evidence
+- impact
+- attack
+- defense
+- rebuttal
+- clash point
+- weighing frame
+
+交互能力：
+
+- 节点初始以较整齐的辩论准备布局展开
+- 用户可以拖拽节点调整位置
+- 节点颜色根据主题切换自适应
+- 点击节点会触发真实 AI 调用，生成该节点对应的具体备赛文本
+- 节点生成内容不是假 UI，如果 Provider 或 API Key 不可用，会显示真实错误
+
+图有三种模式：
+
+- Prep：完整准备视图
+- Clash：突出冲突点、权衡和关键影响
+- Drill：突出攻击、防守和反驳练习
+
+### 9. Logic Fallacy Detector
+
+逻辑谬误检测用于分析用户输入文本中的推理问题。
+
+功能包括：
+
+- 文本输入
+- AI 分析
+- 加载状态
+- 谬误列表
+- 严重程度
+- 未检出状态
+
+如果没有检测出逻辑谬误，界面会明确显示未检出，而不是空白。
+
+### 10. Rebuttal Trainer
+
+反驳训练用于在限时场景下练习回应对方观点。
+
+功能包括：
+
+- 当前论点
+- 难度
+- 时间限制
+- AI 生成待反驳观点
+- 用户输入反驳
+- AI 评分
+- 反馈和分项评价
+
+### 11. 设置与 AI Provider
+
+Rhetorix 不内置统一后端账号系统。用户需要在本地配置自己的 AI Provider API Key。
+
+当前支持：
+
+- OpenAI
+- Anthropic
+- Google Gemini
+- DeepSeek
+- Groq
+- Ollama / OpenAI-compatible endpoint
+
+每个 Provider 支持配置：
+
+- 是否启用
+- API Key
+- Model
+- Base URL
+
+### 12. 主题
+
+iOS 版支持两套主题：
+
+- Dark Graphite：深色玻璃拟态风格
+- Pink White：粉白色浅色模式
+
+主题设置保存在本地，并会影响全局背景、文字、卡片、按钮、图谱节点和关系线颜色。
+
+### 13. 赞助页面
+
+Rhetorix 没有付费墙。赞助页面只用于展示支持开发的二维码或说明。
+
+用户是否赞助不影响任何功能。
+
+## 安全策略
+
+Rhetorix 采用 fail-closed 的内容安全策略。
+
+在以下两类内容进入 UI 或数据库之前，都会进行安全检测：
+
+- 用户输入
+- AI 输出
+
+检测目标包括：
+
+- 仇恨言论
+- 政治敏感内容
+- 制作危险物品的方法
+- 色情内容
+
+Provider 行为：
+
+- OpenAI 优先使用 `/v1/moderations`
+- 非 OpenAI Provider 使用用户配置的对应 Provider 进行安全分类
+- 例如用户配置 DeepSeek，则使用 DeepSeek 检测
+
+如果任何安全检测步骤失败，包括：
+
+- 超时
+- API Key 无效
+- 返回无效结果
+- Provider 错误
+
+该条内容会被直接拦截，不进入 UI，也不写入本地数据库。
+
+统一错误提示：
 
 ```text
 内容安全检测服务异常，请稍后重试
 ```
 
-Visible AI-generated content includes:
+所有可见 AI 生成内容下方都会显示：
 
 ```text
 内容由AI生成，仅供参考 AI-generated, for reference only
 ```
 
-## Build
+## 技术栈
 
-Open:
+当前 iOS 版本使用：
+
+- Swift
+- SwiftUI
+- Xcode project
+- Codable 本地持久化
+- URLSession 网络请求
+- GitHub 仓库托管
+
+当前版本没有引入复杂服务端依赖，适合本地运行、学生项目展示和后续逐步扩展。
+
+## 代码结构
+
+```text
+Rhetorix-iOS/
+├── README.md
+├── mac-UI.md
+├── Rhetorix.xcodeproj
+└── Rhetorix/
+    └── Sources/
+        ├── RhetorixApp.swift
+        ├── Theme.swift
+        ├── Models.swift
+        ├── AIService.swift
+        ├── AppStore.swift
+        └── Screens.swift
+```
+
+### RhetorixApp.swift
+
+App 入口。创建全局 `AppStore`，注入 SwiftUI 环境，并根据用户设置应用深色或浅色主题。
+
+### Theme.swift
+
+定义全局视觉系统，包括：
+
+- 动态颜色
+- 深色主题
+- 粉白浅色主题
+- 背景
+- GlassCard
+- SectionTitle
+- AI 免责声明组件
+- 通用页面修饰符
+
+### Models.swift
+
+定义核心数据模型，包括：
+
+- DebateTopic
+- DebateSession
+- DebateTurn
+- DebateResult
+- AiProvider
+- ProviderConfig
+- ArgumentGraph
+- GraphNode
+- GraphEdge
+- FallacyFinding
+- RebuttalAttempt
+- AppTheme
+
+### AIService.swift
+
+负责 AI Provider 调用和安全检测。
+
+包括：
+
+- OpenAI-compatible Chat API
+- Anthropic Messages API
+- Gemini API
+- OpenAI Moderation
+- 非 OpenAI Provider 的问答式安全分类
+- fail-closed 安全拦截
+
+### AppStore.swift
+
+应用状态和业务逻辑中心。
+
+负责：
+
+- 启动初始化
+- 本地数据读取和保存
+- Provider 配置
+- 辩论创建
+- 用户发言
+- AI 发言
+- 结束辩论并评分
+- 谬误检测
+- 反驳训练
+- 论点图生成
+- 论点图节点扩展
+- 动态统计数据
+
+### Screens.swift
+
+SwiftUI 页面集合。
+
+包含：
+
+- RootView
+- HomeView
+- TopicSelectionView
+- DebateSetupView
+- DebateView
+- ResultView
+- HistoryView
+- ToolsView
+- SettingsView
+- ProviderConfigView
+- ArgumentGraphTopicSelectionView
+- ArgumentGraphView
+- GraphCanvas
+- FallacyDetectorView
+- RebuttalTrainerView
+- DonationView
+
+## 本地数据
+
+当前版本使用 JSON 文件在本地持久化数据。
+
+保存内容包括：
+
+- 辩题
+- 辩论历史
+- 反驳训练记录
+- AI Provider 配置
+- 语言设置
+- 主题设置
+
+注意：API Key 当前也保存在本地配置数据中。后续生产级版本建议迁移到 Keychain。
+
+## 构建方式
+
+打开 Xcode：
 
 ```text
 Rhetorix.xcodeproj
 ```
 
-Build target:
+选择 Scheme：
 
 ```text
 Rhetorix
 ```
 
-The current Mac has Xcode installed, but `xcodebuild` reported that the iOS platform is not installed:
+选择 iPhone Simulator 后运行。
+
+也可以使用命令行构建：
+
+```bash
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
+xcodebuild \
+  -project Rhetorix.xcodeproj \
+  -scheme Rhetorix \
+  -configuration Debug \
+  -sdk iphonesimulator \
+  -derivedDataPath build/DerivedData \
+  build
+```
+
+构建成功后，模拟器 App 路径通常为：
 
 ```text
-iOS 26.4 is not installed. Please download and install the platform from Xcode > Settings > Components.
+/Users/benjamin/Desktop/Rhetorix-iOS/build/DerivedData/Build/Products/Debug-iphonesimulator/Rhetorix.app
 ```
 
-After installing the iOS platform, run:
+## 当前实现边界
 
-```bash
-xcodebuild -project Rhetorix.xcodeproj -scheme Rhetorix -destination 'platform=iOS Simulator,name=iPhone 16' build
-```
+当前 iOS 版本是一个本地优先的 MVP / 原型级实现。
 
-## Verification Done Here
+已实现：
 
-Because the iOS SDK is currently missing, full iOS build could not be completed on this Mac.
+- 原生 iPhone UI
+- 主要产品流程
+- 多 Provider AI 调用
+- 安全检测
+- 本地历史记录
+- 主题切换
+- 论点图生成与节点扩展
 
-The Swift sources were type-checked successfully with the macOS SDK:
+暂未实现或仍需增强：
 
-```bash
-xcrun --sdk macosx swiftc -typecheck Rhetorix/Sources/*.swift
-```
+- iCloud 同步
+- 用户账号系统
+- App Store 生产签名流程
+- Keychain API Key 存储
+- 更完整的本地数据库层
+- 更细粒度的错误恢复
+- 全量自动化测试
+- iPad / macOS 专门适配
 
+## 设计文档
+
+`mac-UI.md` 是 iOS 版 UI 设计说明文件。虽然文件名中有 `mac`，但它描述的是在 macOS/Xcode 上开发的 iPhone App UI。
+
+每次修改 UI，都应同步更新 `mac-UI.md`，方便后续交给专业 UI 设计师继续迭代。
+
+## 项目价值
+
+Rhetorix 的价值不在于“把 AI 接到一个聊天框里”，而在于把 AI 放进具体的思辨训练流程中：
+
+- 用户有明确任务：准备辩论、反驳观点、检测谬误、复盘结果
+- AI 有明确角色：对手、评委、教练、分析器
+- 输出有明确用途：可用于发言、攻防、总结和复盘
+- 数据留在本地，用户使用自己的 Provider
+- 功能免费开放，适合学生和学习者使用
+
+这个项目可以继续向更完整的跨平台辩论训练系统发展，也可以作为 AI 教育工具、学生项目、大学申请材料或产品原型展示。
