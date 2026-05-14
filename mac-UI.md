@@ -109,6 +109,26 @@ Accents:
 
 The light theme should feel calm, student-friendly, and readable, not like a marketing landing page.
 
+## Language System
+
+The iPhone app supports an in-app language setting in Settings.
+
+Supported languages:
+
+- English
+- Simplified Chinese
+
+Behavior:
+
+- The selected language is persisted locally.
+- Primary navigation, screen titles, buttons, settings rows, tool names, loading states, empty states, and common labels should switch language immediately.
+- Debate setup enum labels such as mode, format, difficulty, and position should use localized display labels.
+- Built-in default topic titles and descriptions should display localized Chinese labels when Chinese is selected.
+- Topic search should work against both the original English topic text and the localized Chinese topic text.
+- AI-generated debate replies, judging summaries, fallacy explanations, rebuttal prompts, rebuttal feedback, argument graph nodes, and node expansion text should request the currently selected language from the provider.
+- The product name `Rhetorix` remains untranslated.
+- The bilingual AI disclaimer remains visible as written: `内容由AI生成，仅供参考 AI-generated, for reference only`.
+
 ## Typography
 
 Use native iOS typography, but keep the Android hierarchy:

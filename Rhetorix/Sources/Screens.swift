@@ -9,13 +9,13 @@ struct RootView: View {
         NavigationStack(path: $path) {
             TabView {
                 HomeView(path: $path)
-                    .tabItem { Label("Home", systemImage: "house.fill") }
+                    .tabItem { Label(store.t("Home"), systemImage: "house.fill") }
                 HistoryView(path: $path)
-                    .tabItem { Label("History", systemImage: "clock") }
+                    .tabItem { Label(store.t("History"), systemImage: "clock") }
                 ToolsView(path: $path)
-                    .tabItem { Label("Tools", systemImage: "square.grid.2x2") }
+                    .tabItem { Label(store.t("Tools"), systemImage: "square.grid.2x2") }
                 SettingsView(path: $path)
-                    .tabItem { Label("Settings", systemImage: "gearshape") }
+                    .tabItem { Label(store.t("Settings"), systemImage: "gearshape") }
             }
             .tint(RhetorixColors.cyan)
             .appScreen()
@@ -45,7 +45,7 @@ struct RootView: View {
             }
         }
         .alert("Rhetorix", isPresented: Binding(get: { store.activeError != nil }, set: { if !$0 { store.activeError = nil } })) {
-            Button("OK", role: .cancel) { store.activeError = nil }
+            Button(store.t("OK"), role: .cancel) { store.activeError = nil }
         } message: {
             Text(store.activeError ?? "")
         }
@@ -76,7 +76,7 @@ struct HomeView: View {
                             .foregroundStyle(RhetorixColors.textPrimary)
                             .padding(24)
                             .background(Circle().fill(RhetorixColors.glassStrong))
-                        Text("Challenge intelligence. Extend ideas.")
+                        Text(store.t("Challenge intelligence. Extend ideas."))
                             .font(.headline)
                             .foregroundStyle(RhetorixColors.textSecondary)
                     }
@@ -84,49 +84,49 @@ struct HomeView: View {
                 }
 
                 HStack(spacing: 10) {
-                    StatCard(value: "\(store.debateCount)", label: "Debates", icon: "trophy")
-                    StatCard(value: "\(store.winRate)%", label: "Win Rate", icon: "gearshape")
-                    StatCard(value: "\(store.winStreak)", label: "Win Streak", icon: "flame.fill")
+                    StatCard(value: "\(store.debateCount)", label: store.t("Debates"), icon: "trophy")
+                    StatCard(value: "\(store.winRate)%", label: store.t("Win Rate"), icon: "gearshape")
+                    StatCard(value: "\(store.winStreak)", label: store.t("Win Streak"), icon: "flame.fill")
                 }
 
                 GlassCard(accent: RhetorixColors.peach) {
                     HStack {
                         Image(systemName: "heart.fill").foregroundStyle(RhetorixColors.peach)
                         VStack(alignment: .leading) {
-                            Text("Support Development").font(.headline)
-                            Text("All features are free. Donations help keep Rhetorix independent.")
+                            Text(store.t("Support Development")).font(.headline)
+                            Text(store.t("All features are free. Donations help keep Rhetorix independent."))
                                 .font(.caption)
                                 .foregroundStyle(RhetorixColors.textSecondary)
                         }
                         Spacer()
-                        Button("Donate") { path.append(AppRoute.donation) }
+                        Button(store.t("Donate")) { path.append(AppRoute.donation) }
                             .buttonStyle(.bordered)
                     }
                 }
 
-                SectionTitle(text: "Quick Actions")
+                SectionTitle(text: store.t("Quick Actions"))
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                    FeatureCard(title: "New Debate", subtitle: "Start a debate with AI", icon: "message.fill", accent: RhetorixColors.cyan) {
+                    FeatureCard(title: store.t("New Debate"), subtitle: store.t("Start a debate with AI"), icon: "message.fill", accent: RhetorixColors.cyan) {
                         path.append(AppRoute.topicSelection)
                     }
-                    FeatureCard(title: "Face-to-Face", subtitle: "Debate on one device", icon: "person.2.fill", accent: RhetorixColors.amber) {
+                    FeatureCard(title: store.t("Face-to-Face"), subtitle: store.t("Debate on one device"), icon: "person.2.fill", accent: RhetorixColors.amber) {
                         path.append(AppRoute.setup(store.topics.first ?? AppStore.defaultTopics[0]))
                     }
-                    FeatureCard(title: "History", subtitle: "Review debates", icon: "clock.fill", accent: RhetorixColors.green) {}
-                    FeatureCard(title: "Fallacy Detector", subtitle: "Analyze reasoning", icon: "magnifyingglass", accent: RhetorixColors.green) {
+                    FeatureCard(title: store.t("History"), subtitle: store.t("Review debates"), icon: "clock.fill", accent: RhetorixColors.green) {}
+                    FeatureCard(title: store.t("Fallacy Detector"), subtitle: store.t("Analyze reasoning"), icon: "magnifyingglass", accent: RhetorixColors.green) {
                         path.append(AppRoute.fallacyDetector)
                     }
                 }
 
-                SectionTitle(text: "Preparation Tools")
+                SectionTitle(text: store.t("Preparation Tools"))
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                    FeatureCard(title: "Argument Graph", subtitle: "", icon: "point.3.connected.trianglepath.dotted", accent: RhetorixColors.cyan) {
+                    FeatureCard(title: store.t("Argument Graph"), subtitle: "", icon: "point.3.connected.trianglepath.dotted", accent: RhetorixColors.cyan) {
                         path.append(AppRoute.argumentGraphTopicSelection)
                     }
-                    FeatureCard(title: "Rebuttal", subtitle: "", icon: "timer", accent: RhetorixColors.amber) {
+                    FeatureCard(title: store.t("Rebuttal"), subtitle: "", icon: "timer", accent: RhetorixColors.amber) {
                         path.append(AppRoute.rebuttalTrainer)
                     }
-                    FeatureCard(title: "Fallacy", subtitle: "", icon: "magnifyingglass", accent: RhetorixColors.green) {
+                    FeatureCard(title: store.t("Fallacy"), subtitle: "", icon: "magnifyingglass", accent: RhetorixColors.green) {
                         path.append(AppRoute.fallacyDetector)
                     }
                 }
@@ -183,17 +183,22 @@ struct TopicSelectionView: View {
     @State private var search = ""
 
     var filtered: [DebateTopic] {
-        search.isEmpty ? store.topics : store.topics.filter { $0.title.localizedCaseInsensitiveContains(search) || $0.category.localizedCaseInsensitiveContains(search) }
+        search.isEmpty ? store.topics : store.topics.filter {
+            $0.title.localizedCaseInsensitiveContains(search) ||
+            store.topicTitle($0).localizedCaseInsensitiveContains(search) ||
+            $0.category.localizedCaseInsensitiveContains(search) ||
+            store.category($0.category).localizedCaseInsensitiveContains(search)
+        }
     }
 
     var body: some View {
         List {
             Section {
-                TextField("Search topics...", text: $search)
+                TextField(store.t("Search topics..."), text: $search)
             }
             .listRowBackground(RhetorixColors.glass)
 
-            Section("Trending") {
+            Section(store.t("Trending")) {
                 ForEach(filtered) { topic in
                     Button { path.append(AppRoute.setup(topic)) } label: {
                         TopicRow(topic: topic, debateCount: store.debateCount(for: topic))
@@ -202,10 +207,10 @@ struct TopicSelectionView: View {
                 }
             }
         }
-        .navigationTitle("Select Topic")
+        .navigationTitle(store.t("Select Topic"))
         .toolbar {
-            Button("Add Topic") {
-                let topic = DebateTopic(title: "Custom debate topic", category: "Custom", details: "Edit this topic in a future build.")
+            Button(store.t("Add Topic")) {
+                let topic = DebateTopic(title: store.t("Custom debate topic"), category: store.t("Custom"), details: store.t("Edit this topic in a future build."))
                 store.topics.insert(topic, at: 0)
                 path.append(AppRoute.setup(topic))
             }
@@ -215,13 +220,14 @@ struct TopicSelectionView: View {
 }
 
 struct TopicRow: View {
+    @EnvironmentObject private var store: AppStore
     var topic: DebateTopic
     var debateCount: Int
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text(topic.title).foregroundStyle(RhetorixColors.textPrimary)
-                Text("\(topic.category) · \(debateCount) \(debateCount == 1 ? "debate" : "debates")")
+                Text(store.topicTitle(topic)).foregroundStyle(RhetorixColors.textPrimary)
+                Text("\(store.category(topic.category)) · \(store.debateCountText(debateCount))")
                     .font(.caption)
                     .foregroundStyle(RhetorixColors.textSecondary)
             }
@@ -239,7 +245,9 @@ struct ArgumentGraphTopicSelectionView: View {
     private var filtered: [DebateTopic] {
         search.isEmpty ? store.topics : store.topics.filter {
             $0.title.localizedCaseInsensitiveContains(search) ||
+            store.topicTitle($0).localizedCaseInsensitiveContains(search) ||
             $0.category.localizedCaseInsensitiveContains(search) ||
+            store.category($0.category).localizedCaseInsensitiveContains(search) ||
             $0.details.localizedCaseInsensitiveContains(search)
         }
     }
@@ -247,11 +255,11 @@ struct ArgumentGraphTopicSelectionView: View {
     var body: some View {
         List {
             Section {
-                TextField("Search topics...", text: $search)
+                TextField(store.t("Search topics..."), text: $search)
             }
             .listRowBackground(RhetorixColors.glass)
 
-            Section("Choose a Topic") {
+            Section(store.t("Choose a Topic")) {
                 ForEach(filtered) { topic in
                     Button {
                         path.append(AppRoute.argumentGraph(topic))
@@ -262,10 +270,10 @@ struct ArgumentGraphTopicSelectionView: View {
                 }
             }
         }
-        .navigationTitle("Graph Topic")
+        .navigationTitle(store.t("Graph Topic"))
         .toolbar {
-            Button("Add Topic") {
-                let topic = DebateTopic(title: "Custom graph topic", category: "Custom", details: "Edit this topic in a future build.")
+            Button(store.t("Add Topic")) {
+                let topic = DebateTopic(title: store.t("Custom graph topic"), category: store.t("Custom"), details: store.t("Edit this topic in a future build."))
                 store.topics.insert(topic, at: 0)
                 path.append(AppRoute.argumentGraph(topic))
             }
@@ -289,23 +297,23 @@ struct DebateSetupView: View {
             VStack(spacing: 16) {
                 GlassCard(accent: RhetorixColors.cyan) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(topic.title).font(.headline)
-                        Text(topic.details).font(.caption).foregroundStyle(RhetorixColors.textSecondary)
+                        Text(store.topicTitle(topic)).font(.headline)
+                        Text(store.topicDetails(topic)).font(.caption).foregroundStyle(RhetorixColors.textSecondary)
                     }
                 }
-                Picker("Mode", selection: $mode) {
-                    ForEach(DebateMode.allCases) { Text($0.rawValue).tag($0) }
+                Picker(store.t("Mode"), selection: $mode) {
+                    ForEach(DebateMode.allCases) { Text(store.debateMode($0)).tag($0) }
                 }.pickerStyle(.segmented)
-                Picker("Format", selection: $format) {
-                    ForEach(DebateFormat.allCases) { Text($0.rawValue).tag($0) }
+                Picker(store.t("Format"), selection: $format) {
+                    ForEach(DebateFormat.allCases) { Text(store.debateFormat($0)).tag($0) }
                 }.pickerStyle(.segmented)
-                Picker("Difficulty", selection: $difficulty) {
-                    ForEach(DebateDifficulty.allCases) { Text($0.rawValue).tag($0) }
+                Picker(store.t("Difficulty"), selection: $difficulty) {
+                    ForEach(DebateDifficulty.allCases) { Text(store.debateDifficulty($0)).tag($0) }
                 }.pickerStyle(.segmented)
-                Picker("Your Position", selection: $side) {
-                    ForEach(DebateSide.allCases) { Text($0.rawValue).tag($0) }
+                Picker(store.t("Your Position"), selection: $side) {
+                    ForEach(DebateSide.allCases) { Text(store.debateSide($0)).tag($0) }
                 }.pickerStyle(.segmented)
-                Picker("AI Provider", selection: $provider) {
+                Picker(store.t("AI Provider"), selection: $provider) {
                     ForEach(AiProvider.allCases) { Text($0.rawValue).tag($0) }
                 }
                 .pickerStyle(.menu)
@@ -313,13 +321,13 @@ struct DebateSetupView: View {
                     let session = store.createSession(topic: topic, mode: mode, format: format, difficulty: difficulty, side: side, provider: provider)
                     path.append(AppRoute.debate(session.id))
                 } label: {
-                    Text("Start Debate").frame(maxWidth: .infinity)
+                    Text(store.t("Start Debate")).frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
             }
             .padding()
         }
-        .navigationTitle("Debate Setup")
+        .navigationTitle(store.t("Debate Setup"))
         .onAppear {
             provider = store.preferredProvider
         }
@@ -347,7 +355,7 @@ struct DebateView: View {
                                     .id(turn.id)
                             }
                             if store.isWorking {
-                                ProgressView("Thinking...")
+                                ProgressView(store.t("Thinking..."))
                                     .padding()
                             }
                         }
@@ -361,7 +369,7 @@ struct DebateView: View {
                 }
             }
             HStack {
-                TextField("Type your argument...", text: $input, axis: .vertical)
+                TextField(store.t("Type your argument..."), text: $input, axis: .vertical)
                     .textFieldStyle(.roundedBorder)
                 Button {
                     let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -376,25 +384,26 @@ struct DebateView: View {
             .background(RhetorixColors.backgroundDeep)
         }
         .toolbar {
-            Button("AI Turn") { Task { await store.advanceAIDebate(sessionID: sessionID) } }
-            Button("End") { Task { await store.endAndJudge(sessionID: sessionID); path.append(AppRoute.result(sessionID)) } }
+            Button(store.t("AI Turn")) { Task { await store.advanceAIDebate(sessionID: sessionID) } }
+            Button(store.t("End")) { Task { await store.endAndJudge(sessionID: sessionID); path.append(AppRoute.result(sessionID)) } }
         }
-        .navigationTitle(session?.topic.title ?? "Debate")
+        .navigationTitle(session.map { store.topicTitle($0.topic) } ?? store.t("Debate"))
         .appScreen()
     }
 }
 
 struct DebateStatus: View {
+    @EnvironmentObject private var store: AppStore
     var session: DebateSession
     var body: some View {
         GlassCard(accent: RhetorixColors.amber) {
             HStack {
                 Text("\(session.turns.filter { $0.role == .support || $0.role == .user }.count)").font(.title.bold()).foregroundStyle(RhetorixColors.green)
-                Text("Support")
+                Text(store.t("Support"))
                 Spacer()
-                Text("Turn \(session.turns.count) / 12").font(.caption).foregroundStyle(RhetorixColors.textSecondary)
+                Text("\(store.t("Turn")) \(session.turns.count) / 12").font(.caption).foregroundStyle(RhetorixColors.textSecondary)
                 Spacer()
-                Text("Oppose")
+                Text(store.t("Oppose"))
                 Text("\(session.turns.filter { $0.role == .oppose }.count)").font(.title.bold()).foregroundStyle(RhetorixColors.salmon)
             }
         }
@@ -402,13 +411,14 @@ struct DebateStatus: View {
 }
 
 struct DebateBubble: View {
+    @EnvironmentObject private var store: AppStore
     var turn: DebateTurn
     var isUser: Bool { turn.role == .user }
     var body: some View {
         HStack {
             if isUser { Spacer(minLength: 50) }
             VStack(alignment: .leading, spacing: 6) {
-                Text(turn.role.rawValue).font(.caption.bold()).foregroundStyle(turn.role.color)
+                Text(store.speaker(turn.role)).font(.caption.bold()).foregroundStyle(turn.role.color)
                 Text(turn.content).foregroundStyle(RhetorixColors.textPrimary)
                 if !isUser { AIDisclaimer(color: RhetorixColors.textTertiary) }
                 if let provider = turn.provider {
@@ -435,19 +445,19 @@ struct ResultView: View {
                 GlassCard(accent: RhetorixColors.amber) {
                     VStack(spacing: 10) {
                         Image(systemName: "trophy.fill").font(.largeTitle).foregroundStyle(RhetorixColors.amber)
-                        Text(session.topic.title).font(.headline).multilineTextAlignment(.center)
-                        Text("Winner").font(.caption).foregroundStyle(RhetorixColors.textSecondary)
-                        Text(session.result?.winner?.rawValue ?? "N/A").font(.largeTitle.bold()).foregroundStyle(RhetorixColors.green)
-                        Text(session.result?.summary ?? "No judgment yet.")
+                        Text(store.topicTitle(session.topic)).font(.headline).multilineTextAlignment(.center)
+                        Text(store.t("Winner")).font(.caption).foregroundStyle(RhetorixColors.textSecondary)
+                        Text(session.result?.winner.map { store.speaker($0) } ?? store.t("N/A")).font(.largeTitle.bold()).foregroundStyle(RhetorixColors.green)
+                        Text(session.result?.summary ?? store.t("No judgment yet."))
                             .multilineTextAlignment(.center)
                         AIDisclaimer()
                     }
                 }
                 .listRowBackground(Color.clear)
-                Section("Transcript") {
+                Section(store.t("Transcript")) {
                     ForEach(session.turns) { turn in
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(turn.role.rawValue).font(.caption.bold()).foregroundStyle(turn.role.color)
+                            Text(store.speaker(turn.role)).font(.caption.bold()).foregroundStyle(turn.role.color)
                             Text(turn.content)
                             if turn.role != .user { AIDisclaimer() }
                         }
@@ -455,7 +465,7 @@ struct ResultView: View {
                 }
             }
         }
-        .navigationTitle("Debate Result")
+        .navigationTitle(store.t("Debate Result"))
         .appScreen()
     }
 }
@@ -470,8 +480,8 @@ struct HistoryView: View {
                     path.append(session.isCompleted ? AppRoute.result(session.id) : AppRoute.debate(session.id))
                 } label: {
                     VStack(alignment: .leading) {
-                        Text(session.topic.title).foregroundStyle(RhetorixColors.textPrimary)
-                        Text("\(session.mode.rawValue) · \(session.turns.count) turns")
+                        Text(store.topicTitle(session.topic)).foregroundStyle(RhetorixColors.textPrimary)
+                        Text("\(store.debateMode(session.mode)) · \(session.turns.count) \(store.t("turns"))")
                             .font(.caption)
                             .foregroundStyle(RhetorixColors.textSecondary)
                     }
@@ -480,15 +490,15 @@ struct HistoryView: View {
             }
             ForEach(store.rebuttalAttempts) { attempt in
                 VStack(alignment: .leading) {
-                    Text("Rebuttal Training").foregroundStyle(RhetorixColors.textPrimary)
-                    Text("\(attempt.topic.title) · Score \(attempt.score)")
+                    Text(store.t("Rebuttal Training")).foregroundStyle(RhetorixColors.textPrimary)
+                    Text("\(store.topicTitle(attempt.topic)) · \(store.t("Score")) \(attempt.score)")
                         .font(.caption)
                         .foregroundStyle(RhetorixColors.textSecondary)
                 }
                 .listRowBackground(RhetorixColors.glass)
             }
         }
-        .navigationTitle("History")
+        .navigationTitle(store.t("History"))
         .appScreen()
     }
 }
@@ -499,13 +509,13 @@ struct ToolsView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 12) {
-                FeatureCard(title: "Argument Relationship Graph", subtitle: "Map claims and rebuttals", icon: "point.3.connected.trianglepath.dotted", accent: RhetorixColors.cyan) {
+                FeatureCard(title: store.t("Argument Relationship Graph"), subtitle: store.t("Map claims and rebuttals"), icon: "point.3.connected.trianglepath.dotted", accent: RhetorixColors.cyan) {
                     path.append(AppRoute.argumentGraphTopicSelection)
                 }
-                FeatureCard(title: "Rebuttal Trainer", subtitle: "Timed rebuttal practice", icon: "timer", accent: RhetorixColors.amber) {
+                FeatureCard(title: store.t("Rebuttal Trainer"), subtitle: store.t("Timed rebuttal practice"), icon: "timer", accent: RhetorixColors.amber) {
                     path.append(AppRoute.rebuttalTrainer)
                 }
-                FeatureCard(title: "Logic Fallacy Detector", subtitle: "Find weak reasoning", icon: "magnifyingglass", accent: RhetorixColors.green) {
+                FeatureCard(title: store.t("Logic Fallacy Detector"), subtitle: store.t("Find weak reasoning"), icon: "magnifyingglass", accent: RhetorixColors.green) {
                     path.append(AppRoute.fallacyDetector)
                 }
                 Link(destination: URL(string: "https://gptzero.me/hallucination-detector")!) {
@@ -513,8 +523,8 @@ struct ToolsView: View {
                         HStack {
                             Image(systemName: "sparkles").foregroundStyle(RhetorixColors.peach)
                             VStack(alignment: .leading) {
-                                Text("AI Hallucination Detector")
-                                Text("Open GPTZero hallucination detector")
+                                Text(store.t("AI Hallucination Detector"))
+                                Text(store.t("Open GPTZero hallucination detector"))
                                     .font(.caption)
                                     .foregroundStyle(RhetorixColors.textSecondary)
                             }
@@ -527,7 +537,7 @@ struct ToolsView: View {
             }
             .padding()
         }
-        .navigationTitle("Tools")
+        .navigationTitle(store.t("Tools"))
         .appScreen()
     }
 }
@@ -539,28 +549,35 @@ struct SettingsView: View {
         List {
             Section {
                 Button { path.append(AppRoute.donation) } label: {
-                    Label("Support Development", systemImage: "heart.fill")
+                    Label(store.t("Support Development"), systemImage: "heart.fill")
                 }
             }
             .listRowBackground(RhetorixColors.glass)
-            Section("Appearance") {
-                Picker("Theme", selection: Binding(
+            Section(store.t("Appearance")) {
+                Picker(store.t("Language"), selection: Binding(
+                    get: { store.selectedLanguage },
+                    set: { store.setLanguage($0) }
+                )) {
+                    Text(store.t("English")).tag("English")
+                    Text(store.t("中文")).tag("中文")
+                }
+                Picker(store.t("Theme"), selection: Binding(
                     get: { store.appTheme },
                     set: { store.setAppTheme($0) }
                 )) {
                     ForEach(AppTheme.allCases) { theme in
-                        Text(theme.rawValue).tag(theme)
+                        Text(store.themeName(theme)).tag(theme)
                     }
                 }
             }
             .listRowBackground(RhetorixColors.glass)
-            Section("AI Providers") {
+            Section(store.t("AI Providers")) {
                 ForEach(AiProvider.allCases) { provider in
                     Button { path.append(AppRoute.provider(provider)) } label: {
                         HStack {
                             Text(provider.rawValue)
                             Spacer()
-                            Text(store.config(for: provider)?.isEnabled == true ? "Enabled" : "Disabled")
+                            Text(store.config(for: provider)?.isEnabled == true ? store.t("Enabled") : store.t("Disabled"))
                                 .font(.caption)
                                 .foregroundStyle(store.config(for: provider)?.isEnabled == true ? RhetorixColors.green : RhetorixColors.salmon)
                         }
@@ -569,7 +586,7 @@ struct SettingsView: View {
             }
             .listRowBackground(RhetorixColors.glass)
         }
-        .navigationTitle("Settings")
+        .navigationTitle(store.t("Settings"))
         .appScreen()
     }
 }
@@ -587,12 +604,12 @@ struct ProviderConfigView: View {
 
     var body: some View {
         Form {
-            Toggle("Enable \(provider.rawValue)", isOn: $config.isEnabled)
-            TextField("API Key", text: $config.apiKey)
+            Toggle("\(store.t("Enable")) \(provider.rawValue)", isOn: $config.isEnabled)
+            TextField(store.t("API Key"), text: $config.apiKey)
                 .textContentType(.password)
-            TextField("Model", text: $config.modelName)
-            TextField("Base URL", text: $config.baseURL)
-            Button("Save Configuration") {
+            TextField(store.t("Model"), text: $config.modelName)
+            TextField(store.t("Base URL"), text: $config.baseURL)
+            Button(store.t("Save Configuration")) {
                 store.saveProvider(config)
             }
         }
@@ -619,9 +636,9 @@ struct ArgumentGraphView: View {
             AppBackdrop()
             VStack {
                 if let currentGraph = graph {
-                    Picker("Map Mode", selection: $mode) {
+                    Picker(store.t("Map Mode"), selection: $mode) {
                         ForEach(BattleMapMode.allCases) { item in
-                            Text(item.rawValue).tag(item)
+                            Text(store.t(item.rawValue)).tag(item)
                         }
                     }
                     .pickerStyle(.segmented)
@@ -640,7 +657,7 @@ struct ArgumentGraphView: View {
                                 HStack {
                                     Text(selected.title).font(.headline)
                                     if selected.isKey {
-                                        Label("Key", systemImage: "star.fill")
+                                        Label(store.t("Key"), systemImage: "star.fill")
                                             .font(.caption.bold())
                                             .foregroundStyle(RhetorixColors.amber)
                                     }
@@ -653,14 +670,14 @@ struct ArgumentGraphView: View {
                                 if expandingNodeID == selected.id {
                                     HStack(spacing: 8) {
                                         ProgressView()
-                                        Text("Preparing node text...")
+                                        Text(store.t("Preparing node text..."))
                                             .font(.caption)
                                             .foregroundStyle(RhetorixColors.textSecondary)
                                     }
                                 }
                                 if let brief = nodeBriefs[selected.id] {
                                     Divider().overlay(.white.opacity(0.14))
-                                    Text("AI Prep Text")
+                                    Text(store.t("AI Prep Text"))
                                         .font(.caption.bold())
                                         .foregroundStyle(RhetorixColors.textPrimary)
                                     Text(brief)
@@ -669,11 +686,11 @@ struct ArgumentGraphView: View {
                                         .fixedSize(horizontal: false, vertical: true)
                                 }
                                 if selected.type == .attack || selected.type == .defense || selected.type == .weighing || selected.type == .clash {
-                                    Text(mode.tip)
+                                    Text(store.t(mode.tip))
                                         .font(.caption2)
                                         .foregroundStyle(RhetorixColors.amber)
                                 }
-                                Button("Refresh AI Text") {
+                                Button(store.t("Refresh AI Text")) {
                                     requestNodeBrief(force: true)
                                 }
                                 .font(.caption.bold())
@@ -689,11 +706,11 @@ struct ArgumentGraphView: View {
                 } else {
                     VStack(spacing: 16) {
                         Image(systemName: "point.3.connected.trianglepath.dotted").font(.largeTitle)
-                        Text("No graph yet").font(.headline)
-                        Picker("Provider", selection: $provider) {
+                        Text(store.t("No graph yet")).font(.headline)
+                        Picker(store.t("Provider"), selection: $provider) {
                             ForEach(AiProvider.allCases) { Text($0.rawValue).tag($0) }
                         }
-                        Button("Generate with AI") {
+                        Button(store.t("Generate with AI")) {
                             Task { graph = await store.generateGraph(topic: topic, provider: provider) }
                         }
                         .buttonStyle(.borderedProminent)
@@ -702,13 +719,13 @@ struct ArgumentGraphView: View {
                 }
             }
             if store.isWorking && graph == nil {
-                ProgressView("Generating...")
+                ProgressView(store.t("Generating..."))
                     .padding()
                     .background(.ultraThinMaterial)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
             }
         }
-        .navigationTitle(topic.title)
+        .navigationTitle(store.topicTitle(topic))
         .onAppear {
             provider = store.preferredProvider
         }
@@ -923,10 +940,10 @@ struct FallacyDetectorView: View {
                     .scrollContentBackground(.hidden)
                     .background(RhetorixColors.glass)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
-                Picker("Provider", selection: $provider) {
+                Picker(store.t("Provider"), selection: $provider) {
                     ForEach(AiProvider.allCases) { Text($0.rawValue).tag($0) }
                 }
-                Button("Analyze for Fallacies") {
+                Button(store.t("Analyze for Fallacies")) {
                     Task {
                         hasAnalyzed = false
                         isAnalyzing = true
@@ -941,7 +958,7 @@ struct FallacyDetectorView: View {
                     GlassCard(accent: RhetorixColors.cyan) {
                         HStack(spacing: 12) {
                             ProgressView()
-                            Text("Analyzing fallacies...")
+                            Text(store.t("Analyzing fallacies..."))
                                 .font(.subheadline)
                                 .foregroundStyle(RhetorixColors.textSecondary)
                         }
@@ -950,9 +967,9 @@ struct FallacyDetectorView: View {
                 } else if hasAnalyzed && results.isEmpty {
                     GlassCard(accent: RhetorixColors.green) {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("未检出")
+                            Text(store.t("未检出"))
                                 .font(.headline)
-                            Text("No logical fallacies were detected in this text.")
+                            Text(store.t("No logical fallacies were detected in this text."))
                                 .font(.subheadline)
                                 .foregroundStyle(RhetorixColors.textSecondary)
                             AIDisclaimer()
@@ -973,7 +990,7 @@ struct FallacyDetectorView: View {
             }
             .padding()
         }
-        .navigationTitle("Fallacy Detector")
+        .navigationTitle(store.t("Fallacy Detector"))
         .onAppear {
             provider = store.preferredProvider
         }
@@ -996,20 +1013,20 @@ struct RebuttalTrainerView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 14) {
-                Picker("Topic", selection: $topic) {
-                    ForEach(store.topics) { Text($0.title).tag($0) }
+                Picker(store.t("Topic"), selection: $topic) {
+                    ForEach(store.topics) { Text(store.topicTitle($0)).tag($0) }
                 }
-                Picker("Provider", selection: $provider) {
+                Picker(store.t("Provider"), selection: $provider) {
                     ForEach(AiProvider.allCases) { Text($0.rawValue).tag($0) }
                 }
-                Button("Generate Argument") {
+                Button(store.t("Generate Argument")) {
                     Task { prompt = await store.generateRebuttalPrompt(topic: topic, side: .oppose, provider: provider) }
                 }
                 .buttonStyle(.borderedProminent)
                 if prompt.isEmpty == false {
                     GlassCard(accent: RhetorixColors.amber) {
                         VStack(alignment: .leading) {
-                            Text("Argument to resist").font(.headline)
+                            Text(store.t("Argument to resist")).font(.headline)
                             Text(prompt)
                             AIDisclaimer()
                         }
@@ -1019,7 +1036,7 @@ struct RebuttalTrainerView: View {
                         .scrollContentBackground(.hidden)
                         .background(RhetorixColors.glass)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
-                    Button("Submit Rebuttal") {
+                    Button(store.t("Submit Rebuttal")) {
                         Task { attempt = await store.scoreRebuttal(topic: topic, prompt: prompt, response: response, provider: provider) }
                     }
                     .buttonStyle(.borderedProminent)
@@ -1036,7 +1053,7 @@ struct RebuttalTrainerView: View {
             }
             .padding()
         }
-        .navigationTitle("Rebuttal Trainer")
+        .navigationTitle(store.t("Rebuttal Trainer"))
         .onAppear {
             provider = store.preferredProvider
         }
@@ -1045,11 +1062,12 @@ struct RebuttalTrainerView: View {
 }
 
 struct DonationView: View {
+    @EnvironmentObject private var store: AppStore
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
                 Image(systemName: "heart.fill").font(.system(size: 64)).foregroundStyle(RhetorixColors.peach)
-                Text("Thank you for supporting Rhetorix").font(.title2.bold()).multilineTextAlignment(.center)
+                Text(store.t("Thank you for supporting Rhetorix")).font(.title2.bold()).multilineTextAlignment(.center)
                 GlassCard(accent: RhetorixColors.peach) {
                     VStack(spacing: 8) {
                         if let url = Bundle.main.url(forResource: "qrcode_donation", withExtension: "jpg"),
@@ -1065,19 +1083,19 @@ struct DonationView: View {
                                 .foregroundStyle(RhetorixColors.textSecondary)
                                 .frame(width: 220, height: 220)
                         }
-                        Text("Scan with WeChat or Alipay")
+                        Text(store.t("Scan with WeChat or Alipay"))
                             .font(.caption)
                             .foregroundStyle(RhetorixColors.textSecondary)
                     }
                     .frame(maxWidth: .infinity)
                 }
-                Text("All features are free. Donations help maintain the app and add new features.")
+                Text(store.t("All features are free. Donations help maintain the app and add new features."))
                     .font(.footnote)
                     .foregroundStyle(RhetorixColors.textSecondary)
             }
             .padding()
         }
-        .navigationTitle("Support Development")
+        .navigationTitle(store.t("Support Development"))
         .appScreen()
     }
 }
