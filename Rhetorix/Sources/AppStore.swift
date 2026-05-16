@@ -6,6 +6,7 @@ final class AppStore: ObservableObject {
     @Published var topics: [DebateTopic] = []
     @Published var sessions: [DebateSession] = []
     @Published var rebuttalAttempts: [RebuttalAttempt] = []
+    @Published var constructiveAnalysisHistory: [ConstructiveAnalysisIssue] = []
     @Published var providerConfigs: [ProviderConfig] = []
     @Published var userProfileMemory = UserProfileMemory()
     @Published var selectedLanguage = "English"
@@ -366,7 +367,14 @@ final class AppStore: ObservableObject {
                 config: config,
                 maxTokens: 1100
             )
-            return parseConstructiveIssues(result.content)
+            let issues = parseConstructiveIssues(result.content)
+            if issues.isEmpty == false {
+                constructiveAnalysisHistory.insert(contentsOf: issues, at: 0)
+                constructiveAnalysisHistory = Array(constructiveAnalysisHistory.prefix(80))
+                refreshUserProfileMemory()
+                save()
+            }
+            return issues
         } catch {
             activeError = error.localizedDescription
             return []
@@ -731,6 +739,9 @@ final class AppStore: ObservableObject {
             .filter { $0.role == .user }
         let userTexts = userTurns.map(\.content)
         let feedbackTexts = completedSessions.compactMap(\.result?.summary) + rebuttalAttempts.map(\.feedback)
+        let constructiveTexts = constructiveAnalysisHistory.flatMap { issue in
+            [issue.issueType, issue.explanation] + issue.rebuttalPoints
+        }
 
         var styleSignals: [MemorySignal] = []
         let analyticalKeywords = ["evidence", "data", "study", "statistics", "logic", "therefore", "because", "causal", "cost", "risk", "policy", "efficient", "证据", "数据", "研究", "统计", "逻辑", "因此", "因为", "因果", "成本", "风险", "政策", "效率"]
@@ -806,7 +817,8 @@ final class AppStore: ObservableObject {
             ("Needs stronger evidence", "Judging or rebuttal feedback mentions evidence, data, or support gaps.", ["evidence", "unsupported", "data", "example", "proof", "证据", "数据", "例子", "支撑", "缺少"]),
             ("Needs more direct clash", "Feedback mentions responding, rebutting, or directly engaging the other side.", ["clash", "respond", "rebut", "answer", "engage", "回应", "反驳", "交锋", "正面回答"]),
             ("Needs clearer structure", "Feedback mentions structure, framework, organization, or clarity.", ["structure", "framework", "organize", "clarity", "clear", "结构", "框架", "组织", "清晰"]),
-            ("Needs stronger impact weighing", "Feedback mentions weighing, impact comparison, or why one side matters more.", ["weigh", "impact", "compare", "priority", "outweigh", "比较", "影响", "权衡", "优先"])
+            ("Needs stronger impact weighing", "Feedback mentions weighing, impact comparison, or why one side matters more.", ["weigh", "impact", "compare", "priority", "outweigh", "比较", "影响", "权衡", "优先"]),
+            ("Needs clearer definitions", "Judge or training feedback mentions unclear definitions, scope, or framing.", ["definition", "define", "scope", "framing", "motion", "unclear term", "定义", "范围", "框定", "概念", "不清"])
         ]
         for definition in weaknessDefinitions {
             let count = keywordCount(in: feedbackTexts, keywords: definition.2)
@@ -820,6 +832,27 @@ final class AppStore: ObservableObject {
                 ))
             }
         }
+        let constructiveDefinitions: [(String, String, [String])] = [
+            ("Evidence gaps in analyzed constructives", "Constructive Analysis repeatedly flags unsupported evidence or false-information risk in speeches you analyze.", ["Unsupported evidence", "False information risk", "weak evidence", "unsupported", "false", "证据不足", "信息不实"]),
+            ("Definition problems in analyzed constructives", "Constructive Analysis repeatedly flags definition or scope problems in speeches you analyze.", ["Definition problem", "definition", "scope", "定义", "范围"]),
+            ("Causal leaps in analyzed constructives", "Constructive Analysis repeatedly flags causal leaps or weak warrants in speeches you analyze.", ["Causal leap", "Missing warrant", "causal", "warrant", "因果", "论证桥梁"]),
+            ("Impact weighing gaps in analyzed constructives", "Constructive Analysis repeatedly flags weak impact or weighing in speeches you analyze.", ["Impact weakness", "impact", "weighing", "影响", "权衡"])
+        ]
+        for definition in constructiveDefinitions {
+            let count = keywordCount(in: constructiveTexts, keywords: definition.2)
+            if count > 0 {
+                weaknessSignals.append(MemorySignal(
+                    title: definition.0,
+                    detail: definition.1,
+                    score: count,
+                    evidenceCount: count,
+                    evidence: snippets(from: constructiveTexts, matching: definition.2)
+                ))
+            }
+        }
+        if let slowRebuttalSignal = buildSlowRebuttalSignal() {
+            weaknessSignals.append(slowRebuttalSignal)
+        }
 
         styleSignals.sort { $0.confidence > $1.confidence }
         valueSignals.sort { $0.confidence > $1.confidence }
@@ -832,6 +865,30 @@ final class AppStore: ObservableObject {
             evidenceSessionCount: completedSessions.count,
             evidenceTurnCount: userTurns.count,
             updatedAt: Date()
+        )
+    }
+
+    private func buildSlowRebuttalSignal() -> MemorySignal? {
+        let slowTurns = sessions.flatMap { session in
+            session.turns.enumerated().compactMap { index, turn -> String? in
+                guard turn.role == .user else { return nil }
+                guard let duration = turn.stageDurationSeconds, let limit = turn.stageLimitSeconds, limit > 0 else { return nil }
+                let stage = stageTitle(for: session, turnIndex: index)
+                let isRebuttalStage = stage.lowercased().contains("rebuttal") ||
+                    stage.lowercased().contains("reply") ||
+                    stage.contains("反驳") ||
+                    stage.contains("总结")
+                guard isRebuttalStage, duration >= Int(Double(limit) * 0.85) else { return nil }
+                return "\(topicTitle(session.topic)) · \(stage) · \(formatSeconds(duration)) / \(formatSeconds(limit))"
+            }
+        }
+        guard slowTurns.isEmpty == false else { return nil }
+        return MemorySignal(
+            title: "Slow rebuttal pacing",
+            detail: "Recorded stage timing shows rebuttal or reply turns often use most of the available time.",
+            score: slowTurns.count,
+            evidenceCount: slowTurns.count,
+            evidence: Array(slowTurns.prefix(3))
         )
     }
 
@@ -950,6 +1007,7 @@ final class AppStore: ObservableObject {
             topics: topics,
             sessions: sessions,
             rebuttalAttempts: rebuttalAttempts,
+            constructiveAnalysisHistory: constructiveAnalysisHistory,
             providerConfigs: providerConfigs,
             userProfileMemory: userProfileMemory,
             selectedLanguage: selectedLanguage,
@@ -968,6 +1026,7 @@ final class AppStore: ObservableObject {
         topics = snapshot.topics
         sessions = snapshot.sessions
         rebuttalAttempts = snapshot.rebuttalAttempts
+        constructiveAnalysisHistory = snapshot.constructiveAnalysisHistory ?? []
         providerConfigs = snapshot.providerConfigs
         userProfileMemory = snapshot.userProfileMemory ?? UserProfileMemory()
         selectedLanguage = snapshot.selectedLanguage
@@ -978,6 +1037,7 @@ final class AppStore: ObservableObject {
         var topics: [DebateTopic]
         var sessions: [DebateSession]
         var rebuttalAttempts: [RebuttalAttempt]
+        var constructiveAnalysisHistory: [ConstructiveAnalysisIssue]?
         var providerConfigs: [ProviderConfig]
         var userProfileMemory: UserProfileMemory?
         var selectedLanguage: String

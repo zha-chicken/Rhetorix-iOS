@@ -171,7 +171,9 @@ Long-term memory must be real. It is computed from local usage data only:
 - recorded stage duration
 - user-provided MBTI, if explicitly selected
 - local judge summaries and rebuttal trainer feedback
+- saved Constructive Analysis issue history
 - repeated words/topics from the user's own User vs AI turns
+- real stage timing, including slow rebuttal/reply pacing
 
 The app must not invent a user profile or present a recommendation before there is enough real session data. MBTI is the only user-selected profile attribute and is optional/skippable. Inferred labels must remain evidence-based, local, and conservative. If fewer than two engaged debates exist, the UI shows that memory is still learning instead of recommending a topic.
 
@@ -180,4 +182,5 @@ Memory 2.0 is now a local baseline:
 - MBTI prompt appears once on first use and can be skipped.
 - Home shows the strongest profile signals when evidence exists.
 - Settings shows MBTI, evidence counts, style signals, value signals, weakness signals, confidence, and sample evidence.
+- Weakness signals include judge/rebuttal feedback, recurring Constructive Analysis issue types, clearer-definition needs, and slow rebuttal pacing from actual timers.
 - Profile refresh runs after completed judging and rebuttal scoring, without blocking the debate flow.

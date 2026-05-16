@@ -392,6 +392,8 @@ Rules:
   - debate style: analytical/evidence-first, values-first/persuasive, or balanced
   - value signals: environment-focused or animal welfare-focused only when repeated local evidence exists
   - practice focus: evidence, direct clash, structure, or impact weighing based on judge/rebuttal feedback
+  - constructive-analysis focus: repeated issue types from saved Constructive Analysis results
+  - pacing focus: slow rebuttal or reply turns derived from recorded stage timers
 - Settings should expose evidence counts and short evidence snippets so the profile feels inspectable, not mystical.
 - Recommended topics should be chosen from categories the user actually debates, while avoiding very recent repeats when possible.
 
