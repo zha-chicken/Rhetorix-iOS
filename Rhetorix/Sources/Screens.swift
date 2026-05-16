@@ -54,6 +54,11 @@ struct RootView: View {
         } message: {
             Text(store.activeError ?? "")
         }
+        .sheet(isPresented: Binding(get: { store.shouldAskMBTI }, set: { if !$0 && store.userProfileMemory.didAskMBTI == false { store.setMBTI(nil) } })) {
+            MBTIOnboardingView()
+                .environmentObject(store)
+                .interactiveDismissDisabled()
+        }
     }
 }
 
@@ -160,6 +165,22 @@ struct MemoryInsightCard: View {
                 Text(store.memorySummaryText())
                     .font(.caption)
                     .foregroundStyle(RhetorixColors.textSecondary)
+                if store.userProfileMemory.mbti != nil || store.userProfileMemory.hasInferenceEvidence {
+                    VStack(alignment: .leading, spacing: 8) {
+                        if let mbti = store.userProfileMemory.mbti {
+                            MemoryProfilePill(title: store.t("MBTI"), value: mbti.rawValue)
+                        }
+                        if let style = store.userProfileMemory.styleSignals.first {
+                            MemoryProfilePill(title: store.t("Debate style"), value: store.t(style.title))
+                        }
+                        if let value = store.userProfileMemory.valueSignals.first {
+                            MemoryProfilePill(title: store.t("Value signal"), value: store.t(value.title))
+                        }
+                        if let weakness = store.userProfileMemory.weaknessSignals.first {
+                            MemoryProfilePill(title: store.t("Practice focus"), value: store.t(weakness.title))
+                        }
+                    }
+                }
                 if let recommendation = store.topicRecommendation {
                     Button {
                         path.append(AppRoute.setup(recommendation.topic))
@@ -187,6 +208,76 @@ struct MemoryInsightCard: View {
                 }
             }
         }
+    }
+}
+
+struct MemoryProfilePill: View {
+    var title: String
+    var value: String
+
+    var body: some View {
+        HStack {
+            Text(title)
+                .font(.caption2.bold())
+                .foregroundStyle(RhetorixColors.textTertiary)
+            Spacer()
+            Text(value)
+                .font(.caption.bold())
+                .foregroundStyle(RhetorixColors.textPrimary)
+                .multilineTextAlignment(.trailing)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(RoundedRectangle(cornerRadius: 12).fill(RhetorixColors.glassStrong))
+    }
+}
+
+struct MBTIOnboardingView: View {
+    @EnvironmentObject private var store: AppStore
+    @Environment(\.dismiss) private var dismiss
+
+    private let columns = [GridItem(.adaptive(minimum: 74), spacing: 8)]
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                Text(store.t("Build your debate profile"))
+                    .font(.title.bold())
+                    .foregroundStyle(RhetorixColors.textPrimary)
+                Text(store.t("Choose your MBTI if you want Rhetorix to include it in your local profile. You can skip this."))
+                    .font(.subheadline)
+                    .foregroundStyle(RhetorixColors.textSecondary)
+
+                LazyVGrid(columns: columns, spacing: 8) {
+                    ForEach(MBTIType.allCases) { type in
+                        Button {
+                            store.setMBTI(type)
+                            dismiss()
+                        } label: {
+                            Text(type.rawValue)
+                                .font(.headline)
+                                .frame(maxWidth: .infinity, minHeight: 44)
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                }
+
+                Button {
+                    store.setMBTI(nil)
+                    dismiss()
+                } label: {
+                    Text(store.t("Skip for now"))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+
+                Text(store.t("Rhetorix only infers traits from real local debate history. It will not invent a profile when evidence is insufficient."))
+                    .font(.caption)
+                    .foregroundStyle(RhetorixColors.textTertiary)
+            }
+            .padding(24)
+        }
+        .appScreen()
     }
 }
 
@@ -812,6 +903,38 @@ struct SettingsView: View {
                 }
             }
             .listRowBackground(RhetorixColors.glass)
+            Section(store.t("Memory Profile")) {
+                Picker(store.t("MBTI"), selection: Binding<MBTIType?>(
+                    get: { store.userProfileMemory.mbti },
+                    set: { store.setMBTI($0) }
+                )) {
+                    Text(store.t("Not set")).tag(Optional<MBTIType>.none)
+                    ForEach(MBTIType.allCases) { type in
+                        Text(type.rawValue).tag(Optional(type))
+                    }
+                }
+                HStack {
+                    Text(store.t("Evidence"))
+                    Spacer()
+                    Text("\(store.userProfileMemory.evidenceSessionCount) \(store.t("debates")) · \(store.userProfileMemory.evidenceTurnCount) \(store.t("turns"))")
+                        .foregroundStyle(RhetorixColors.textSecondary)
+                }
+                if store.userProfileMemory.hasInferenceEvidence == false {
+                    Text(store.t("Complete more debates to unlock reliable inferred profile signals."))
+                        .font(.caption)
+                        .foregroundStyle(RhetorixColors.textSecondary)
+                }
+                ForEach(store.userProfileMemory.styleSignals) { signal in
+                    MemorySignalRow(label: store.t("Style"), signal: signal)
+                }
+                ForEach(store.userProfileMemory.valueSignals) { signal in
+                    MemorySignalRow(label: store.t("Values"), signal: signal)
+                }
+                ForEach(store.userProfileMemory.weaknessSignals) { signal in
+                    MemorySignalRow(label: store.t("Focus"), signal: signal)
+                }
+            }
+            .listRowBackground(RhetorixColors.glass)
             Section(store.t("AI Providers")) {
                 ForEach(AiProvider.allCases) { provider in
                     Button { path.append(AppRoute.provider(provider)) } label: {
@@ -829,6 +952,39 @@ struct SettingsView: View {
         }
         .navigationTitle(store.t("Settings"))
         .appScreen()
+    }
+}
+
+struct MemorySignalRow: View {
+    @EnvironmentObject private var store: AppStore
+    var label: String
+    var signal: MemorySignal
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack {
+                Text(label)
+                    .font(.caption.bold())
+                    .foregroundStyle(RhetorixColors.amber)
+                Spacer()
+                Text("\(signal.confidence)%")
+                    .font(.caption2)
+                    .foregroundStyle(RhetorixColors.textTertiary)
+            }
+            Text(store.t(signal.title))
+                .font(.subheadline.bold())
+                .foregroundStyle(RhetorixColors.textPrimary)
+            Text(store.memorySignalDetail(signal))
+                .font(.caption)
+                .foregroundStyle(RhetorixColors.textSecondary)
+            if let firstEvidence = signal.evidence.first {
+                Text("“\(firstEvidence)”")
+                    .font(.caption2)
+                    .foregroundStyle(RhetorixColors.textTertiary)
+                    .lineLimit(2)
+            }
+        }
+        .padding(.vertical, 4)
     }
 }
 

@@ -48,6 +48,17 @@ extension AppStore {
         t(theme.rawValue)
     }
 
+    func memorySignalDetail(_ signal: MemorySignal) -> String {
+        let prefix = "Most common completed debate category: "
+        if signal.detail.hasPrefix(prefix) {
+            let rawCategory = signal.detail
+                .replacingOccurrences(of: prefix, with: "")
+                .trimmingCharacters(in: CharacterSet(charactersIn: ". "))
+            return "\(t("Most common completed debate category")): \(category(rawCategory))."
+        }
+        return t(signal.detail)
+    }
+
     func debateCountText(_ count: Int) -> String {
         usesChinese ? "\(count) 场辩论" : "\(count) \(count == 1 ? "debate" : "debates")"
     }
@@ -84,6 +95,42 @@ extension AppStore {
         "Memory": "记忆",
         "Real local memory": "真实本地记忆",
         "Learning": "学习中",
+        "Build your debate profile": "建立你的辩论画像",
+        "Choose your MBTI if you want Rhetorix to include it in your local profile. You can skip this.": "如果你愿意，可以选择 MBTI 加入本地画像；也可以跳过。",
+        "Skip for now": "暂时跳过",
+        "Rhetorix only infers traits from real local debate history. It will not invent a profile when evidence is insufficient.": "Rhetorix 只会从真实本地辩论历史推断画像；证据不足时不会编造结论。",
+        "Memory Profile": "记忆画像",
+        "MBTI": "MBTI",
+        "Not set": "未设置",
+        "Evidence": "证据样本",
+        "debates": "场辩论",
+        "Complete more debates to unlock reliable inferred profile signals.": "完成更多辩论后解锁更可靠的推断画像。",
+        "Debate style": "辩论风格",
+        "Value signal": "价值倾向",
+        "Practice focus": "练习重点",
+        "Style": "风格",
+        "Values": "价值",
+        "Focus": "重点",
+        "Analytical / evidence-first": "理性/证据优先",
+        "Values-first / persuasive": "价值/感染力优先",
+        "Balanced reasoning style": "均衡推理风格",
+        "Environment-focused": "环境议题倾向",
+        "Animal welfare-focused": "动物保护倾向",
+        "Topic interest": "话题兴趣",
+        "Most common completed debate category": "最常见的已完成辩论类别",
+        "Needs stronger evidence": "需要更强证据",
+        "Needs more direct clash": "需要更直接交锋",
+        "Needs clearer structure": "需要更清晰结构",
+        "Needs stronger impact weighing": "需要更强影响权衡",
+        "Your recorded arguments more often use evidence, logic, policy costs, or causal framing.": "你的历史发言更常使用证据、逻辑、政策成本或因果框架。",
+        "Your recorded arguments more often use fairness, rights, harm, or moral framing.": "你的历史发言更常使用公平、权利、伤害或道德框架。",
+        "Your recorded arguments use analytical and values-based framing at similar levels.": "你的历史发言中理性框架和价值框架使用程度接近。",
+        "Your history contains repeated environmental or climate-related debate evidence.": "你的历史中反复出现环境或气候相关辩论证据。",
+        "Your history contains repeated animal welfare or animal rights debate evidence.": "你的历史中反复出现动物福利或动物权利相关辩论证据。",
+        "Judging or rebuttal feedback mentions evidence, data, or support gaps.": "裁判或反驳反馈中提到证据、数据或支撑不足。",
+        "Feedback mentions responding, rebutting, or directly engaging the other side.": "反馈中提到需要回应、反驳或正面处理对方观点。",
+        "Feedback mentions structure, framework, organization, or clarity.": "反馈中提到结构、框架、组织或清晰度问题。",
+        "Feedback mentions weighing, impact comparison, or why one side matters more.": "反馈中提到权衡、影响比较或重要性排序问题。",
         "Complete two debates to unlock real memory-based recommendations.": "完成两场辩论后解锁基于真实记忆的推荐。",
         "Favorite area": "偏好领域",
         "Preferred mode": "偏好模式",

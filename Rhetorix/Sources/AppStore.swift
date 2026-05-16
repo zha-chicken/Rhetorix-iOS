@@ -7,6 +7,7 @@ final class AppStore: ObservableObject {
     @Published var sessions: [DebateSession] = []
     @Published var rebuttalAttempts: [RebuttalAttempt] = []
     @Published var providerConfigs: [ProviderConfig] = []
+    @Published var userProfileMemory = UserProfileMemory()
     @Published var selectedLanguage = "English"
     @Published var appTheme: AppTheme = .dark
     @Published var activeError: String?
@@ -38,6 +39,9 @@ final class AppStore: ObservableObject {
     var topicRecommendation: TopicRecommendation? {
         buildTopicRecommendation()
     }
+    var shouldAskMBTI: Bool {
+        userProfileMemory.didAskMBTI == false
+    }
     var preferredProvider: AiProvider {
         if let configured = providerConfigs.first(where: { $0.isEnabled && $0.apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false }) {
             return configured.provider
@@ -57,6 +61,7 @@ final class AppStore: ObservableObject {
         if providerConfigs.isEmpty {
             providerConfigs = AiProvider.allCases.map { ProviderConfig(provider: $0, baseURL: $0.defaultBaseURL) }
         }
+        refreshUserProfileMemory()
         save()
     }
 
@@ -83,6 +88,17 @@ final class AppStore: ObservableObject {
         save()
     }
 
+    func setMBTI(_ type: MBTIType?) {
+        userProfileMemory.mbti = type
+        userProfileMemory.didAskMBTI = true
+        save()
+    }
+
+    func resetMBTIPrompt() {
+        userProfileMemory.didAskMBTI = false
+        save()
+    }
+
     func debateCount(for topic: DebateTopic) -> Int {
         sessions.filter { session in
             normalizedTopicTitle(session.topic.title) == normalizedTopicTitle(topic.title) &&
@@ -106,6 +122,9 @@ final class AppStore: ObservableObject {
         parts.append("\(t("Average length")): \(profile.averageTurns) \(t("turns"))")
         if let averageStageSeconds = profile.averageStageSeconds {
             parts.append("\(t("Average stage time")): \(formatSeconds(averageStageSeconds))")
+        }
+        if let strongestSignal = userProfileMemory.styleSignals.first {
+            parts.append("\(t("Debate style")): \(t(strongestSignal.title))")
         }
         return parts.joined(separator: " · ")
     }
@@ -312,6 +331,7 @@ final class AppStore: ObservableObject {
         )
         sessions[index].result = parseJudge(result.content, session: session)
         sessions[index].isCompleted = true
+        refreshUserProfileMemory()
         save()
     }
 
@@ -408,6 +428,7 @@ final class AppStore: ObservableObject {
             )
             let attempt = parseRebuttal(result.content, topic: topic, prompt: prompt, response: response)
             rebuttalAttempts.insert(attempt, at: 0)
+            refreshUserProfileMemory()
             save()
             return attempt
         } catch {
@@ -693,6 +714,127 @@ final class AppStore: ObservableObject {
         return forbiddenFragments.contains { cleaned.contains($0) } == false
     }
 
+    func refreshUserProfileMemory() {
+        let didAskMBTI = userProfileMemory.didAskMBTI
+        let mbti = userProfileMemory.mbti
+        var next = buildUserProfileMemory()
+        next.didAskMBTI = didAskMBTI
+        next.mbti = mbti
+        userProfileMemory = next
+    }
+
+    private func buildUserProfileMemory() -> UserProfileMemory {
+        let completedSessions = sessions.filter(\.isCompleted)
+        let userTurns = sessions
+            .filter { $0.mode == .userVsAi }
+            .flatMap(\.turns)
+            .filter { $0.role == .user }
+        let userTexts = userTurns.map(\.content)
+        let feedbackTexts = completedSessions.compactMap(\.result?.summary) + rebuttalAttempts.map(\.feedback)
+
+        var styleSignals: [MemorySignal] = []
+        let analyticalKeywords = ["evidence", "data", "study", "statistics", "logic", "therefore", "because", "causal", "cost", "risk", "policy", "efficient", "证据", "数据", "研究", "统计", "逻辑", "因此", "因为", "因果", "成本", "风险", "政策", "效率"]
+        let valuesKeywords = ["fairness", "harm", "dignity", "rights", "empathy", "suffering", "justice", "feel", "moral", "community", "公平", "伤害", "尊严", "权利", "同情", "痛苦", "正义", "感受", "道德", "社群"]
+        let analyticalScore = keywordCount(in: userTexts, keywords: analyticalKeywords)
+        let valuesScore = keywordCount(in: userTexts, keywords: valuesKeywords)
+        if analyticalScore + valuesScore >= 3 {
+            if analyticalScore > valuesScore {
+                styleSignals.append(MemorySignal(
+                    title: "Analytical / evidence-first",
+                    detail: "Your recorded arguments more often use evidence, logic, policy costs, or causal framing.",
+                    score: analyticalScore - valuesScore,
+                    evidenceCount: analyticalScore,
+                    evidence: snippets(from: userTexts, matching: analyticalKeywords)
+                ))
+            } else if valuesScore > analyticalScore {
+                styleSignals.append(MemorySignal(
+                    title: "Values-first / persuasive",
+                    detail: "Your recorded arguments more often use fairness, rights, harm, or moral framing.",
+                    score: valuesScore - analyticalScore,
+                    evidenceCount: valuesScore,
+                    evidence: snippets(from: userTexts, matching: valuesKeywords)
+                ))
+            } else {
+                styleSignals.append(MemorySignal(
+                    title: "Balanced reasoning style",
+                    detail: "Your recorded arguments use analytical and values-based framing at similar levels.",
+                    score: analyticalScore + valuesScore,
+                    evidenceCount: analyticalScore + valuesScore,
+                    evidence: snippets(from: userTexts, matching: analyticalKeywords + valuesKeywords)
+                ))
+            }
+        }
+
+        var valueSignals: [MemorySignal] = []
+        let environmentKeywords = ["environment", "climate", "carbon", "emissions", "pollution", "sustainability", "nuclear", "transit", "环境", "气候", "碳", "排放", "污染", "可持续", "核能", "公共交通"]
+        let animalKeywords = ["animal", "animals", "welfare", "farming", "vegan", "testing", "species", "动物", "动物权利", "福利", "养殖", "素食", "实验", "物种"]
+        let environmentEvidence = completedSessions.filter { normalizedTopicTitle($0.topic.category) == "environment" }.map { topicTitle($0.topic) } + userTexts
+        let animalEvidence = completedSessions.filter { normalizedTopicTitle($0.topic.title).contains("animal") || $0.topic.title.contains("动物") }.map { topicTitle($0.topic) } + userTexts
+        let environmentScore = keywordCount(in: environmentEvidence, keywords: environmentKeywords)
+        let animalScore = keywordCount(in: animalEvidence, keywords: animalKeywords)
+        if environmentScore >= 2 {
+            valueSignals.append(MemorySignal(
+                title: "Environment-focused",
+                detail: "Your history contains repeated environmental or climate-related debate evidence.",
+                score: environmentScore,
+                evidenceCount: environmentScore,
+                evidence: snippets(from: environmentEvidence, matching: environmentKeywords)
+            ))
+        }
+        if animalScore >= 2 {
+            valueSignals.append(MemorySignal(
+                title: "Animal welfare-focused",
+                detail: "Your history contains repeated animal welfare or animal rights debate evidence.",
+                score: animalScore,
+                evidenceCount: animalScore,
+                evidence: snippets(from: animalEvidence, matching: animalKeywords)
+            ))
+        }
+        if let favoriteCategory = mostCommon(completedSessions.map(\.topic.category)), completedSessions.count >= 2 {
+            let categoryCount = completedSessions.filter { $0.topic.category == favoriteCategory }.count
+            valueSignals.append(MemorySignal(
+                title: "Topic interest",
+                detail: "Most common completed debate category: \(favoriteCategory).",
+                score: categoryCount,
+                evidenceCount: categoryCount,
+                evidence: completedSessions.filter { $0.topic.category == favoriteCategory }.prefix(3).map { topicTitle($0.topic) }
+            ))
+        }
+
+        var weaknessSignals: [MemorySignal] = []
+        let weaknessDefinitions: [(String, String, [String])] = [
+            ("Needs stronger evidence", "Judging or rebuttal feedback mentions evidence, data, or support gaps.", ["evidence", "unsupported", "data", "example", "proof", "证据", "数据", "例子", "支撑", "缺少"]),
+            ("Needs more direct clash", "Feedback mentions responding, rebutting, or directly engaging the other side.", ["clash", "respond", "rebut", "answer", "engage", "回应", "反驳", "交锋", "正面回答"]),
+            ("Needs clearer structure", "Feedback mentions structure, framework, organization, or clarity.", ["structure", "framework", "organize", "clarity", "clear", "结构", "框架", "组织", "清晰"]),
+            ("Needs stronger impact weighing", "Feedback mentions weighing, impact comparison, or why one side matters more.", ["weigh", "impact", "compare", "priority", "outweigh", "比较", "影响", "权衡", "优先"])
+        ]
+        for definition in weaknessDefinitions {
+            let count = keywordCount(in: feedbackTexts, keywords: definition.2)
+            if count > 0 {
+                weaknessSignals.append(MemorySignal(
+                    title: definition.0,
+                    detail: definition.1,
+                    score: count,
+                    evidenceCount: count,
+                    evidence: snippets(from: feedbackTexts, matching: definition.2)
+                ))
+            }
+        }
+
+        styleSignals.sort { $0.confidence > $1.confidence }
+        valueSignals.sort { $0.confidence > $1.confidence }
+        weaknessSignals.sort { $0.confidence > $1.confidence }
+
+        return UserProfileMemory(
+            styleSignals: Array(styleSignals.prefix(3)),
+            valueSignals: Array(valueSignals.prefix(4)),
+            weaknessSignals: Array(weaknessSignals.prefix(4)),
+            evidenceSessionCount: completedSessions.count,
+            evidenceTurnCount: userTurns.count,
+            updatedAt: Date()
+        )
+    }
+
     private func buildMemoryProfile() -> UserMemoryProfile {
         let engaged = sessions.filter { $0.turns.isEmpty == false || $0.isCompleted }
         let completed = engaged.filter(\.isCompleted)
@@ -757,6 +899,29 @@ final class AppStore: ObservableObject {
             .key
     }
 
+    private func keywordCount(in texts: [String], keywords: [String]) -> Int {
+        texts.reduce(0) { total, text in
+            let lowercased = text.lowercased()
+            return total + keywords.reduce(0) { count, keyword in
+                count + lowercased.components(separatedBy: keyword.lowercased()).count - 1
+            }
+        }
+    }
+
+    private func snippets(from texts: [String], matching keywords: [String], limit: Int = 3) -> [String] {
+        var results: [String] = []
+        for text in texts {
+            let lowercased = text.lowercased()
+            guard keywords.contains(where: { lowercased.contains($0.lowercased()) }) else { continue }
+            let compact = text.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard compact.isEmpty == false else { continue }
+            results.append(String(compact.prefix(140)))
+            if results.count >= limit { break }
+        }
+        return results
+    }
+
     func formatSeconds(_ seconds: Int) -> String {
         let minutes = seconds / 60
         let remainder = seconds % 60
@@ -781,7 +946,15 @@ final class AppStore: ObservableObject {
     }
 
     private func save() {
-        let snapshot = Snapshot(topics: topics, sessions: sessions, rebuttalAttempts: rebuttalAttempts, providerConfigs: providerConfigs, selectedLanguage: selectedLanguage, appTheme: appTheme)
+        let snapshot = Snapshot(
+            topics: topics,
+            sessions: sessions,
+            rebuttalAttempts: rebuttalAttempts,
+            providerConfigs: providerConfigs,
+            userProfileMemory: userProfileMemory,
+            selectedLanguage: selectedLanguage,
+            appTheme: appTheme
+        )
         if let data = try? JSONEncoder().encode(snapshot) {
             try? data.write(to: storageURL)
         }
@@ -796,6 +969,7 @@ final class AppStore: ObservableObject {
         sessions = snapshot.sessions
         rebuttalAttempts = snapshot.rebuttalAttempts
         providerConfigs = snapshot.providerConfigs
+        userProfileMemory = snapshot.userProfileMemory ?? UserProfileMemory()
         selectedLanguage = snapshot.selectedLanguage
         appTheme = snapshot.appTheme ?? .dark
     }
@@ -805,6 +979,7 @@ final class AppStore: ObservableObject {
         var sessions: [DebateSession]
         var rebuttalAttempts: [RebuttalAttempt]
         var providerConfigs: [ProviderConfig]
+        var userProfileMemory: UserProfileMemory?
         var selectedLanguage: String
         var appTheme: AppTheme?
     }

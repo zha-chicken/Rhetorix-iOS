@@ -123,12 +123,15 @@ Signals to infer locally:
 - Difficulty level that produces completed sessions.
 - Common weaknesses from judge feedback and constructive analysis.
 - Whether the user prefers ethical, political, technical, social, or personal-interest topics.
+- Self-reported MBTI, if the user chooses to provide it during onboarding or Settings.
+- Inferred style signals such as analytical/evidence-first, values-first/persuasive, or balanced reasoning.
+- Inferred value signals such as environment-focused or animal welfare-focused, only when repeated local evidence exists.
 
 Recommendation behavior:
 
 - The app should suggest a small number of likely-good topics.
 - Suggestions should feel like invitations to talk, not algorithmic feeds.
-- Avoid asking the user to manually build a profile at the start.
+- Ask only one optional onboarding question: MBTI. The user can skip it, and the app must continue normally.
 - Keep all memory local unless a future cloud feature is intentionally added.
 
 ## Product Positioning
@@ -153,6 +156,7 @@ Do not position it as:
 5. Reduce visual prominence of tools. `Implemented baseline`
 6. Add structured per-debate memory fields. `Implemented baseline`
 7. Add local long-term preference inference and topic recommendations. `Implemented baseline`
+8. Add optional MBTI onboarding plus evidence-based profile signals. `Implemented baseline`
 
 ## Memory Integrity Rule
 
@@ -165,5 +169,15 @@ Long-term memory must be real. It is computed from local usage data only:
 - number of turns
 - recorded input mode
 - recorded stage duration
+- user-provided MBTI, if explicitly selected
+- local judge summaries and rebuttal trainer feedback
+- repeated words/topics from the user's own User vs AI turns
 
-The app must not invent a user profile, ask the user to manually choose a persona, or present a recommendation before there is enough real session data. If fewer than two engaged debates exist, the UI shows that memory is still learning instead of recommending a topic.
+The app must not invent a user profile or present a recommendation before there is enough real session data. MBTI is the only user-selected profile attribute and is optional/skippable. Inferred labels must remain evidence-based, local, and conservative. If fewer than two engaged debates exist, the UI shows that memory is still learning instead of recommending a topic.
+
+Memory 2.0 is now a local baseline:
+
+- MBTI prompt appears once on first use and can be skipped.
+- Home shows the strongest profile signals when evidence exists.
+- Settings shows MBTI, evidence counts, style signals, value signals, weakness signals, confidence, and sample evidence.
+- Profile refresh runs after completed judging and rebuttal scoring, without blocking the debate flow.

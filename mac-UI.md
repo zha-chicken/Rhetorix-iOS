@@ -384,9 +384,15 @@ Rules:
 
 - Memory is computed from local session history only.
 - The app must not invent interests, strengths, weaknesses, or topic preferences.
+- MBTI is the only self-reported profile item. It appears as a first-use sheet, can be skipped, and can be changed later in Settings.
 - Recommendations require at least two engaged debates.
 - If there is not enough data, show a learning state instead of a recommendation.
 - The memory card may summarize favorite area, preferred mode, completion rate, average debate length, voice ratio, and stage timing.
+- Memory 2.0 may also show conservative profile signals:
+  - debate style: analytical/evidence-first, values-first/persuasive, or balanced
+  - value signals: environment-focused or animal welfare-focused only when repeated local evidence exists
+  - practice focus: evidence, direct clash, structure, or impact weighing based on judge/rebuttal feedback
+- Settings should expose evidence counts and short evidence snippets so the profile feels inspectable, not mystical.
 - Recommended topics should be chosen from categories the user actually debates, while avoiding very recent repeats when possible.
 
 ### Tools

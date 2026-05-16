@@ -121,6 +121,27 @@ enum DebateInputMode: String, Codable {
     case ai = "AI"
 }
 
+enum MBTIType: String, Codable, CaseIterable, Identifiable {
+    case intj = "INTJ"
+    case intp = "INTP"
+    case entj = "ENTJ"
+    case entp = "ENTP"
+    case infj = "INFJ"
+    case infp = "INFP"
+    case enfj = "ENFJ"
+    case enfp = "ENFP"
+    case istj = "ISTJ"
+    case isfj = "ISFJ"
+    case estj = "ESTJ"
+    case esfj = "ESFJ"
+    case istp = "ISTP"
+    case isfp = "ISFP"
+    case estp = "ESTP"
+    case esfp = "ESFP"
+
+    var id: String { rawValue }
+}
+
 struct DebateTurn: Identifiable, Codable, Equatable {
     var id: String = UUID().uuidString
     var sessionID: String
@@ -170,6 +191,35 @@ struct UserMemoryProfile {
 
     var hasEnoughData: Bool {
         sampleSize >= 2
+    }
+}
+
+struct UserProfileMemory: Codable, Equatable {
+    var didAskMBTI: Bool = false
+    var mbti: MBTIType?
+    var styleSignals: [MemorySignal] = []
+    var valueSignals: [MemorySignal] = []
+    var weaknessSignals: [MemorySignal] = []
+    var evidenceSessionCount: Int = 0
+    var evidenceTurnCount: Int = 0
+    var updatedAt: Date = Date()
+
+    var hasInferenceEvidence: Bool {
+        evidenceSessionCount >= 2 || evidenceTurnCount >= 4
+    }
+}
+
+struct MemorySignal: Identifiable, Codable, Equatable {
+    var id: String = UUID().uuidString
+    var title: String
+    var detail: String
+    var score: Int
+    var evidenceCount: Int
+    var evidence: [String]
+    var updatedAt: Date = Date()
+
+    var confidence: Int {
+        min(95, max(5, evidenceCount * 18 + min(score, 20)))
     }
 }
 
