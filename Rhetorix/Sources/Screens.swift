@@ -6,18 +6,23 @@ import AVFoundation
 struct RootView: View {
     @EnvironmentObject private var store: AppStore
     @State private var path = NavigationPath()
+    @State private var selectedTab: MainTab = .home
 
     var body: some View {
         NavigationStack(path: $path) {
-            TabView {
-                HomeView(path: $path)
+            TabView(selection: $selectedTab) {
+                HomeView(path: $path, selectedTab: $selectedTab)
                     .tabItem { Label(store.t("Home"), systemImage: "house.fill") }
+                    .tag(MainTab.home)
                 HistoryView(path: $path)
                     .tabItem { Label(store.t("History"), systemImage: "clock") }
+                    .tag(MainTab.history)
                 ToolsView(path: $path)
                     .tabItem { Label(store.t("Tools"), systemImage: "square.grid.2x2") }
+                    .tag(MainTab.tools)
                 SettingsView(path: $path)
                     .tabItem { Label(store.t("Settings"), systemImage: "gearshape") }
+                    .tag(MainTab.settings)
             }
             .tint(RhetorixColors.cyan)
             .appScreen()
@@ -52,9 +57,17 @@ struct RootView: View {
     }
 }
 
+enum MainTab: Hashable {
+    case home
+    case history
+    case tools
+    case settings
+}
+
 struct HomeView: View {
     @EnvironmentObject private var store: AppStore
     @Binding var path: NavigationPath
+    @Binding var selectedTab: MainTab
 
     var body: some View {
         ScrollView {
@@ -63,10 +76,6 @@ struct HomeView: View {
                     Text("Rhetorix")
                         .font(.largeTitle.bold())
                     Spacer()
-                    Button { path.append(AppRoute.donation) } label: {
-                        Image(systemName: "heart.fill")
-                            .foregroundStyle(RhetorixColors.peach)
-                    }
                 }
 
                 GlassCard(accent: RhetorixColors.cyan, padding: 20) {
@@ -89,21 +98,6 @@ struct HomeView: View {
                     StatCard(value: "\(store.winStreak)", label: store.t("Win Streak"), icon: "flame.fill")
                 }
 
-                GlassCard(accent: RhetorixColors.peach) {
-                    HStack {
-                        Image(systemName: "heart.fill").foregroundStyle(RhetorixColors.peach)
-                        VStack(alignment: .leading) {
-                            Text(store.t("Support Development")).font(.headline)
-                            Text(store.t("All features are free. Donations help keep Rhetorix independent."))
-                                .font(.caption)
-                                .foregroundStyle(RhetorixColors.textSecondary)
-                        }
-                        Spacer()
-                        Button(store.t("Donate")) { path.append(AppRoute.donation) }
-                            .buttonStyle(.bordered)
-                    }
-                }
-
                 SectionTitle(text: store.t("Quick Actions"))
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                     FeatureCard(title: store.t("New Debate"), subtitle: store.t("Start a debate with AI"), icon: "message.fill", accent: RhetorixColors.cyan) {
@@ -112,7 +106,9 @@ struct HomeView: View {
                     FeatureCard(title: store.t("Face-to-Face"), subtitle: store.t("Debate on one device"), icon: "person.2.fill", accent: RhetorixColors.amber) {
                         path.append(AppRoute.setup(store.topics.first ?? AppStore.defaultTopics[0]))
                     }
-                    FeatureCard(title: store.t("History"), subtitle: store.t("Review debates"), icon: "clock.fill", accent: RhetorixColors.green) {}
+                    FeatureCard(title: store.t("History"), subtitle: store.t("Review debates"), icon: "clock.fill", accent: RhetorixColors.green) {
+                        selectedTab = .history
+                    }
                     FeatureCard(title: store.t("Fallacy Detector"), subtitle: store.t("Analyze reasoning"), icon: "magnifyingglass", accent: RhetorixColors.green) {
                         path.append(AppRoute.fallacyDetector)
                     }
@@ -515,12 +511,6 @@ struct SettingsView: View {
     @Binding var path: NavigationPath
     var body: some View {
         List {
-            Section {
-                Button { path.append(AppRoute.donation) } label: {
-                    Label(store.t("Support Development"), systemImage: "heart.fill")
-                }
-            }
-            .listRowBackground(RhetorixColors.glass)
             Section(store.t("Appearance")) {
                 Picker(store.t("Language"), selection: Binding(
                     get: { store.selectedLanguage },

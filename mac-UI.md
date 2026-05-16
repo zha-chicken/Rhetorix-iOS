@@ -258,11 +258,11 @@ Content:
 - Abstract debate/reasoning hero mark
 - Short value statement
 - Dynamic stats: debates, win rate, win streak
-- Optional donation/support strip
 - Quick action cards
 - Preparation tools
 
 Stats must be dynamic and start at zero for a new user.
+The home screen should not include a visible donation/support entry.
 
 ### Topic Selection
 
@@ -430,7 +430,7 @@ Timer and scoring flow must be real.
 
 ### Donation
 
-Purpose: optional support only.
+Purpose: optional support only, if a future distribution channel needs it.
 
 Content:
 
@@ -439,6 +439,11 @@ Content:
 - Copy explaining that all features are free
 - No paywall language
 - No premium feature claims
+
+Current navigation:
+
+- Donation/support entry points are hidden from Home and Settings.
+- Users should not encounter donation as a primary app workflow.
 
 ### Settings
 
