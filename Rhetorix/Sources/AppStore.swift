@@ -107,6 +107,19 @@ final class AppStore: ObservableObject {
         return t(Self.worldSchoolsStages[index].instruction)
     }
 
+    func stageTimeLimit(for session: DebateSession) -> Int {
+        guard session.format == .structured else { return 30 }
+        let index = min(session.turns.count, Self.worldSchoolsStages.count - 1)
+        switch index {
+        case 0, 1:
+            return 90
+        case 2, 3, 4, 5:
+            return 75
+        default:
+            return 45
+        }
+    }
+
     func nextSpeaker(for session: DebateSession) -> SpeakerRole {
         if session.format == .freeFlow {
             if session.mode == .faceToFace {

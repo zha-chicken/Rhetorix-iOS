@@ -270,6 +270,7 @@ Content:
 
 - Rhetorix brand title
 - Abstract debate/reasoning hero mark
+- Primary `Start Voice Debate` action
 - Short value statement
 - Dynamic stats: debates, win rate, win streak
 - Quick action cards
@@ -278,6 +279,7 @@ Content:
 Stats must be dynamic and start at zero for a new user.
 The home screen should not include a visible donation/support entry.
 Live debate should be the most prominent action on the screen.
+Preparation tools should use compact auxiliary controls rather than large feature cards.
 
 ### Topic Selection
 
@@ -335,6 +337,7 @@ Behavior:
 - User vs AI, AI vs AI, and Face to Face all use the same structured stage order; only the input source changes.
 - Debate should feel quick and conversational, not like filling out a form.
 - Voice input should be the default target interaction on real devices.
+- In Simulator, voice input may show an unavailable message and text remains usable.
 - Timers should make each stage feel consequential without forcing full tournament-length speeches on mobile.
 
 ### Debate Result

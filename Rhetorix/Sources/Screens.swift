@@ -85,9 +85,19 @@ struct HomeView: View {
                             .foregroundStyle(RhetorixColors.textPrimary)
                             .padding(24)
                             .background(Circle().fill(RhetorixColors.glassStrong))
+                        Text(store.t("Live Debate"))
+                            .font(.title.bold())
+                            .foregroundStyle(RhetorixColors.textPrimary)
                         Text(store.t("Challenge intelligence. Extend ideas."))
                             .font(.headline)
                             .foregroundStyle(RhetorixColors.textSecondary)
+                        Button {
+                            path.append(AppRoute.topicSelection)
+                        } label: {
+                            Label(store.t("Start Voice Debate"), systemImage: "mic.circle.fill")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -100,7 +110,7 @@ struct HomeView: View {
 
                 SectionTitle(text: store.t("Quick Actions"))
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                    FeatureCard(title: store.t("New Debate"), subtitle: store.t("Start a debate with AI"), icon: "message.fill", accent: RhetorixColors.cyan) {
+                    FeatureCard(title: store.t("New Debate"), subtitle: store.t("Start a timed debate"), icon: "message.fill", accent: RhetorixColors.cyan) {
                         path.append(AppRoute.topicSelection)
                     }
                     FeatureCard(title: store.t("Face-to-Face"), subtitle: store.t("Debate on one device"), icon: "person.2.fill", accent: RhetorixColors.amber) {
@@ -109,20 +119,17 @@ struct HomeView: View {
                     FeatureCard(title: store.t("History"), subtitle: store.t("Review debates"), icon: "clock.fill", accent: RhetorixColors.green) {
                         selectedTab = .history
                     }
-                    FeatureCard(title: store.t("Fallacy Detector"), subtitle: store.t("Analyze reasoning"), icon: "magnifyingglass", accent: RhetorixColors.green) {
-                        path.append(AppRoute.fallacyDetector)
-                    }
                 }
 
                 SectionTitle(text: store.t("Preparation Tools"))
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                    FeatureCard(title: store.t("Constructive Analysis"), subtitle: "", icon: "magnifyingglass.circle.fill", accent: RhetorixColors.cyan) {
+                HStack(spacing: 10) {
+                    CompactToolButton(title: store.t("Constructive Analysis"), icon: "magnifyingglass.circle.fill", accent: RhetorixColors.cyan) {
                         path.append(AppRoute.constructiveAnalysis)
                     }
-                    FeatureCard(title: store.t("Rebuttal"), subtitle: "", icon: "timer", accent: RhetorixColors.amber) {
+                    CompactToolButton(title: store.t("Rebuttal"), icon: "timer", accent: RhetorixColors.amber) {
                         path.append(AppRoute.rebuttalTrainer)
                     }
-                    FeatureCard(title: store.t("Fallacy"), subtitle: "", icon: "magnifyingglass", accent: RhetorixColors.green) {
+                    CompactToolButton(title: store.t("Fallacy"), icon: "magnifyingglass", accent: RhetorixColors.green) {
                         path.append(AppRoute.fallacyDetector)
                     }
                 }
@@ -130,6 +137,37 @@ struct HomeView: View {
             .padding()
         }
         .appScreen()
+    }
+}
+
+struct CompactToolButton: View {
+    var title: String
+    var icon: String
+    var accent: Color
+    var action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.headline)
+                    .foregroundStyle(accent)
+                Text(title)
+                    .font(.caption2.bold())
+                    .foregroundStyle(RhetorixColors.textSecondary)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                    .minimumScaleFactor(0.76)
+            }
+            .frame(maxWidth: .infinity, minHeight: 62)
+            .padding(8)
+            .background(RoundedRectangle(cornerRadius: 14).fill(RhetorixColors.glass))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(accent.opacity(0.22), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -290,7 +328,10 @@ struct DebateView: View {
     @EnvironmentObject private var store: AppStore
     @Binding var path: NavigationPath
     var sessionID: String
+    @StateObject private var speech = SpeechTranscriber()
     @State private var input = ""
+    @State private var stageStartedAt = Date()
+    @State private var now = Date()
 
     var session: DebateSession? { store.sessions.first { $0.id == sessionID } }
 
@@ -300,7 +341,7 @@ struct DebateView: View {
                 ScrollView {
                     VStack(spacing: 12) {
                         if let session {
-                            DebateStatus(session: session)
+                            DebateStatus(session: session, stageStartedAt: stageStartedAt, now: now)
                             ForEach(Array(session.turns.enumerated()), id: \.element.id) { index, turn in
                                 DebateBubble(turn: turn, stage: store.stageTitle(for: session, turnIndex: index))
                                     .id(turn.id)
@@ -314,26 +355,30 @@ struct DebateView: View {
                     .padding()
                 }
                 .onChange(of: session?.turns.count ?? 0) {
+                    stageStartedAt = Date()
                     if let last = session?.turns.last {
                         withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
                     }
                 }
             }
-            HStack {
-                TextField(store.t("Type your argument..."), text: $input, axis: .vertical)
-                    .textFieldStyle(.roundedBorder)
-                    .disabled(session.map { !store.canHumanType(in: $0) } ?? true)
-                Button {
-                    let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
-                    input = ""
-                    Task { await store.sendUserTurn(sessionID: sessionID, text: text) }
-                } label: {
-                    Image(systemName: "arrow.up.circle.fill").font(.title2)
-                }
-                .disabled(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || store.isWorking || (session.map { !store.canHumanType(in: $0) } ?? true))
+            DebateInputBar(
+                input: $input,
+                speech: speech,
+                canSpeak: session.map { store.canHumanType(in: $0) } ?? false,
+                isWorking: store.isWorking,
+                usesChinese: store.usesChinese,
+                send: sendInput
+            )
+        }
+        .onAppear { stageStartedAt = Date() }
+        .onDisappear { speech.stop() }
+        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { value in
+            now = value
+        }
+        .onChange(of: speech.transcript) { _, transcript in
+            if transcript.isEmpty == false {
+                input = transcript
             }
-            .padding()
-            .background(RhetorixColors.backgroundDeep)
         }
         .toolbar {
             if session.map({ store.needsAITurn($0) }) == true {
@@ -344,29 +389,145 @@ struct DebateView: View {
         .navigationTitle(session.map { store.topicTitle($0.topic) } ?? store.t("Debate"))
         .appScreen()
     }
+
+    private func sendInput() {
+        let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        input = ""
+        speech.stop()
+        Task { await store.sendUserTurn(sessionID: sessionID, text: text) }
+    }
 }
 
 struct DebateStatus: View {
     @EnvironmentObject private var store: AppStore
     var session: DebateSession
+    var stageStartedAt: Date
+    var now: Date
+
     var body: some View {
         GlassCard(accent: RhetorixColors.amber) {
-            HStack {
-                Text("\(session.turns.filter { $0.role == .support || ($0.role == .user && session.userSide == .support) }.count)").font(.title.bold()).foregroundStyle(RhetorixColors.green)
-                Text(store.t("Support"))
-                Spacer()
-                VStack(spacing: 2) {
-                    Text("\(store.t("Turn")) \(session.turns.count) / \(session.format == .structured ? store.structuredTurnLimit : 12)")
-                    Text(store.stageTitle(for: session))
-                        .lineLimit(1)
+            VStack(spacing: 12) {
+                HStack {
+                    Text("\(session.turns.filter { $0.role == .support || ($0.role == .user && session.userSide == .support) }.count)").font(.title.bold()).foregroundStyle(RhetorixColors.green)
+                    Text(store.t("Support"))
+                    Spacer()
+                    VStack(spacing: 2) {
+                        Text("\(store.t("Turn")) \(session.turns.count) / \(session.format == .structured ? store.structuredTurnLimit : 12)")
+                        Text(store.stageTitle(for: session))
+                            .lineLimit(1)
+                    }
+                    .font(.caption)
+                    .foregroundStyle(RhetorixColors.textSecondary)
+                    Spacer()
+                    Text(store.t("Oppose"))
+                    Text("\(session.turns.filter { $0.role == .oppose || ($0.role == .user && session.userSide == .oppose) }.count)").font(.title.bold()).foregroundStyle(RhetorixColors.salmon)
                 }
-                .font(.caption)
-                .foregroundStyle(RhetorixColors.textSecondary)
-                Spacer()
-                Text(store.t("Oppose"))
-                Text("\(session.turns.filter { $0.role == .oppose || ($0.role == .user && session.userSide == .oppose) }.count)").font(.title.bold()).foregroundStyle(RhetorixColors.salmon)
+                StageTimerView(limit: store.stageTimeLimit(for: session), startedAt: stageStartedAt, now: now)
             }
         }
+    }
+}
+
+struct StageTimerView: View {
+    @EnvironmentObject private var store: AppStore
+    var limit: Int
+    var startedAt: Date
+    var now: Date
+
+    private var elapsed: Int {
+        max(0, Int(now.timeIntervalSince(startedAt)))
+    }
+
+    private var remaining: Int {
+        limit - elapsed
+    }
+
+    private var progress: Double {
+        guard limit > 0 else { return 1 }
+        return min(1, max(0, Double(elapsed) / Double(limit)))
+    }
+
+    private var accent: Color {
+        if remaining < 0 { return RhetorixColors.salmon }
+        if remaining <= 15 { return RhetorixColors.amber }
+        return RhetorixColors.cyan
+    }
+
+    var body: some View {
+        VStack(spacing: 6) {
+            HStack {
+                Label(store.t("Stage Timer"), systemImage: "timer")
+                    .font(.caption.bold())
+                    .foregroundStyle(RhetorixColors.textSecondary)
+                Spacer()
+                Text(displayTime)
+                    .font(.title3.monospacedDigit().bold())
+                    .foregroundStyle(accent)
+            }
+            ProgressView(value: progress)
+                .tint(accent)
+        }
+    }
+
+    private var displayTime: String {
+        let absolute = abs(remaining)
+        let minutes = absolute / 60
+        let seconds = absolute % 60
+        let prefix = remaining < 0 ? "+" : ""
+        return "\(prefix)\(minutes):\(String(format: "%02d", seconds))"
+    }
+}
+
+struct DebateInputBar: View {
+    @EnvironmentObject private var store: AppStore
+    @Binding var input: String
+    @ObservedObject var speech: SpeechTranscriber
+    var canSpeak: Bool
+    var isWorking: Bool
+    var usesChinese: Bool
+    var send: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 12) {
+                Button {
+                    if speech.isRecording {
+                        speech.stop()
+                    } else {
+                        speech.start(localeIdentifier: usesChinese ? "zh_CN" : "en_US")
+                    }
+                } label: {
+                    Image(systemName: speech.isRecording ? "stop.circle.fill" : "mic.circle.fill")
+                        .font(.system(size: 34, weight: .semibold))
+                        .foregroundStyle(speech.isRecording ? RhetorixColors.salmon : RhetorixColors.cyan)
+                }
+                .disabled(!canSpeak || isWorking)
+
+                TextField(store.t("Speak or type your argument..."), text: $input, axis: .vertical)
+                    .textFieldStyle(.roundedBorder)
+                    .disabled(!canSpeak)
+
+                Button(action: send) {
+                    Image(systemName: "arrow.up.circle.fill").font(.title2)
+                }
+                .disabled(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isWorking || !canSpeak)
+            }
+            if speech.isRecording {
+                Label(store.t("Listening..."), systemImage: "waveform")
+                    .font(.caption)
+                    .foregroundStyle(RhetorixColors.cyan)
+            } else if let error = speech.errorMessage {
+                Text(store.t(error))
+                    .font(.caption)
+                    .foregroundStyle(RhetorixColors.salmon)
+            } else {
+                Text(store.t("Voice is primary. Text remains available."))
+                    .font(.caption2)
+                    .foregroundStyle(RhetorixColors.textTertiary)
+            }
+        }
+        .padding()
+        .background(RhetorixColors.backgroundDeep)
     }
 }
 

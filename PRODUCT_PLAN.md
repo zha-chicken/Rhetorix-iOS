@@ -146,11 +146,10 @@ Do not position it as:
 
 ## Implementation Priority
 
-1. Make debate visually and behaviorally dominant on Home.
-2. Add stage timers to live debate.
-3. Add voice-first user input to live debate.
+1. Make debate visually and behaviorally dominant on Home. `In progress`
+2. Add stage timers to live debate. `Implemented baseline`
+3. Add voice-first user input to live debate. `Implemented baseline`
 4. Tighten live debate AI prompts and turn rhythm.
-5. Reduce visual prominence of tools.
+5. Reduce visual prominence of tools. `In progress`
 6. Add structured per-debate memory fields.
 7. Add local long-term preference inference and topic recommendations.
-
