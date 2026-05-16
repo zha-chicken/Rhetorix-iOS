@@ -115,6 +115,12 @@ enum SpeakerRole: String, Codable {
     }
 }
 
+enum DebateInputMode: String, Codable {
+    case text = "Text"
+    case voice = "Voice"
+    case ai = "AI"
+}
+
 struct DebateTurn: Identifiable, Codable, Equatable {
     var id: String = UUID().uuidString
     var sessionID: String
@@ -122,6 +128,9 @@ struct DebateTurn: Identifiable, Codable, Equatable {
     var content: String
     var provider: AiProvider?
     var model: String?
+    var inputMode: DebateInputMode?
+    var stageDurationSeconds: Int?
+    var stageLimitSeconds: Int?
     var createdAt: Date = Date()
 }
 
@@ -145,6 +154,29 @@ struct DebateResult: Identifiable, Codable, Equatable {
     var score: String
     var summary: String
     var createdAt: Date = Date()
+}
+
+struct UserMemoryProfile {
+    var sampleSize: Int
+    var completedCount: Int
+    var favoriteCategory: String?
+    var preferredMode: DebateMode?
+    var preferredDifficulty: DebateDifficulty?
+    var preferredSide: DebateSide?
+    var completionRate: Int
+    var averageTurns: Int
+    var voiceTurnRatio: Int
+    var averageStageSeconds: Int?
+
+    var hasEnoughData: Bool {
+        sampleSize >= 2
+    }
+}
+
+struct TopicRecommendation: Identifiable {
+    var id: String { topic.id }
+    var topic: DebateTopic
+    var reason: String
 }
 
 struct FallacyFinding: Identifiable, Codable, Equatable {

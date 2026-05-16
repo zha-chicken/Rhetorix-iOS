@@ -273,6 +273,8 @@ Content:
 - Primary `Start Voice Debate` action
 - Short value statement
 - Dynamic stats: debates, win rate, win streak
+- Real local memory card
+- Real topic recommendation when enough data exists
 - Quick action cards
 - Compact preparation tools
 
@@ -324,6 +326,7 @@ Content:
 - Debate message cards
 - AI thinking state
 - Voice-first user input with text fallback
+- Input mode and stage duration metadata
 - Early finish control in User vs AI mode
 
 Behavior:
@@ -369,8 +372,22 @@ Content:
 - Filter chips
 - Chronological cards
 - Topic, result, score, date/time, and turn count
+- Per-round memory such as input mode and stage timing
 
 History cards must open the saved session without crashing.
+
+### Memory And Recommendation
+
+Purpose: make Rhetorix adapt to real user behavior without fake personalization.
+
+Rules:
+
+- Memory is computed from local session history only.
+- The app must not invent interests, strengths, weaknesses, or topic preferences.
+- Recommendations require at least two engaged debates.
+- If there is not enough data, show a learning state instead of a recommendation.
+- The memory card may summarize favorite area, preferred mode, completion rate, average debate length, voice ratio, and stage timing.
+- Recommended topics should be chosen from categories the user actually debates, while avoiding very recent repeats when possible.
 
 ### Tools
 

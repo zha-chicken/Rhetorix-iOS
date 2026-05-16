@@ -146,10 +146,24 @@ Do not position it as:
 
 ## Implementation Priority
 
-1. Make debate visually and behaviorally dominant on Home. `In progress`
+1. Make debate visually and behaviorally dominant on Home. `Implemented baseline`
 2. Add stage timers to live debate. `Implemented baseline`
 3. Add voice-first user input to live debate. `Implemented baseline`
-4. Tighten live debate AI prompts and turn rhythm.
-5. Reduce visual prominence of tools. `In progress`
-6. Add structured per-debate memory fields.
-7. Add local long-term preference inference and topic recommendations.
+4. Tighten live debate AI prompts and turn rhythm. `Implemented baseline`
+5. Reduce visual prominence of tools. `Implemented baseline`
+6. Add structured per-debate memory fields. `Implemented baseline`
+7. Add local long-term preference inference and topic recommendations. `Implemented baseline`
+
+## Memory Integrity Rule
+
+Long-term memory must be real. It is computed from local usage data only:
+
+- completed and started debate sessions
+- topic categories
+- completion rate
+- selected mode, side, and difficulty
+- number of turns
+- recorded input mode
+- recorded stage duration
+
+The app must not invent a user profile, ask the user to manually choose a persona, or present a recommendation before there is enough real session data. If fewer than two engaged debates exist, the UI shows that memory is still learning instead of recommending a topic.

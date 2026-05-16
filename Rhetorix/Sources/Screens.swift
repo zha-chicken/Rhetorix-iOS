@@ -108,6 +108,8 @@ struct HomeView: View {
                     StatCard(value: "\(store.winStreak)", label: store.t("Win Streak"), icon: "flame.fill")
                 }
 
+                MemoryInsightCard(path: $path)
+
                 SectionTitle(text: store.t("Quick Actions"))
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                     FeatureCard(title: store.t("New Debate"), subtitle: store.t("Start a timed debate"), icon: "message.fill", accent: RhetorixColors.cyan) {
@@ -137,6 +139,54 @@ struct HomeView: View {
             .padding()
         }
         .appScreen()
+    }
+}
+
+struct MemoryInsightCard: View {
+    @EnvironmentObject private var store: AppStore
+    @Binding var path: NavigationPath
+
+    var body: some View {
+        GlassCard(accent: RhetorixColors.amber) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Label(store.t("Memory"), systemImage: "brain.head.profile")
+                        .font(.headline)
+                    Spacer()
+                    Text(store.memoryProfile.hasEnoughData ? store.t("Real local memory") : store.t("Learning"))
+                        .font(.caption.bold())
+                        .foregroundStyle(RhetorixColors.textSecondary)
+                }
+                Text(store.memorySummaryText())
+                    .font(.caption)
+                    .foregroundStyle(RhetorixColors.textSecondary)
+                if let recommendation = store.topicRecommendation {
+                    Button {
+                        path.append(AppRoute.setup(recommendation.topic))
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(store.t("Recommended topic"))
+                                    .font(.caption.bold())
+                                    .foregroundStyle(RhetorixColors.amber)
+                                Text(store.topicTitle(recommendation.topic))
+                                    .font(.subheadline.bold())
+                                    .foregroundStyle(RhetorixColors.textPrimary)
+                                Text(recommendation.reason)
+                                    .font(.caption2)
+                                    .foregroundStyle(RhetorixColors.textTertiary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundStyle(RhetorixColors.textTertiary)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .padding(10)
+                    .background(RoundedRectangle(cornerRadius: 12).fill(RhetorixColors.glassStrong))
+                }
+            }
+        }
     }
 }
 
@@ -330,6 +380,7 @@ struct DebateView: View {
     var sessionID: String
     @StateObject private var speech = SpeechTranscriber()
     @State private var input = ""
+    @State private var draftInputMode: DebateInputMode = .text
     @State private var stageStartedAt = Date()
     @State private var now = Date()
 
@@ -378,6 +429,7 @@ struct DebateView: View {
         .onChange(of: speech.transcript) { _, transcript in
             if transcript.isEmpty == false {
                 input = transcript
+                draftInputMode = .voice
             }
         }
         .toolbar {
@@ -392,9 +444,12 @@ struct DebateView: View {
 
     private func sendInput() {
         let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        let duration = max(0, Int(Date().timeIntervalSince(stageStartedAt)))
+        let mode = draftInputMode
         input = ""
+        draftInputMode = .text
         speech.stop()
-        Task { await store.sendUserTurn(sessionID: sessionID, text: text) }
+        Task { await store.sendUserTurn(sessionID: sessionID, text: text, inputMode: mode, stageDurationSeconds: duration) }
     }
 }
 
@@ -546,15 +601,68 @@ struct DebateBubble: View {
                 }
                 Text(turn.content).foregroundStyle(RhetorixColors.textPrimary)
                 if !isUser { AIDisclaimer(color: RhetorixColors.textTertiary) }
-                if let provider = turn.provider {
-                    Text("\(provider.rawValue) / \(turn.model ?? "")")
-                        .font(.caption2)
-                        .foregroundStyle(RhetorixColors.textTertiary)
+                HStack(spacing: 8) {
+                    if let inputMode = turn.inputMode {
+                        Label(store.t(inputMode.rawValue), systemImage: icon(for: inputMode))
+                    }
+                    if let seconds = turn.stageDurationSeconds {
+                        Label(store.formatSeconds(seconds), systemImage: "timer")
+                    }
+                    if let provider = turn.provider {
+                        Text("\(provider.rawValue) / \(turn.model ?? "")")
+                    }
                 }
+                .font(.caption2)
+                .foregroundStyle(RhetorixColors.textTertiary)
             }
             .padding(12)
             .background(RoundedRectangle(cornerRadius: 16).fill(turn.role.color.opacity(0.18)))
             if !isUser { Spacer(minLength: 50) }
+        }
+    }
+
+    private func icon(for mode: DebateInputMode) -> String {
+        switch mode {
+        case .text: "keyboard"
+        case .voice: "mic.fill"
+        case .ai: "sparkles"
+        }
+    }
+}
+
+struct DebateMemorySection: View {
+    @EnvironmentObject private var store: AppStore
+    var session: DebateSession
+
+    var body: some View {
+        Section(store.t("Round Memory")) {
+            let timedTurns = session.turns.filter { $0.stageDurationSeconds != nil || $0.inputMode != nil }
+            if timedTurns.isEmpty {
+                Text(store.t("No timing memory recorded for this debate yet."))
+                    .foregroundStyle(RhetorixColors.textSecondary)
+            } else {
+                ForEach(timedTurns) { turn in
+                    let turnIndex = session.turns.firstIndex(where: { $0.id == turn.id }) ?? 0
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("\(store.stageTitle(for: session, turnIndex: turnIndex)) · \(store.speaker(turn.role))")
+                            .font(.caption.bold())
+                            .foregroundStyle(turn.role.color)
+                        HStack {
+                            if let inputMode = turn.inputMode {
+                                Text(store.t(inputMode.rawValue))
+                            }
+                            if let seconds = turn.stageDurationSeconds {
+                                Text(store.formatSeconds(seconds))
+                            }
+                            if let limit = turn.stageLimitSeconds {
+                                Text("/ \(store.formatSeconds(limit))")
+                            }
+                        }
+                        .font(.caption2)
+                        .foregroundStyle(RhetorixColors.textTertiary)
+                    }
+                }
+            }
         }
     }
 }
@@ -588,6 +696,7 @@ struct ResultView: View {
                         }
                     }
                 }
+                DebateMemorySection(session: session)
             }
         }
         .navigationTitle(store.t("Debate Result"))
@@ -606,7 +715,7 @@ struct HistoryView: View {
                 } label: {
                     VStack(alignment: .leading) {
                         Text(store.topicTitle(session.topic)).foregroundStyle(RhetorixColors.textPrimary)
-                        Text("\(store.debateMode(session.mode)) · \(session.turns.count) \(store.t("turns"))")
+                        Text("\(store.debateMode(session.mode)) · \(session.turns.count) \(store.t("turns")) · \(session.turns.compactMap(\.stageDurationSeconds).isEmpty ? store.t("No timing") : store.t("Timed"))")
                             .font(.caption)
                             .foregroundStyle(RhetorixColors.textSecondary)
                     }
@@ -633,32 +742,45 @@ struct ToolsView: View {
     @Binding var path: NavigationPath
     var body: some View {
         ScrollView {
-            VStack(spacing: 12) {
-                FeatureCard(title: store.t("Constructive Analysis"), subtitle: store.t("Analyze opponent constructives"), icon: "magnifyingglass.circle.fill", accent: RhetorixColors.cyan) {
-                    path.append(AppRoute.constructiveAnalysis)
-                }
-                FeatureCard(title: store.t("Rebuttal Trainer"), subtitle: store.t("Timed rebuttal practice"), icon: "timer", accent: RhetorixColors.amber) {
-                    path.append(AppRoute.rebuttalTrainer)
-                }
-                FeatureCard(title: store.t("Logic Fallacy Detector"), subtitle: store.t("Find weak reasoning"), icon: "magnifyingglass", accent: RhetorixColors.green) {
-                    path.append(AppRoute.fallacyDetector)
-                }
-                Link(destination: URL(string: "https://gptzero.me/hallucination-detector")!) {
-                    GlassCard(accent: RhetorixColors.peach) {
-                        HStack {
-                            Image(systemName: "sparkles").foregroundStyle(RhetorixColors.peach)
-                            VStack(alignment: .leading) {
-                                Text(store.t("AI Hallucination Detector"))
-                                Text(store.t("Open GPTZero hallucination detector"))
-                                    .font(.caption)
-                                    .foregroundStyle(RhetorixColors.textSecondary)
-                            }
-                            Spacer()
-                            Image(systemName: "arrow.up.right.square")
-                        }
+            VStack(alignment: .leading, spacing: 14) {
+                Text(store.t("Tools support your debates. Live debate remains the main workflow."))
+                    .font(.caption)
+                    .foregroundStyle(RhetorixColors.textSecondary)
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                    CompactToolButton(title: store.t("Constructive Analysis"), icon: "magnifyingglass.circle.fill", accent: RhetorixColors.cyan) {
+                        path.append(AppRoute.constructiveAnalysis)
                     }
+                    CompactToolButton(title: store.t("Rebuttal Trainer"), icon: "timer", accent: RhetorixColors.amber) {
+                        path.append(AppRoute.rebuttalTrainer)
+                    }
+                    CompactToolButton(title: store.t("Logic Fallacy Detector"), icon: "magnifyingglass", accent: RhetorixColors.green) {
+                        path.append(AppRoute.fallacyDetector)
+                    }
+                    Link(destination: URL(string: "https://gptzero.me/hallucination-detector")!) {
+                        VStack(spacing: 6) {
+                            Image(systemName: "sparkles")
+                                .font(.headline)
+                                .foregroundStyle(RhetorixColors.peach)
+                            Text(store.t("AI Hallucination Detector"))
+                                .font(.caption2.bold())
+                                .foregroundStyle(RhetorixColors.textSecondary)
+                                .lineLimit(2)
+                                .multilineTextAlignment(.center)
+                                .minimumScaleFactor(0.76)
+                            Image(systemName: "arrow.up.right.square")
+                                .font(.caption)
+                                .foregroundStyle(RhetorixColors.textTertiary)
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 62)
+                        .padding(8)
+                        .background(RoundedRectangle(cornerRadius: 14).fill(RhetorixColors.glass))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(RhetorixColors.peach.opacity(0.22), lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
             .padding()
         }
