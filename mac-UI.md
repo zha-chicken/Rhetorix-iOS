@@ -382,10 +382,14 @@ Input modes:
 Result behavior:
 
 - Results appear as expandable issue cards.
-- Collapsed state shows claim, issue type, severity, and optional quote.
-- Expanded state shows explanation and specific rebuttable points.
+- The first visible layer is a clean list of detected claims from the constructive speech.
+- Each claim is shown in its own large, readable card with an issue-type chip and severity chip.
+- Tapping a claim expands it to reveal the original quote, why the claim can be challenged, and specific rebuttable points.
+- Each rebuttable point is displayed in its own framed row rather than inline prose.
+- The UI must never render raw JSON keys or provider formatting artifacts as user-visible analysis.
 - Issue categories include logical fallacy, unsupported evidence, false information risk, missing warrant, causal leap, overgeneralization, definition problem, contradiction, personal attack, and impact weakness.
 - All analysis output is real provider-backed output and must show the AI-generated disclaimer.
+- In the iOS Simulator, live recording shows a clear message that recording analysis requires a physical iPhone; paste mode remains available for simulator testing.
 
 ### Fallacy Detector
 

@@ -602,7 +602,13 @@ final class SpeechTranscriber: ObservableObject {
     private var hasInputTap = false
 
     func start(localeIdentifier: String) {
+        #if targetEnvironment(simulator)
+        errorMessage = "Live recording requires a physical iPhone. Paste text to test in Simulator."
+        isRecording = false
+        return
+        #else
         Task { await startRecording(localeIdentifier: localeIdentifier) }
+        #endif
     }
 
     func stop() {
@@ -795,7 +801,7 @@ struct ConstructiveAnalysisView: View {
                             }
                         }
                         if let error = speech.errorMessage {
-                            Text(error).font(.caption).foregroundStyle(RhetorixColors.salmon)
+                            Text(store.t(error)).font(.caption).foregroundStyle(RhetorixColors.salmon)
                         }
                     }
                 }
@@ -808,6 +814,10 @@ struct ConstructiveAnalysisView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 } else {
+                    Text(store.t("Detected claims"))
+                        .font(.title3.bold())
+                        .foregroundStyle(RhetorixColors.textPrimary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     ForEach(issues) { issue in
                         ConstructiveIssueCard(issue: issue, isExpanded: selectedIssueID == issue.id) {
                             selectedIssueID = selectedIssueID == issue.id ? nil : issue.id
@@ -866,38 +876,70 @@ struct ConstructiveIssueCard: View {
     var body: some View {
         Button(action: action) {
             GlassCard(accent: accent) {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 12) {
                     HStack(alignment: .top) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(issue.issueType)
-                                .font(.caption.bold())
-                                .foregroundStyle(accent)
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 8) {
+                                Text(store.t(issue.issueType))
+                                    .font(.subheadline.bold())
+                                    .foregroundStyle(accent)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background(accent.opacity(0.16))
+                                    .clipShape(Capsule())
+                                Text(store.t("Tap to view rebuttal points"))
+                                    .font(.caption)
+                                    .foregroundStyle(RhetorixColors.textSecondary)
+                            }
                             Text(issue.claim)
-                                .font(.headline)
+                                .font(.title3.bold())
                                 .foregroundStyle(RhetorixColors.textPrimary)
+                                .multilineTextAlignment(.leading)
                         }
                         Spacer()
                         Text(store.t(issue.severity))
-                            .font(.caption2.bold())
+                            .font(.caption.bold())
                             .foregroundStyle(RhetorixColors.textSecondary)
-                    }
-                    if issue.quote.isEmpty == false {
-                        Text("\"\(issue.quote)\"")
-                            .font(.caption)
-                            .foregroundStyle(RhetorixColors.amber)
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 5)
+                            .background(RhetorixColors.glass)
+                            .clipShape(Capsule())
                     }
                     if isExpanded {
-                        Text(issue.explanation)
-                            .font(.subheadline)
-                            .foregroundStyle(RhetorixColors.textSecondary)
+                        if issue.quote.isEmpty == false {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(store.t("Original quote"))
+                                    .font(.caption.bold())
+                                    .foregroundStyle(RhetorixColors.textSecondary)
+                                Text("\"\(issue.quote)\"")
+                                    .font(.body)
+                                    .foregroundStyle(RhetorixColors.amber)
+                            }
+                            .padding(12)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(RhetorixColors.glassStrong)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                        }
+                        if issue.explanation.isEmpty == false {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(store.t("Why this can be challenged"))
+                                    .font(.subheadline.bold())
+                                    .foregroundStyle(RhetorixColors.textPrimary)
+                                Text(issue.explanation)
+                                    .font(.body)
+                                    .foregroundStyle(RhetorixColors.textSecondary)
+                            }
+                            .padding(12)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(RhetorixColors.glassStrong)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                        }
                         if issue.rebuttalPoints.isEmpty == false {
                             Text(store.t("Rebuttable points"))
-                                .font(.caption.bold())
+                                .font(.headline)
                                 .foregroundStyle(RhetorixColors.textPrimary)
                             ForEach(issue.rebuttalPoints, id: \.self) { point in
-                                Label(point, systemImage: "arrow.turn.down.right")
-                                    .font(.caption)
-                                    .foregroundStyle(RhetorixColors.textSecondary)
+                                RebuttalPointFrame(text: point, accent: accent)
                             }
                         }
                         AIDisclaimer()
@@ -914,6 +956,32 @@ struct ConstructiveIssueCard: View {
         case "low": RhetorixColors.green
         default: RhetorixColors.amber
         }
+    }
+}
+
+struct RebuttalPointFrame: View {
+    var text: String
+    var accent: Color
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "arrow.turn.down.right")
+                .font(.body.weight(.semibold))
+                .foregroundStyle(accent)
+                .frame(width: 20)
+            Text(text)
+                .font(.body)
+                .foregroundStyle(RhetorixColors.textPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RhetorixColors.glassStrong)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(accent.opacity(0.24), lineWidth: 1)
+        )
     }
 }
 
