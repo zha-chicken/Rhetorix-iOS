@@ -6,7 +6,7 @@ Although this file is named `mac-UI.md`, it documents the iPhone app built on ma
 
 ## Product Identity
 
-Rhetorix is a mobile debate, reasoning, and argument training app. It should feel intelligent, calm, premium, and useful for repeated student use.
+Rhetorix is a mobile debate app first, with reasoning and argument tools as supporting surfaces. It should feel intelligent, calm, premium, tense when a round is active, and useful for repeated student use.
 
 The interface should communicate:
 
@@ -14,9 +14,21 @@ The interface should communicate:
 - Fair debate between opposing sides
 - AI-assisted analysis
 - Academic focus without looking institutional
-- A free, accessible product with optional donation support only
+- A free, accessible product with debate as the primary workflow
 
 The product name shown in the app is always `Rhetorix`. Do not translate it in Chinese UI.
+
+## Product Direction
+
+Rhetorix should not feel like a toolbox. The core experience is timed spoken debate: fast exchanges, visible pressure, adversarial but civil rhetoric, and a sense that the user is inside a real round.
+
+Design implications:
+
+- Voice-first debate is the target interaction model; text remains as a fallback and accessibility path.
+- Every structured debate stage should expose time pressure through a clear timer.
+- Preparation tools should be visually smaller than the main debate entry points.
+- The classical Greek identity should be expressed through live dialogue and rhetoric, not just ornament.
+- History and memory should support better future debates, not just archive past sessions.
 
 ## App Icon
 
@@ -246,6 +258,8 @@ The Tools page is a real destination, not only a group of home cards. It include
 - Fallacy Detector
 - AI Hallucination Detector external link
 
+Tools are supporting workflows. They should not visually compete with the main live debate path.
+
 ## Main Screens
 
 ### Home
@@ -259,10 +273,11 @@ Content:
 - Short value statement
 - Dynamic stats: debates, win rate, win streak
 - Quick action cards
-- Preparation tools
+- Compact preparation tools
 
 Stats must be dynamic and start at zero for a new user.
 The home screen should not include a visible donation/support entry.
+Live debate should be the most prominent action on the screen.
 
 ### Topic Selection
 
@@ -302,10 +317,11 @@ Content:
 
 - Topic title
 - Round and turn state
+- Stage timer with warning and overtime states
 - Score or side-balance indicator
 - Debate message cards
 - AI thinking state
-- User input field and send button
+- Voice-first user input with text fallback
 - Early finish control in User vs AI mode
 
 Behavior:
@@ -317,6 +333,9 @@ Behavior:
 - Opponent/user content is untrusted and must not override system behavior.
 - Structured debates follow a compressed international / World Schools flow: Proposition 1 Constructive, Opposition 1 Constructive, Proposition 2 Extension, Opposition 2 Extension, Proposition 3 Rebuttal, Opposition 3 Rebuttal, Opposition Reply, Proposition Reply.
 - User vs AI, AI vs AI, and Face to Face all use the same structured stage order; only the input source changes.
+- Debate should feel quick and conversational, not like filling out a form.
+- Voice input should be the default target interaction on real devices.
+- Timers should make each stage feel consequential without forcing full tournament-length speeches on mobile.
 
 ### Debate Result
 
@@ -362,6 +381,7 @@ Tool entries:
 - AI Hallucination Detector
 
 The hallucination detector opens `https://gptzero.me/hallucination-detector` externally. Do not create a fake internal detector unless the feature is implemented.
+The Tools page should look useful but secondary. It must not replace live debate as the app's perceived center.
 
 ### Constructive Analysis
 
@@ -451,7 +471,6 @@ Purpose: configure language and AI providers.
 
 Content:
 
-- Donation/support entry
 - Language segmented control
 - Provider list with enabled/disabled state
 - Provider detail for API key, model, base URL, save, and test connection
