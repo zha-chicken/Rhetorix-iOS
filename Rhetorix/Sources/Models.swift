@@ -203,6 +203,17 @@ struct RebuttalAttempt: Identifiable, Codable, Equatable {
     var createdAt: Date = Date()
 }
 
+struct ConstructiveAnalysisIssue: Identifiable, Codable, Equatable {
+    var id: String = UUID().uuidString
+    var claim: String
+    var issueType: String
+    var quote: String
+    var explanation: String
+    var rebuttalPoints: [String]
+    var severity: String
+    var createdAt: Date = Date()
+}
+
 struct ChatMessage: Codable {
     var role: String
     var content: String
@@ -218,8 +229,7 @@ enum AppRoute: Hashable {
     case setup(DebateTopic)
     case debate(String)
     case result(String)
-    case argumentGraphTopicSelection
-    case argumentGraph(DebateTopic)
+    case constructiveAnalysis
     case rebuttalTrainer
     case fallacyDetector
     case donation

@@ -239,6 +239,8 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Rhetorix;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Rhetorix uses the microphone to transcribe opponent constructive speeches for live analysis.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Rhetorix uses speech recognition to convert debate speeches into text for live constructive analysis.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait";
@@ -269,6 +271,8 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Rhetorix;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Rhetorix uses the microphone to transcribe opponent constructive speeches for live analysis.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Rhetorix uses speech recognition to convert debate speeches into text for live constructive analysis.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait";

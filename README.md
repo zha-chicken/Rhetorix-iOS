@@ -34,7 +34,7 @@ Rhetorix 不是聊天机器人外壳，而是一个围绕“辩论训练”设�
 - 新建辩论入口
 - 面对面辩论入口
 - 历史记录入口
-- 论点图、反驳训练、谬误检测等准备工具入口
+- 立论分析、反驳训练、谬误检测等准备工具入口
 - 赞助支持入口
 
 统计数据来自本地历史记录，新用户初始值为 0，不使用假的全局数据。
@@ -67,6 +67,19 @@ Rhetorix 不是聊天机器人外壳，而是一个围绕“辩论训练”设�
 - AI Provider 选择
 
 AI Provider 默认选择用户已经配置 API Key 的模型。如果用户配置了多个 Provider，会默认选取其中一个可用 Provider。
+
+Structured 模式使用压缩版 World Schools / 国际学校辩论流程：
+
+1. Proposition 1 Constructive
+2. Opposition 1 Constructive
+3. Proposition 2 Extension
+4. Opposition 2 Extension
+5. Proposition 3 Rebuttal
+6. Opposition 3 Rebuttal
+7. Opposition Reply
+8. Proposition Reply
+
+User vs AI、AI vs AI、Face to Face 都使用同一套结构。区别是 User vs AI 只让用户在自己立场对应的阶段输入，AI vs AI 由 AI 双方轮流发言，Face to Face 由同一台设备上的两名用户按阶段轮流输入。
 
 ### 4. 实时辩论
 
@@ -116,7 +129,7 @@ AI Provider 默认选择用户已经配置 API Key 的模型。如果用户配�
 
 包括：
 
-- Argument Relationship Graph
+- Constructive Analysis / 立论分析
 - Rebuttal Trainer
 - Logic Fallacy Detector
 - AI Hallucination Detector 外部入口
@@ -127,46 +140,33 @@ AI Provider 默认选择用户已经配置 API Key 的模型。如果用户配�
 https://gptzero.me/hallucination-detector
 ```
 
-### 8. Argument Relationship Graph / Argument Battle Map
+### 8. Constructive Analysis / 立论分析
 
-论点图功能用于帮助用户准备辩论，而不是生成装饰性的思维导图。
+立论分析用于帮助用户快速拆解对方辩友的一段立论，找出可以直接反驳的弱点。这个功能替代旧的 Argument Relationship Graph，当前版本不再把论点图作为可见功能入口。
 
-流程：
+输入方式：
 
-1. 用户先进入独立辩题库
-2. 选择辩题
-3. App 调用 AI 生成一段简短 AI vs AI 辩论预览
-4. 从辩论预览中抽取论点、证据、攻击、防守和权衡关系
-5. 生成可视化 Argument Battle Map
+- 粘贴文本：用户粘贴对方立论后点击 Analyze
+- 录音转写：用户开启录音，App 使用 iOS Speech 实时转文字
 
-图中包含：
+分析方式：
 
-- 中心辩题
-- 定义和范围
-- 支持方核心论点
-- 反对方核心论点
-- warrant / reasoning
-- evidence
-- impact
-- attack
-- defense
-- rebuttal
-- clash point
-- weighing frame
+- 粘贴文本会一次性分析整段立论
+- 录音模式会按检测到的新论点逐条分析，而不是等整段录音结束
+- 每条结果可以点击展开，查看解释和可反驳点
 
-交互能力：
+分析目标包括：
 
-- 节点初始以较整齐的辩论准备布局展开
-- 用户可以拖拽节点调整位置
-- 节点颜色根据主题切换自适应
-- 点击节点会触发真实 AI 调用，生成该节点对应的具体备赛文本
-- 节点生成内容不是假 UI，如果 Provider 或 API Key 不可用，会显示真实错误
-
-图有三种模式：
-
-- Prep：完整准备视图
-- Clash：突出冲突点、权衡和关键影响
-- Drill：突出攻击、防守和反驳练习
+- 逻辑谬误
+- 信息不实风险
+- 证据不足
+- 缺少 warrant / 推理链
+- 因果跳跃
+- 过度概括
+- 定义问题
+- 前后矛盾
+- 人身攻击
+- impact / weighing 弱点
 
 ### 9. Logic Fallacy Detector
 
@@ -332,9 +332,7 @@ App 入口。创建全局 `AppStore`，注入 SwiftUI 环境，并根据用户�
 - DebateResult
 - AiProvider
 - ProviderConfig
-- ArgumentGraph
-- GraphNode
-- GraphEdge
+- ConstructiveAnalysisIssue
 - FallacyFinding
 - RebuttalAttempt
 - AppTheme
@@ -365,10 +363,10 @@ App 入口。创建全局 `AppStore`，注入 SwiftUI 环境，并根据用户�
 - 用户发言
 - AI 发言
 - 结束辩论并评分
+- World Schools 风格压缩赛制流程
+- 立论分析
 - 谬误检测
 - 反驳训练
-- 论点图生成
-- 论点图节点扩展
 - 动态统计数据
 
 ### Screens.swift
@@ -387,9 +385,7 @@ SwiftUI 页面集合。
 - ToolsView
 - SettingsView
 - ProviderConfigView
-- ArgumentGraphTopicSelectionView
-- ArgumentGraphView
-- GraphCanvas
+- ConstructiveAnalysisView
 - FallacyDetectorView
 - RebuttalTrainerView
 - DonationView
@@ -456,7 +452,7 @@ xcodebuild \
 - 安全检测
 - 本地历史记录
 - 主题切换
-- 论点图生成与节点扩展
+- 立论分析与录音转写
 
 暂未实现或仍需增强：
 

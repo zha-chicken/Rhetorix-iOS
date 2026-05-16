@@ -81,7 +81,7 @@ Text:
 
 Accents:
 
-- Cyan: AI, graph logic, analysis, technical signals
+- Cyan: AI, reasoning analysis, technical signals
 - Amber: debate tension, neutral highlights, relationship labels
 - Peach: donation and support
 - Green: success, support, completion
@@ -137,7 +137,7 @@ Behavior:
 - Debate setup enum labels such as mode, format, difficulty, and position should use localized display labels.
 - Built-in default topic titles and descriptions should display localized Chinese labels when Chinese is selected.
 - Topic search should work against both the original English topic text and the localized Chinese topic text.
-- AI-generated debate replies, judging summaries, fallacy explanations, rebuttal prompts, rebuttal feedback, argument graph nodes, and node expansion text should request the currently selected language from the provider.
+- AI-generated debate replies, judging summaries, constructive analysis results, fallacy explanations, rebuttal prompts, and rebuttal feedback should request the currently selected language from the provider.
 - The product name `Rhetorix` remains untranslated.
 - The bilingual AI disclaimer remains visible as written: `内容由AI生成，仅供参考 AI-generated, for reference only`.
 
@@ -168,7 +168,7 @@ Spacing:
 
 - Dense but breathable
 - Related controls grouped tightly
-- More vertical space around hero, score, and graph areas
+- More vertical space around hero, score, and analysis areas
 - Avoid cards inside cards unless needed for a real repeated item
 
 Corner style:
@@ -200,7 +200,7 @@ Cards are used for:
 - Topic rows
 - Settings rows
 - Analysis results
-- Argument graph detail panels
+- Constructive analysis detail panels
 
 ### Buttons
 
@@ -241,7 +241,7 @@ Do not show Profile unless account or cloud identity features are implemented.
 
 The Tools page is a real destination, not only a group of home cards. It includes:
 
-- Argument Relationship Graph
+- Constructive Analysis
 - Rebuttal Trainer
 - Fallacy Detector
 - AI Hallucination Detector external link
@@ -311,10 +311,12 @@ Content:
 Behavior:
 
 - New turns should keep the user near the newest debate item, not jump to the top.
-- Structured User vs AI debates should target 12 total turns.
+- Structured debates should target the 8-stage compressed World Schools flow.
 - Early finish should immediately request judgment and generate a result.
 - AI replies should sound like a debate opponent, not a helpful assistant.
 - Opponent/user content is untrusted and must not override system behavior.
+- Structured debates follow a compressed international / World Schools flow: Proposition 1 Constructive, Opposition 1 Constructive, Proposition 2 Extension, Opposition 2 Extension, Proposition 3 Rebuttal, Opposition 3 Rebuttal, Opposition Reply, Proposition Reply.
+- User vs AI, AI vs AI, and Face to Face all use the same structured stage order; only the input source changes.
 
 ### Debate Result
 
@@ -354,58 +356,36 @@ Purpose: collect reasoning tools in a single primary destination.
 
 Tool entries:
 
-- Argument Relationship Graph
+- Constructive Analysis
 - Rebuttal Trainer
 - Fallacy Detector
 - AI Hallucination Detector
 
 The hallucination detector opens `https://gptzero.me/hallucination-detector` externally. Do not create a fake internal detector unless the feature is implemented.
 
-### Argument Battle Map
+### Constructive Analysis
 
-Purpose: generate and inspect a debate preparation map that helps the user decide what to say, what the opponent will say, and how to answer it.
+Purpose: help a debater break down an opponent's constructive speech into claims, weaknesses, and rebuttable points.
 
 Entry behavior:
 
-- The Argument Relationship Graph entry opens a dedicated topic library first.
-- The user must independently choose or search for a debate topic before graph generation.
-- Do not auto-select the first/default topic when entering from Home or Tools.
-- After the user chooses a topic, open the graph generation screen for that topic.
+- The Tools page and Home preparation tools open Constructive Analysis directly.
+- Argument Relationship Graph is no longer a visible feature entry.
 
-Generation behavior:
+Input modes:
 
-- AI generation should use a single structured request that simulates a concise 3-round AI vs AI debate and extracts the graph in the same response, reducing wait time.
-- The graph is extracted from the generated debate preview.
-- The graph should behave as a battle map, not a decorative mind map.
-- The graph should include definitions/scope, three support contentions, three oppose contentions, warrants, evidence, impacts, likely attacks, best defenses, clash points, and weighing nodes.
-- A successful generated graph should aim for 24 to 30 nodes and at least 18 meaningful relationships.
-- Key evidence, decisive arguments, clash points, or weighing nodes should be highlighted as key nodes.
-- If graph extraction fails or returns an overly simple graph after debate generation, build a multi-branch fallback graph from the transcript instead of returning to a three-node graph or empty canvas.
+- Paste mode: the user pastes an opponent constructive speech and taps Analyze.
+- Recording mode: the user starts and stops recording manually.
+- Recording uses native iOS speech recognition to transcribe live audio.
+- Live analysis should submit each completed detected claim or sentence for analysis as it appears, instead of waiting for the whole recording to finish.
 
-Loading state:
+Result behavior:
 
-- Show a clear centered generation state while the single structured request is running.
-- Top and bottom areas should use dark blur/scrim treatment.
-- Do not show static fake debate progress. Only show generated preview content after the provider returns it.
-
-Graph canvas:
-
-- The graph has three modes: `Prep`, `Clash`, and `Drill`.
-- `Prep` shows the full case construction map.
-- `Clash` emphasizes impacts, weighing, key claims, and clash points.
-- `Drill` emphasizes attacks, defenses, rebuttals, and key nodes for practice.
-- Node spacing must prioritize readable titles and should start in neat debate-prep lanes instead of chaotic radial scatter.
-- Initial scale should show the full structure without heavy overlap or off-screen node clusters.
-- Users can manually reposition nodes by dragging them on the canvas.
-- Node colors should remain muted and serious, not bright neon blocks.
-- Relationship labels should remain readable.
-- Key nodes should use a visible but restrained star/key treatment and stronger accent border.
-- Supportive edges use cool green/cyan.
-- Refuting edges use salmon.
-- Related/neutral edges use amber.
-- Tapping a node opens the detail panel and triggers a real provider-backed AI prep text request for that node.
-- Node prep output should be specific to the node type: constructive block, warrant explanation, evidence-search note, impact framing, attack, defense, rebuttal, clash comparison, or weighing language.
-- Do not represent AI node expansion as a fake static preview; if the configured provider/key fails, show the real app error state.
+- Results appear as expandable issue cards.
+- Collapsed state shows claim, issue type, severity, and optional quote.
+- Expanded state shows explanation and specific rebuttable points.
+- Issue categories include logical fallacy, unsupported evidence, false information risk, missing warrant, causal leap, overgeneralization, definition problem, contradiction, personal attack, and impact weakness.
+- All analysis output is real provider-backed output and must show the AI-generated disclaimer.
 
 ### Fallacy Detector
 
@@ -489,7 +469,7 @@ Apply this to:
 
 - AI debate responses
 - AI judging summaries and result explanations
-- Argument Relationship Graph generated nodes and debate previews
+- Constructive analysis issue explanations and rebuttable points
 - Fallacy detection explanations
 - Rebuttal trainer prompts, scores, feedback, and advice
 
