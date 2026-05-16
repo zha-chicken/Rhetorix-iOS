@@ -54,32 +54,6 @@ enum RhetorixColors {
         light: UIColor(red: 0.92, green: 0.28, blue: 0.42, alpha: 1.0),
         dark: UIColor(red: 0.90, green: 0.45, blue: 0.42, alpha: 1.0)
     )
-
-    static let graphTopic = adaptive(
-        light: UIColor(red: 0.96, green: 0.46, blue: 0.60, alpha: 1.0),
-        dark: UIColor(red: 0.44, green: 0.72, blue: 0.72, alpha: 1.0)
-    )
-    static let graphSupport = adaptive(
-        light: UIColor(red: 0.94, green: 0.68, blue: 0.74, alpha: 1.0),
-        dark: UIColor(red: 0.47, green: 0.63, blue: 0.55, alpha: 1.0)
-    )
-    static let graphOppose = adaptive(
-        light: UIColor(red: 0.95, green: 0.52, blue: 0.42, alpha: 1.0),
-        dark: UIColor(red: 0.69, green: 0.41, blue: 0.38, alpha: 1.0)
-    )
-    static let graphEvidence = adaptive(
-        light: UIColor(red: 0.96, green: 0.70, blue: 0.36, alpha: 1.0),
-        dark: UIColor(red: 0.68, green: 0.55, blue: 0.36, alpha: 1.0)
-    )
-    static let graphWarrant = adaptive(
-        light: UIColor(red: 0.77, green: 0.50, blue: 0.68, alpha: 1.0),
-        dark: UIColor(red: 0.48, green: 0.67, blue: 0.67, alpha: 1.0)
-    )
-    static let graphDefense = adaptive(
-        light: UIColor(red: 0.91, green: 0.58, blue: 0.55, alpha: 1.0),
-        dark: UIColor(red: 0.67, green: 0.48, blue: 0.40, alpha: 1.0)
-    )
-
     static func adaptive(light: UIColor, dark: UIColor) -> Color {
         Color(UIColor { trait in
             trait.userInterfaceStyle == .light ? light : dark

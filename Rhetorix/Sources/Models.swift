@@ -147,44 +147,6 @@ struct DebateResult: Identifiable, Codable, Equatable {
     var createdAt: Date = Date()
 }
 
-enum GraphNodeType: String, Codable {
-    case topic
-    case support
-    case oppose
-    case evidence
-    case warrant
-    case impact
-    case attack
-    case defense
-    case weighing
-    case clash
-    case rebuttal
-}
-
-struct GraphNode: Identifiable, Codable, Equatable {
-    var id: String = UUID().uuidString
-    var title: String
-    var detail: String
-    var type: GraphNodeType
-    var x: Double
-    var y: Double
-    var isKey: Bool = false
-}
-
-struct GraphEdge: Identifiable, Codable, Equatable {
-    var id: String = UUID().uuidString
-    var from: String
-    var to: String
-    var relation: String
-}
-
-struct ArgumentGraph: Codable, Equatable {
-    var topic: DebateTopic
-    var debatePreview: [DebateTurn]
-    var nodes: [GraphNode]
-    var edges: [GraphEdge]
-}
-
 struct FallacyFinding: Identifiable, Codable, Equatable {
     var id: String = UUID().uuidString
     var name: String

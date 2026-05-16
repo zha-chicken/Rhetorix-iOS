@@ -237,51 +237,6 @@ struct TopicRow: View {
     }
 }
 
-struct ArgumentGraphTopicSelectionView: View {
-    @EnvironmentObject private var store: AppStore
-    @Binding var path: NavigationPath
-    @State private var search = ""
-
-    private var filtered: [DebateTopic] {
-        search.isEmpty ? store.topics : store.topics.filter {
-            $0.title.localizedCaseInsensitiveContains(search) ||
-            store.topicTitle($0).localizedCaseInsensitiveContains(search) ||
-            $0.category.localizedCaseInsensitiveContains(search) ||
-            store.category($0.category).localizedCaseInsensitiveContains(search) ||
-            $0.details.localizedCaseInsensitiveContains(search)
-        }
-    }
-
-    var body: some View {
-        List {
-            Section {
-                TextField(store.t("Search topics..."), text: $search)
-            }
-            .listRowBackground(RhetorixColors.glass)
-
-            Section(store.t("Choose a Topic")) {
-                ForEach(filtered) { topic in
-                    Button {
-                        path.append(AppRoute.constructiveAnalysis)
-                    } label: {
-                        TopicRow(topic: topic, debateCount: store.debateCount(for: topic))
-                    }
-                    .listRowBackground(RhetorixColors.glass)
-                }
-            }
-        }
-        .navigationTitle(store.t("Graph Topic"))
-        .toolbar {
-            Button(store.t("Add Topic")) {
-                let topic = DebateTopic(title: store.t("Custom graph topic"), category: store.t("Custom"), details: store.t("Edit this topic in a future build."))
-                store.topics.insert(topic, at: 0)
-                path.append(AppRoute.constructiveAnalysis)
-            }
-        }
-        .appScreen()
-    }
-}
-
 struct DebateSetupView: View {
     @EnvironmentObject private var store: AppStore
     @Binding var path: NavigationPath
@@ -634,309 +589,6 @@ struct ProviderConfigView: View {
     }
 }
 
-struct ArgumentGraphView: View {
-    @EnvironmentObject private var store: AppStore
-    var topic: DebateTopic
-    @State private var provider: AiProvider = .openAI
-    @State private var graph: ArgumentGraph?
-    @State private var selected: GraphNode?
-    @State private var mode: BattleMapMode = .prep
-    @State private var nodeBriefs: [String: String] = [:]
-    @State private var expandingNodeID: String?
-
-    var body: some View {
-        ZStack {
-            AppBackdrop()
-            VStack {
-                if let currentGraph = graph {
-                    Picker(store.t("Map Mode"), selection: $mode) {
-                        ForEach(BattleMapMode.allCases) { item in
-                            Text(store.t(item.rawValue)).tag(item)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .padding(.horizontal)
-                    GraphCanvas(
-                        graph: Binding(
-                            get: { graph ?? currentGraph },
-                            set: { graph = $0 }
-                        ),
-                        mode: mode,
-                        selected: $selected
-                    )
-                    if let selected {
-                        GlassCard(accent: accent(for: selected.type)) {
-                            VStack(alignment: .leading, spacing: 10) {
-                                HStack {
-                                    Text(selected.title).font(.headline)
-                                    if selected.isKey {
-                                        Label(store.t("Key"), systemImage: "star.fill")
-                                            .font(.caption.bold())
-                                            .foregroundStyle(RhetorixColors.amber)
-                                    }
-                                    Spacer()
-                                    Text(selected.type.rawValue.capitalized)
-                                        .font(.caption2.bold())
-                                        .foregroundStyle(RhetorixColors.textSecondary)
-                                }
-                                Text(selected.detail).font(.caption).foregroundStyle(RhetorixColors.textSecondary)
-                                if expandingNodeID == selected.id {
-                                    HStack(spacing: 8) {
-                                        ProgressView()
-                                        Text(store.t("Preparing node text..."))
-                                            .font(.caption)
-                                            .foregroundStyle(RhetorixColors.textSecondary)
-                                    }
-                                }
-                                if let brief = nodeBriefs[selected.id] {
-                                    Divider().overlay(.white.opacity(0.14))
-                                    Text(store.t("AI Prep Text"))
-                                        .font(.caption.bold())
-                                        .foregroundStyle(RhetorixColors.textPrimary)
-                                    Text(brief)
-                                        .font(.caption)
-                                        .foregroundStyle(RhetorixColors.textSecondary)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                }
-                                if selected.type == .attack || selected.type == .defense || selected.type == .weighing || selected.type == .clash {
-                                    Text(store.t(mode.tip))
-                                        .font(.caption2)
-                                        .foregroundStyle(RhetorixColors.amber)
-                                }
-                                Button(store.t("Refresh AI Text")) {
-                                    requestNodeBrief(force: true)
-                                }
-                                .font(.caption.bold())
-                                .buttonStyle(.bordered)
-                                .disabled(expandingNodeID == selected.id)
-                                AIDisclaimer()
-                            }
-                        }
-                        .padding()
-                    } else {
-                        AIDisclaimer().padding()
-                    }
-                } else {
-                    VStack(spacing: 16) {
-                        Image(systemName: "point.3.connected.trianglepath.dotted").font(.largeTitle)
-                        Text(store.t("No graph yet")).font(.headline)
-                        Picker(store.t("Provider"), selection: $provider) {
-                            ForEach(AiProvider.allCases) { Text($0.rawValue).tag($0) }
-                        }
-                        Button(store.t("Generate with AI")) {
-                            Task { graph = await store.generateGraph(topic: topic, provider: provider) }
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
-                    .padding()
-                }
-            }
-            if store.isWorking && graph == nil {
-                ProgressView(store.t("Generating..."))
-                    .padding()
-                    .background(.ultraThinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-            }
-        }
-        .navigationTitle(store.topicTitle(topic))
-        .onAppear {
-            provider = store.preferredProvider
-        }
-        .onChange(of: selected?.id) { _, _ in
-            requestNodeBrief(force: false)
-        }
-    }
-
-    private func accent(for type: GraphNodeType) -> Color {
-        switch type {
-        case .oppose, .attack: RhetorixColors.salmon
-        case .weighing, .clash, .impact: RhetorixColors.amber
-        case .defense, .rebuttal: RhetorixColors.peach
-        case .support: RhetorixColors.green
-        default: RhetorixColors.cyan
-        }
-    }
-
-    private func requestNodeBrief(force: Bool) {
-        guard let node = selected else { return }
-        if force == false, nodeBriefs[node.id] != nil { return }
-        let nodeID = node.id
-        expandingNodeID = nodeID
-        Task { @MainActor in
-            let brief = await store.expandGraphNode(topic: topic, node: node, provider: provider)
-            if brief.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false, selected?.id == nodeID {
-                nodeBriefs[nodeID] = brief
-            }
-            if expandingNodeID == nodeID {
-                expandingNodeID = nil
-            }
-        }
-    }
-}
-
-enum BattleMapMode: String, CaseIterable, Identifiable {
-    case prep = "Prep"
-    case clash = "Clash"
-    case drill = "Drill"
-
-    var id: String { rawValue }
-
-    var tip: String {
-        switch self {
-        case .prep: "Use this node to build your constructive speech."
-        case .clash: "Use this node to compare which side wins the debate."
-        case .drill: "Practice answering this attack out loud before the round."
-        }
-    }
-}
-
-struct GraphCanvas: View {
-    @Binding var graph: ArgumentGraph
-    var mode: BattleMapMode
-    @Binding var selected: GraphNode?
-    @State private var dragOrigins: [String: CGPoint] = [:]
-
-    private var visibleNodes: [GraphNode] {
-        switch mode {
-        case .prep:
-            graph.nodes
-        case .clash:
-            graph.nodes.filter { $0.type == .topic || $0.type == .clash || $0.type == .weighing || $0.type == .impact || $0.isKey }
-        case .drill:
-            graph.nodes.filter { $0.type == .topic || $0.type == .attack || $0.type == .defense || $0.type == .rebuttal || $0.isKey }
-        }
-    }
-
-    private var visibleNodeIDs: Set<String> {
-        Set(visibleNodes.map(\.id))
-    }
-
-    var body: some View {
-        GeometryReader { geo in
-            ZStack {
-                ForEach(graph.edges) { edge in
-                    if visibleNodeIDs.contains(edge.from), visibleNodeIDs.contains(edge.to),
-                       let from = graph.nodes.first(where: { $0.id == edge.from }), let to = graph.nodes.first(where: { $0.id == edge.to }) {
-                        Path { path in
-                            path.move(to: point(from, geo))
-                            path.addLine(to: point(to, geo))
-                        }
-                        .stroke(edgeColor(edge.relation), lineWidth: edge.relation == "refutes" ? 2.4 : 1.8)
-                    }
-                }
-                ForEach(visibleNodes) { node in
-                    nodeView(node)
-                    .position(point(node, geo))
-                    .onTapGesture {
-                        selected = currentNode(node.id) ?? node
-                    }
-                    .gesture(dragGesture(for: node, in: geo))
-                }
-            }
-        }
-        .frame(minHeight: 520)
-    }
-
-    private func point(_ node: GraphNode, _ geo: GeometryProxy) -> CGPoint {
-        let scale = graphScale(geo)
-        return CGPoint(x: geo.size.width / 2 + CGFloat(node.x) * scale, y: geo.size.height / 2 + CGFloat(node.y) * scale)
-    }
-
-    private func graphScale(_ geo: GeometryProxy) -> CGFloat {
-        min(1, max(0.78, min(geo.size.width / 390, geo.size.height / 640)))
-    }
-
-    private func nodeView(_ node: GraphNode) -> some View {
-        VStack(spacing: 3) {
-            if node.isKey {
-                Image(systemName: "star.fill")
-                    .font(.caption2.bold())
-                    .foregroundStyle(RhetorixColors.amber.opacity(0.9))
-            }
-            Text(node.title)
-                .font(.system(size: node.isKey ? 12 : 11, weight: .bold))
-                .lineLimit(2)
-                .minimumScaleFactor(0.68)
-                .multilineTextAlignment(.center)
-            Text(shortLabel(node.type))
-                .font(.system(size: 7.5, weight: .bold))
-                .foregroundStyle(.white.opacity(0.68))
-        }
-        .frame(width: node.isKey ? 104 : 92, height: node.isKey ? 66 : 58)
-        .background(
-            RoundedRectangle(cornerRadius: node.isKey ? 16 : 14)
-                .fill(color(node.type).opacity(node.isKey ? 0.76 : 0.62))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: node.isKey ? 16 : 14)
-                .stroke(node.isKey ? RhetorixColors.amber.opacity(0.72) : .white.opacity(0.18), lineWidth: node.isKey ? 1.8 : 1)
-        )
-        .shadow(color: node.isKey ? RhetorixColors.amber.opacity(0.16) : .clear, radius: 8)
-        .foregroundStyle(.white)
-        .contentShape(RoundedRectangle(cornerRadius: node.isKey ? 16 : 14))
-    }
-
-    private func dragGesture(for node: GraphNode, in geo: GeometryProxy) -> some Gesture {
-        DragGesture(minimumDistance: 1)
-            .onChanged { value in
-                guard let index = graph.nodes.firstIndex(where: { $0.id == node.id }) else { return }
-                let origin = dragOrigins[node.id] ?? CGPoint(x: graph.nodes[index].x, y: graph.nodes[index].y)
-                dragOrigins[node.id] = origin
-                let scale = graphScale(geo)
-                graph.nodes[index].x = Double(origin.x + value.translation.width / scale)
-                graph.nodes[index].y = Double(origin.y + value.translation.height / scale)
-                selected = graph.nodes[index]
-            }
-            .onEnded { _ in
-                dragOrigins[node.id] = nil
-            }
-    }
-
-    private func currentNode(_ id: String) -> GraphNode? {
-        graph.nodes.first { $0.id == id }
-    }
-
-    private func edgeColor(_ relation: String) -> Color {
-        switch relation {
-        case "refutes": RhetorixColors.salmon.opacity(0.72)
-        case "qualifies", "depends_on": RhetorixColors.amber.opacity(0.66)
-        default: RhetorixColors.green.opacity(0.66)
-        }
-    }
-
-    private func shortLabel(_ type: GraphNodeType) -> String {
-        switch type {
-        case .topic: "TOPIC"
-        case .support: "CASE"
-        case .oppose: "CASE"
-        case .evidence: "EVID"
-        case .warrant: "WHY"
-        case .impact: "IMPACT"
-        case .attack: "ATTACK"
-        case .defense: "DEFENSE"
-        case .weighing: "WEIGH"
-        case .clash: "CLASH"
-        case .rebuttal: "REBUT"
-        }
-    }
-
-    private func color(_ type: GraphNodeType) -> Color {
-        switch type {
-        case .topic: RhetorixColors.graphTopic
-        case .support: RhetorixColors.graphSupport
-        case .oppose: RhetorixColors.graphOppose
-        case .evidence: RhetorixColors.graphEvidence
-        case .warrant: RhetorixColors.graphWarrant
-        case .impact: RhetorixColors.graphEvidence
-        case .attack: RhetorixColors.graphOppose
-        case .defense: RhetorixColors.graphDefense
-        case .weighing: RhetorixColors.graphEvidence
-        case .clash: RhetorixColors.graphDefense
-        case .rebuttal: RhetorixColors.graphDefense
-        }
-    }
-}
-
 @MainActor
 final class SpeechTranscriber: ObservableObject {
     @Published var transcript = ""
@@ -947,18 +599,28 @@ final class SpeechTranscriber: ObservableObject {
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
     private var recognizer: SFSpeechRecognizer?
+    private var hasInputTap = false
 
     func start(localeIdentifier: String) {
         Task { await startRecording(localeIdentifier: localeIdentifier) }
     }
 
     func stop() {
+        finishRecording(cancelTask: true)
+    }
+
+    private func finishRecording(cancelTask: Bool) {
         if audioEngine.isRunning {
             audioEngine.stop()
+        }
+        if hasInputTap {
             audioEngine.inputNode.removeTap(onBus: 0)
+            hasInputTap = false
         }
         recognitionRequest?.endAudio()
-        recognitionTask?.cancel()
+        if cancelTask {
+            recognitionTask?.cancel()
+        }
         recognitionTask = nil
         recognitionRequest = nil
         isRecording = false
@@ -997,9 +659,15 @@ final class SpeechTranscriber: ObservableObject {
 
             let inputNode = audioEngine.inputNode
             let format = inputNode.outputFormat(forBus: 0)
+            guard format.sampleRate > 0, format.channelCount > 0 else {
+                errorMessage = "No valid microphone input is available."
+                finishRecording(cancelTask: true)
+                return
+            }
             inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in
                 request.append(buffer)
             }
+            hasInputTap = true
             audioEngine.prepare()
             try audioEngine.start()
             isRecording = true
@@ -1010,13 +678,13 @@ final class SpeechTranscriber: ObservableObject {
                         self?.transcript = result.bestTranscription.formattedString
                     }
                     if error != nil || result?.isFinal == true {
-                        self?.stop()
+                        self?.finishRecording(cancelTask: false)
                     }
                 }
             }
         } catch {
             errorMessage = error.localizedDescription
-            stop()
+            finishRecording(cancelTask: true)
         }
     }
 
@@ -1030,8 +698,14 @@ final class SpeechTranscriber: ObservableObject {
 
     private func requestMicrophonePermission() async -> Bool {
         await withCheckedContinuation { continuation in
-            AVAudioSession.sharedInstance().requestRecordPermission { allowed in
-                continuation.resume(returning: allowed)
+            if #available(iOS 17.0, *) {
+                AVAudioApplication.requestRecordPermission { allowed in
+                    continuation.resume(returning: allowed)
+                }
+            } else {
+                AVAudioSession.sharedInstance().requestRecordPermission { allowed in
+                    continuation.resume(returning: allowed)
+                }
             }
         }
     }
