@@ -130,6 +130,30 @@ final class AppStore: ObservableObject {
         save()
     }
 
+    func resultFeedback(for sessionID: String) -> RecommendationFeedback? {
+        userProfileMemory.recommendationFeedback?.first { $0.sessionID == sessionID }
+    }
+
+    func recordResultFeedback(sessionID: String, sentiment: RecommendationFeedbackSentiment, reasonType: RecommendationFeedbackReasonType) {
+        guard let session = sessions.first(where: { $0.id == sessionID }) else { return }
+        var feedback = userProfileMemory.recommendationFeedback ?? []
+        let next = RecommendationFeedback(
+            sessionID: sessionID,
+            topicTitle: session.topic.title,
+            category: session.topic.category,
+            sentiment: sentiment,
+            reasonType: reasonType
+        )
+        if let index = feedback.firstIndex(where: { $0.sessionID == sessionID }) {
+            feedback[index] = next
+        } else {
+            feedback.append(next)
+        }
+        userProfileMemory.recommendationFeedback = feedback
+        userProfileMemory.updatedAt = Date()
+        save()
+    }
+
     func debateCount(for topic: DebateTopic) -> Int {
         sessions.filter { session in
             normalizedTopicTitle(session.topic.title) == normalizedTopicTitle(topic.title) &&
@@ -1035,23 +1059,27 @@ final class AppStore: ObservableObject {
         let weakness = userProfileMemory.weaknessSignals.first
         let weaknessKeywords = recommendationKeywords(for: weakness?.title)
         let mbtiKeywords = recommendationKeywords(for: userProfileMemory.mbti)
+        let feedbackScores = recommendationCategoryFeedbackScores()
 
         let ranked = topics
-            .map { topic -> (topic: DebateTopic, score: Int, weaknessMatches: Int, mbtiMatches: Int) in
+            .map { topic -> (topic: DebateTopic, score: Int, weaknessMatches: Int, mbtiMatches: Int, feedbackScore: Int) in
                 let titleKey = normalizedTopicTitle(topic.title)
+                let categoryKey = normalizedTopicTitle(topic.category)
                 let text = "\(topic.title) \(topic.category) \(topic.details)"
                 var score = 0
-                if normalizedTopicTitle(topic.category) == favoriteCategoryKey {
+                if categoryKey == favoriteCategoryKey {
                     score += 16
                 }
                 let weaknessMatches = recommendationKeywordMatches(in: text, keywords: weaknessKeywords)
                 score += weaknessMatches * 34
                 let mbtiMatches = recommendationKeywordMatches(in: text, keywords: mbtiKeywords)
                 score += mbtiMatches * 5
+                let feedbackScore = feedbackScores[categoryKey, default: 0]
+                score += feedbackScore
                 let historyPenalty = debatedCounts[titleKey, default: 0] * 9
                 let recentPenalty = recentTitles.contains(titleKey) ? 18 : 0
                 score -= historyPenalty + recentPenalty
-                return (topic, score, weaknessMatches, mbtiMatches)
+                return (topic, score, weaknessMatches, mbtiMatches, feedbackScore)
             }
             .sorted { left, right in
                 if left.score == right.score {
@@ -1063,7 +1091,7 @@ final class AppStore: ObservableObject {
                 return left.score > right.score
             }
 
-        var selected: [(topic: DebateTopic, score: Int, weaknessMatches: Int, mbtiMatches: Int)] = []
+        var selected: [(topic: DebateTopic, score: Int, weaknessMatches: Int, mbtiMatches: Int, feedbackScore: Int)] = []
         var categoryCounts: [String: Int] = [:]
         let targetCount = max(1, limit)
         while selected.count < targetCount {
@@ -1088,6 +1116,9 @@ final class AppStore: ObservableObject {
             if let weakness, item.weaknessMatches > 0 {
                 focus = t(weakness.title)
                 reason = "\(t("Balances your interest in")) \(category(favoriteCategory)) · \(t("Targets")) \(t(weakness.title))"
+            } else if item.feedbackScore != 0 {
+                focus = storeCategoryFeedbackFocus(item.feedbackScore)
+                reason = "\(t("Based on your feedback for")) \(category(item.topic.category))"
             } else if let mbti = userProfileMemory.mbti, item.mbtiMatches > 0 {
                 focus = mbti.rawValue
                 reason = "\(t("Based on your completed debates in")) \(category(favoriteCategory)) · MBTI \(mbti.rawValue)"
@@ -1097,6 +1128,24 @@ final class AppStore: ObservableObject {
             }
             return TopicRecommendation(topic: item.topic, reason: reason, focus: focus, matchedSignal: weakness?.title)
         }
+    }
+
+    private func recommendationCategoryFeedbackScores() -> [String: Int] {
+        var scores: [String: Int] = [:]
+        for feedback in userProfileMemory.recommendationFeedback ?? [] where feedback.reasonType == .category {
+            let key = normalizedTopicTitle(feedback.category)
+            switch feedback.sentiment {
+            case .like:
+                scores[key, default: 0] += 12
+            case .dislike:
+                scores[key, default: 0] -= 18
+            }
+        }
+        return scores
+    }
+
+    private func storeCategoryFeedbackFocus(_ score: Int) -> String {
+        score > 0 ? t("Liked category") : t("Disliked category")
     }
 
     private func recommendationKeywords(for weaknessTitle: String?) -> [String] {

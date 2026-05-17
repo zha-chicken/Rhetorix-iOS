@@ -35,6 +35,14 @@ final class RhetorixUITests: XCTestCase {
         endButton.tap()
 
         XCTAssertTrue(app.staticTexts["Mock judgment: the user wins by clearer clash and better weighing."].waitForExistence(timeout: 5))
+
+        let likeButton = app.buttons["result.feedback.like"]
+        XCTAssertTrue(likeButton.waitForExistence(timeout: 5))
+        likeButton.tap()
+        let categoryButton = app.buttons["result.feedback.category"].firstMatch
+        XCTAssertTrue(categoryButton.waitForExistence(timeout: 5))
+        categoryButton.tap()
+        XCTAssertTrue(app.staticTexts["Saved: Like · Category"].waitForExistence(timeout: 5))
     }
 
     @MainActor

@@ -889,6 +889,10 @@ struct ResultView: View {
                     }
                 }
                 .listRowBackground(Color.clear)
+                if session.result != nil {
+                    ResultFeedbackSection(session: session)
+                        .listRowBackground(Color.clear)
+                }
                 Section(store.t("Transcript")) {
                     ForEach(session.turns) { turn in
                         VStack(alignment: .leading, spacing: 4) {
@@ -903,6 +907,105 @@ struct ResultView: View {
         }
         .navigationTitle(store.t("Debate Result"))
         .appScreen()
+    }
+}
+
+struct ResultFeedbackSection: View {
+    @EnvironmentObject private var store: AppStore
+    var session: DebateSession
+    @State private var pendingSentiment: RecommendationFeedbackSentiment?
+
+    private var savedFeedback: RecommendationFeedback? {
+        store.resultFeedback(for: session.id)
+    }
+
+    private var dialogTitle: String {
+        pendingSentiment == .like
+            ? store.t("What do you like about it?")
+            : store.t("What do you dislike about it?")
+    }
+
+    var body: some View {
+        GlassCard(accent: RhetorixColors.cyan) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(store.t("Help Rhetorix recommend better topics"))
+                            .font(.headline)
+                        Text(feedbackDescription)
+                            .font(.caption)
+                            .foregroundStyle(RhetorixColors.textSecondary)
+                    }
+                    Spacer()
+                }
+                HStack(spacing: 12) {
+                    feedbackButton(
+                        sentiment: .like,
+                        icon: "hand.thumbsup.fill",
+                        title: store.t("Like")
+                    )
+                    .accessibilityIdentifier("result.feedback.like")
+                    feedbackButton(
+                        sentiment: .dislike,
+                        icon: "hand.thumbsdown.fill",
+                        title: store.t("Dislike")
+                    )
+                    .accessibilityIdentifier("result.feedback.dislike")
+                }
+            }
+        }
+        .confirmationDialog(dialogTitle, isPresented: Binding(
+            get: { pendingSentiment != nil },
+            set: { if $0 == false { pendingSentiment = nil } }
+        ), titleVisibility: .visible) {
+            Button(store.t("Category")) {
+                saveFeedback(reasonType: .category)
+            }
+            .accessibilityIdentifier("result.feedback.category")
+            Button(store.t("Technique")) {
+                saveFeedback(reasonType: .technique)
+            }
+            .accessibilityIdentifier("result.feedback.technique")
+            Button(store.t("Cancel"), role: .cancel) {
+                pendingSentiment = nil
+            }
+        }
+    }
+
+    private var feedbackDescription: String {
+        guard let savedFeedback else {
+            return store.t("Category feedback changes future topic recommendations. Technique feedback is recorded but does not change recommendations.")
+        }
+        return "\(store.t("Saved")): \(store.t(savedFeedback.sentiment.rawValue)) · \(store.t(savedFeedback.reasonType.rawValue))"
+    }
+
+    private func feedbackButton(sentiment: RecommendationFeedbackSentiment, icon: String, title: String) -> some View {
+        Button {
+            pendingSentiment = sentiment
+        } label: {
+            HStack {
+                Image(systemName: icon)
+                Text(title)
+                    .font(.subheadline.bold())
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(savedFeedback?.sentiment == sentiment ? RhetorixColors.cyan.opacity(0.26) : RhetorixColors.glass)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(savedFeedback?.sentiment == sentiment ? RhetorixColors.cyan : RhetorixColors.border, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func saveFeedback(reasonType: RecommendationFeedbackReasonType) {
+        guard let pendingSentiment else { return }
+        store.recordResultFeedback(sessionID: session.id, sentiment: pendingSentiment, reasonType: reasonType)
+        self.pendingSentiment = nil
     }
 }
 

@@ -184,6 +184,7 @@ score =
   favoriteCategoryMatch * 16
   + weaknessKeywordMatches * 34
   + mbtiKeywordMatches * 5
+  + categoryFeedbackScore
   - previousDebateCountForSameTopic * 9
   - recentRepeatPenalty
 ```
@@ -193,6 +194,7 @@ score =
 - `favoriteCategoryMatch`：辩题类别是否等于用户最常辩的类别，命中为 1，否则为 0
 - `weaknessKeywordMatches`：辩题是否适合训练当前最明显弱点，例如证据不足、定义不清、缺少交锋、影响权衡不足
 - `mbtiKeywordMatches`：MBTI 只提供轻量话题偏好关键词，每个命中只加 5 分
+- `categoryFeedbackScore`：辩论结束后用户选择 `like + category` 会让同类题目每次 `+12`；选择 `dislike + category` 会让同类题目每次 `-18`
 - `previousDebateCountForSameTopic`：用户已经辩过同一个题目的次数，次数越多扣分越多
 - `recentRepeatPenalty`：如果题目出现在最近 5 场辩论中，额外扣 18 分
 
@@ -203,10 +205,11 @@ score =
 - 训练价值优先：当前弱点命中每项 `+34`
 - 真实历史轻量参考：用户实际常辩领域 `+16`
 - MBTI 只做轻微偏置：每项 `+5`
+- 显式用户反馈参与 category 偏好：喜欢类别 `+12`，不喜欢类别 `-18`
 - 避免重复：同题每辩过一次 `-9`，最近重复 `-18`
 - 尽量多样：同一推荐批次中重复类别每次额外 `-24`
 
-因此推荐会优先命中训练弱点，同时尽可能给用户不同 category 的辩题。MBTI 不会压过真实行为数据。它只在多个题目都符合用户历史和训练目标时，轻微影响排序。
+因此推荐会优先命中训练弱点，同时尽可能给用户不同 category 的辩题。MBTI 不会压过真实行为数据。它只在多个题目都符合用户历史和训练目标时，轻微影响排序。用户在赛后选择 `technique` 的喜欢/不喜欢反馈只会被记录，用于未来解释和产品分析，不影响辩题推荐排序。
 
 MBTI 关键词不是四组粗分类，而是 16 个类型分别映射。映射参考 Myers-Briggs 官方对各类型偏好、决策方式和关注点的描述，再转化为辩题关键词。例如：
 

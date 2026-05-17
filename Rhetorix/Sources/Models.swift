@@ -228,6 +228,7 @@ struct UserProfileMemory: Codable, Equatable {
     var styleSignals: [MemorySignal] = []
     var valueSignals: [MemorySignal] = []
     var weaknessSignals: [MemorySignal] = []
+    var recommendationFeedback: [RecommendationFeedback]?
     var evidenceSessionCount: Int = 0
     var evidenceTurnCount: Int = 0
     var updatedAt: Date = Date()
@@ -235,6 +236,26 @@ struct UserProfileMemory: Codable, Equatable {
     var hasInferenceEvidence: Bool {
         evidenceSessionCount >= 2 || evidenceTurnCount >= 4
     }
+}
+
+enum RecommendationFeedbackSentiment: String, Codable, Equatable {
+    case like = "Like"
+    case dislike = "Dislike"
+}
+
+enum RecommendationFeedbackReasonType: String, Codable, Equatable {
+    case category = "Category"
+    case technique = "Technique"
+}
+
+struct RecommendationFeedback: Identifiable, Codable, Equatable {
+    var id: String = UUID().uuidString
+    var sessionID: String
+    var topicTitle: String
+    var category: String
+    var sentiment: RecommendationFeedbackSentiment
+    var reasonType: RecommendationFeedbackReasonType
+    var createdAt: Date = Date()
 }
 
 struct MemorySignal: Identifiable, Codable, Equatable {

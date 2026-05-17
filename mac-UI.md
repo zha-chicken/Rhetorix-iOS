@@ -366,6 +366,7 @@ Content:
 - Short outcome explanation
 - Key moments
 - Debate transcript
+- Post-result recommendation feedback: compact thumbs-up and thumbs-down buttons appear below the result card. Choosing either opens a native choice prompt asking what the user liked/disliked: Category or Technique.
 - Return home action
 
 Winner handling:
@@ -373,6 +374,7 @@ Winner handling:
 - The model should return a structured winning side when possible.
 - User vs AI results map the side back to You or AI.
 - If stored data is contradictory, the UI should avoid showing an obviously wrong participant.
+- Category feedback affects future topic recommendations. Technique feedback is recorded as explicit user feedback but does not alter recommendation ranking.
 
 ### History
 
@@ -408,7 +410,7 @@ Rules:
   - constructive-analysis focus: repeated issue types from saved Constructive Analysis results
   - pacing focus: slow rebuttal or reply turns derived from recorded stage timers
 - Settings should expose evidence counts and short evidence snippets so the profile feels inspectable, not mystical.
-- Recommended topics should be chosen by Recommendation 2.0: combine categories the user actually debates with the strongest current weakness signal, add only a small MBTI preference bias when available, and avoid very recent repeats when possible.
+- Recommended topics should be chosen by Recommendation 2.0: prioritize the strongest current weakness signal, use completed-debate categories as a lighter hint, add only a small MBTI preference bias when available, apply explicit category like/dislike feedback, avoid very recent repeats, and diversify categories within the same recommendation batch when possible.
 - The Memory Profile detail page shows local evidence counts, profile metrics, top signals with evidence snippets, and up to three recommended topics with their training focus.
 
 ### Tools
