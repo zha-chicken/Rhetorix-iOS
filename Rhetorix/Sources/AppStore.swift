@@ -1104,14 +1104,38 @@ final class AppStore: ObservableObject {
     private func recommendationKeywords(for mbti: MBTIType?) -> [String] {
         guard let mbti else { return [] }
         switch mbti {
-        case .intj, .intp, .entj, .entp:
-            return ["AI", "technology", "science", "policy", "economics", "capitalism", "free will", "systems", "科技", "科学", "政策", "经济", "资本主义", "自由意志"]
-        case .infj, .infp, .enfj, .enfp:
-            return ["ethics", "rights", "fairness", "animals", "euthanasia", "education", "society", "dignity", "伦理", "权利", "公平", "动物", "教育", "社会", "尊严"]
-        case .istj, .isfj, .estj, .esfj:
-            return ["law", "schools", "homework", "admissions", "work", "public", "mandatory", "regulation", "法律", "学校", "作业", "工作", "公共", "强制", "监管"]
-        case .istp, .isfp, .estp, .esfp:
-            return ["cities", "health", "sports", "media", "social media", "remote work", "transit", "practical", "城市", "健康", "媒体", "社交媒体", "远程工作", "公共交通"]
+        case .istj:
+            return ["law", "regulation", "accountability", "mandatory", "schools", "public", "work", "tests", "法律", "监管", "责任", "强制", "学校", "公共", "工作"]
+        case .isfj:
+            return ["education", "health", "safety", "public", "schools", "society", "responsibility", "community", "教育", "健康", "安全", "公共", "学校", "社会", "责任"]
+        case .infj:
+            return ["ethics", "rights", "fairness", "society", "dignity", "education", "autonomy", "future", "伦理", "权利", "公平", "社会", "尊严", "教育", "自主"]
+        case .intj:
+            return ["systems", "policy", "science", "technology", "artificial intelligence", "economics", "future", "free will", "系统", "政策", "科学", "科技", "经济", "未来", "自由意志"]
+        case .istp:
+            return ["technology", "evidence", "data", "energy", "cities", "transit", "privacy", "safety", "科技", "证据", "数据", "能源", "城市", "交通", "隐私", "安全"]
+        case .isfp:
+            return ["animals", "rights", "privacy", "autonomy", "environment", "dignity", "health", "choice", "动物", "权利", "隐私", "自主", "环境", "尊严", "健康", "选择"]
+        case .infp:
+            return ["ethics", "justice", "rights", "animals", "education", "society", "freedom", "dignity", "伦理", "正义", "权利", "动物", "教育", "社会", "自由", "尊严"]
+        case .intp:
+            return ["logic", "science", "philosophy", "free will", "artificial intelligence", "evidence", "privacy", "capitalism", "逻辑", "科学", "哲学", "自由意志", "证据", "隐私", "资本主义"]
+        case .estp:
+            return ["cities", "sports", "public", "health", "media", "work", "transit", "practical", "城市", "体育", "公共", "健康", "媒体", "工作", "交通", "实践"]
+        case .esfp:
+            return ["society", "social media", "education", "health", "cities", "public", "connection", "entertainment", "社会", "社交媒体", "教育", "健康", "城市", "公共", "连接"]
+        case .enfp:
+            return ["possibility", "creativity", "education", "society", "media", "rights", "future", "artificial intelligence", "可能性", "创造力", "教育", "社会", "媒体", "权利", "未来"]
+        case .entp:
+            return ["innovation", "technology", "artificial intelligence", "policy", "economics", "regulation", "free speech", "capitalism", "创新", "科技", "政策", "经济", "监管", "言论自由", "资本主义"]
+        case .estj:
+            return ["law", "policy", "regulation", "work", "schools", "mandatory", "economics", "accountability", "法律", "政策", "监管", "工作", "学校", "强制", "经济", "责任"]
+        case .esfj:
+            return ["community", "education", "health", "society", "public", "schools", "welfare", "responsibility", "社区", "教育", "健康", "社会", "公共", "学校", "福利", "责任"]
+        case .enfj:
+            return ["education", "rights", "society", "leadership", "fairness", "community", "mental health", "dignity", "教育", "权利", "社会", "领导力", "公平", "社区", "心理健康", "尊严"]
+        case .entj:
+            return ["leadership", "policy", "economics", "systems", "regulation", "work", "capitalism", "artificial intelligence", "领导力", "政策", "经济", "系统", "监管", "工作", "资本主义"]
         }
     }
 

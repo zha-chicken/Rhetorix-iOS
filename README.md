@@ -171,6 +171,49 @@ Rhetorix 的长期记忆不使用 AI 编造的用户标签。除了用户可主�
 
 这套长期记忆是本地计算的基线版本，不依赖服务器账号，也不会在辩论过程中弹出问题打断用户。
 
+### 推荐系统 2.0 公式
+
+Rhetorix 的辩题推荐不是“猜你喜欢”的黑箱，也不会只根据 MBTI 推断用户。推荐只在用户至少有两场有效辩论后出现，核心依据是真实本地使用历史和训练弱点。
+
+当前每个候选辩题的排序分数为：
+
+```text
+score =
+  favoriteCategoryMatch * 40
+  + weaknessKeywordMatches * 22
+  + mbtiKeywordMatches * 5
+  - previousDebateCountForSameTopic * 9
+  - recentRepeatPenalty
+```
+
+其中：
+
+- `favoriteCategoryMatch`：辩题类别是否等于用户最常辩的类别，命中为 1，否则为 0
+- `weaknessKeywordMatches`：辩题是否适合训练当前最明显弱点，例如证据不足、定义不清、缺少交锋、影响权衡不足
+- `mbtiKeywordMatches`：MBTI 只提供轻量话题偏好关键词，每个命中只加 5 分
+- `previousDebateCountForSameTopic`：用户已经辩过同一个题目的次数，次数越多扣分越多
+- `recentRepeatPenalty`：如果题目出现在最近 5 场辩论中，额外扣 18 分
+
+权重设计原则：
+
+- 真实历史优先：用户实际常辩领域 `+40`
+- 训练价值第二：当前弱点命中每项 `+22`
+- MBTI 只做轻微偏置：每项 `+5`
+- 避免重复：同题每辩过一次 `-9`，最近重复 `-18`
+
+因此 MBTI 不会压过真实行为数据。它只在多个题目都符合用户历史和训练目标时，轻微影响排序。
+
+MBTI 关键词不是四组粗分类，而是 16 个类型分别映射。映射参考 Myers-Briggs 官方对各类型偏好、决策方式和关注点的描述，再转化为辩题关键词。例如：
+
+- INTJ / INTP 更容易轻微偏向系统、科学、技术、哲学和抽象因果问题
+- INFJ / INFP 更容易轻微偏向伦理、权利、教育、尊严和社会价值问题
+- ESTJ / ISTJ 更容易轻微偏向法律、监管、责任、学校、工作和公共政策问题
+- ENTP / ENTJ 更容易轻微偏向创新、政策、经济、监管、资本主义和系统效率问题
+
+这些 MBTI 关键词不会作为用户画像结论展示给用户，只用于推荐排序中的小权重修正。
+
+MBTI 类型描述参考：[Myers & Briggs Foundation - The 16 MBTI Personality Types](https://www.myersbriggs.org/my-mbti-personality-type/the-16-mbti-personality-types/)。
+
 ### 7. 工具页
 
 工具页是独立的功能集合，不是首页卡片的复制。
