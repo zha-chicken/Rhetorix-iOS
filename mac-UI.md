@@ -297,9 +297,11 @@ Content:
 - Trending topics
 - All topics
 - Topic rows with title, category, local usage count, and navigation affordance
+- Custom topic creation with title and optional details, saved locally and immediately usable in debate setup
 
 Search and category filters must be functional.
 Topic usage counts must be dynamic local data. A new user starts at `0 debates`; rows must not display fake global popularity numbers.
+Preset topics are not the only path. Users must be able to create their own debate topic without leaving the app.
 
 ### Debate Setup
 
@@ -476,6 +478,7 @@ Purpose: practice writing a rebuttal under time pressure.
 Content:
 
 - Topic selection before generation
+- Custom topic title/details entry that saves a reusable local topic
 - Provider selection
 - Loading state while generating the opponent argument
 - Argument to resist
@@ -488,6 +491,7 @@ Content:
 
 Timer and scoring flow must be real.
 Before a topic is selected, the screen should show a compact setup card instead of an oversized empty page.
+Rebuttal practice must support both preset topics and user-created custom topics.
 
 ### Donation
 

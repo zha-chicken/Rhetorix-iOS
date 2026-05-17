@@ -137,6 +137,25 @@ final class AppStore: ObservableObject {
         }.count
     }
 
+    @discardableResult
+    func addCustomTopic(title: String, details: String = "") -> DebateTopic? {
+        let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanDetails = details.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard cleanTitle.isEmpty == false else { return nil }
+        if let existing = topics.first(where: { normalizedTopicTitle($0.title) == normalizedTopicTitle(cleanTitle) }) {
+            return existing
+        }
+        let topic = DebateTopic(
+            title: cleanTitle,
+            category: "Custom",
+            details: cleanDetails.isEmpty ? "Custom debate topic." : cleanDetails,
+            debateCount: 0
+        )
+        topics.insert(topic, at: 0)
+        save()
+        return topic
+    }
+
     func memorySummaryText() -> String {
         let profile = memoryProfile
         guard profile.hasEnoughData else {

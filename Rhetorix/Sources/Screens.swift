@@ -355,6 +355,9 @@ struct TopicSelectionView: View {
     @EnvironmentObject private var store: AppStore
     @Binding var path: NavigationPath
     @State private var search = ""
+    @State private var showCustomTopicDialog = false
+    @State private var customTopicTitle = ""
+    @State private var customTopicDetails = ""
 
     var filtered: [DebateTopic] {
         search.isEmpty ? store.topics : store.topics.filter {
@@ -385,10 +388,24 @@ struct TopicSelectionView: View {
         .navigationTitle(store.t("Select Topic"))
         .toolbar {
             Button(store.t("Add Topic")) {
-                let topic = DebateTopic(title: store.t("Custom debate topic"), category: store.t("Custom"), details: store.t("Edit this topic in a future build."))
-                store.topics.insert(topic, at: 0)
-                path.append(AppRoute.setup(topic))
+                customTopicTitle = ""
+                customTopicDetails = ""
+                showCustomTopicDialog = true
             }
+        }
+        .alert(store.t("Custom Topic"), isPresented: $showCustomTopicDialog) {
+            TextField(store.t("Topic title"), text: $customTopicTitle)
+                .textInputAutocapitalization(.sentences)
+            TextField(store.t("Optional details"), text: $customTopicDetails)
+                .textInputAutocapitalization(.sentences)
+            Button(store.t("Cancel"), role: .cancel) { }
+            Button(store.t("Create Topic")) {
+                if let topic = store.addCustomTopic(title: customTopicTitle, details: customTopicDetails) {
+                    path.append(AppRoute.setup(topic))
+                }
+            }
+        } message: {
+            Text(store.t("Create a debate topic that is saved locally and can be reused."))
         }
         .appScreen()
     }
@@ -1817,6 +1834,8 @@ struct RebuttalTrainerView: View {
     @EnvironmentObject private var store: AppStore
     @State private var topic: DebateTopic?
     @State private var provider: AiProvider = .openAI
+    @State private var customTopicTitle = ""
+    @State private var customTopicDetails = ""
     @State private var prompt = ""
     @State private var response = ""
     @State private var attempt: RebuttalAttempt?
@@ -1837,6 +1856,26 @@ struct RebuttalTrainerView: View {
                             Text(store.t("Choose a Topic")).tag(Optional<DebateTopic>.none)
                             ForEach(store.topics) { Text(store.topicTitle($0)).tag(Optional($0)) }
                         }
+                        Divider().overlay(RhetorixColors.textTertiary.opacity(0.35))
+                        Text(store.t("Use a custom topic"))
+                            .font(.subheadline.bold())
+                            .foregroundStyle(RhetorixColors.textPrimary)
+                        TextField(store.t("Topic title"), text: $customTopicTitle)
+                            .textInputAutocapitalization(.sentences)
+                            .autocorrectionDisabled(false)
+                            .textFieldStyle(.roundedBorder)
+                        TextField(store.t("Optional details"), text: $customTopicDetails)
+                            .textInputAutocapitalization(.sentences)
+                            .autocorrectionDisabled(false)
+                            .textFieldStyle(.roundedBorder)
+                        Button {
+                            addCustomRebuttalTopic()
+                        } label: {
+                            Label(store.t("Add Custom Topic"), systemImage: "plus.circle.fill")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(customTopicTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         Picker(store.t("Provider"), selection: $provider) {
                             ForEach(AiProvider.allCases) { Text($0.rawValue).tag($0) }
                         }
@@ -1933,6 +1972,17 @@ struct RebuttalTrainerView: View {
         prompt = await store.generateRebuttalPrompt(topic: topic, side: .oppose, provider: provider)
         startedAt = prompt.isEmpty ? nil : Date()
         isGeneratingPrompt = false
+    }
+
+    private func addCustomRebuttalTopic() {
+        guard let created = store.addCustomTopic(title: customTopicTitle, details: customTopicDetails) else { return }
+        topic = created
+        prompt = ""
+        response = ""
+        attempt = nil
+        startedAt = nil
+        customTopicTitle = ""
+        customTopicDetails = ""
     }
 
     private func submitRebuttal() async {
