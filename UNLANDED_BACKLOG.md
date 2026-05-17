@@ -46,6 +46,8 @@ Status: `Implemented baseline`
 
 ### 7. Real Device Verification
 
+Detailed checklist: [REAL_DEVICE_VERIFICATION.md](REAL_DEVICE_VERIFICATION.md)
+
 - Verify microphone permission flow.
 - Verify iOS Speech transcription.
 - Verify local AI voice playback.
