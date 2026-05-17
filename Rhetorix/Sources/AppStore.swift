@@ -11,6 +11,7 @@ final class AppStore: ObservableObject {
     @Published var userProfileMemory = UserProfileMemory()
     @Published var selectedLanguage = "English"
     @Published var appTheme: AppTheme = .dark
+    @Published var autoSpeakAI = false
     @Published var activeError: String?
     @Published var isWorking = false
 
@@ -86,6 +87,11 @@ final class AppStore: ObservableObject {
 
     func setAppTheme(_ theme: AppTheme) {
         appTheme = theme
+        save()
+    }
+
+    func setAutoSpeakAI(_ enabled: Bool) {
+        autoSpeakAI = enabled
         save()
     }
 
@@ -1011,7 +1017,8 @@ final class AppStore: ObservableObject {
             providerConfigs: providerConfigs,
             userProfileMemory: userProfileMemory,
             selectedLanguage: selectedLanguage,
-            appTheme: appTheme
+            appTheme: appTheme,
+            autoSpeakAI: autoSpeakAI
         )
         if let data = try? JSONEncoder().encode(snapshot) {
             try? data.write(to: storageURL)
@@ -1031,6 +1038,7 @@ final class AppStore: ObservableObject {
         userProfileMemory = snapshot.userProfileMemory ?? UserProfileMemory()
         selectedLanguage = snapshot.selectedLanguage
         appTheme = snapshot.appTheme ?? .dark
+        autoSpeakAI = snapshot.autoSpeakAI ?? false
     }
 
     private struct Snapshot: Codable {
@@ -1042,6 +1050,7 @@ final class AppStore: ObservableObject {
         var userProfileMemory: UserProfileMemory?
         var selectedLanguage: String
         var appTheme: AppTheme?
+        var autoSpeakAI: Bool?
     }
 
     private struct DebateStage {

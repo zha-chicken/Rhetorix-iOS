@@ -41,6 +41,7 @@ Plan:
 - In Simulator, keep paste/text input and show a clear message if voice is unavailable.
 - For User vs AI, the user should be able to speak, see a transcript, and send quickly.
 - Later, add speech playback for AI responses if quality and latency are acceptable.
+- AI speech playback now has a local baseline using Apple system voices; manual playback is available on AI turns and auto-read is optional in Settings.
 
 ### 3. Timed Debate Stages
 

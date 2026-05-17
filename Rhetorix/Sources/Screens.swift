@@ -470,6 +470,7 @@ struct DebateView: View {
     @Binding var path: NavigationPath
     var sessionID: String
     @StateObject private var speech = SpeechTranscriber()
+    @StateObject private var aiSpeech = AISpeechPlayer()
     @State private var input = ""
     @State private var draftInputMode: DebateInputMode = .text
     @State private var stageStartedAt = Date()
@@ -485,7 +486,7 @@ struct DebateView: View {
                         if let session {
                             DebateStatus(session: session, stageStartedAt: stageStartedAt, now: now)
                             ForEach(Array(session.turns.enumerated()), id: \.element.id) { index, turn in
-                                DebateBubble(turn: turn, stage: store.stageTitle(for: session, turnIndex: index))
+                                DebateBubble(turn: turn, stage: store.stageTitle(for: session, turnIndex: index), speechPlayer: aiSpeech)
                                     .id(turn.id)
                             }
                             if store.isWorking {
@@ -500,6 +501,9 @@ struct DebateView: View {
                     stageStartedAt = Date()
                     if let last = session?.turns.last {
                         withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
+                        if store.autoSpeakAI, last.inputMode == .ai {
+                            aiSpeech.speak(last.content, turnID: last.id, usesChinese: store.usesChinese)
+                        }
                     }
                 }
             }
@@ -513,7 +517,10 @@ struct DebateView: View {
             )
         }
         .onAppear { stageStartedAt = Date() }
-        .onDisappear { speech.stop() }
+        .onDisappear {
+            speech.stop()
+            aiSpeech.stop()
+        }
         .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { value in
             now = value
         }
@@ -681,7 +688,9 @@ struct DebateBubble: View {
     @EnvironmentObject private var store: AppStore
     var turn: DebateTurn
     var stage: String
+    @ObservedObject var speechPlayer: AISpeechPlayer
     var isUser: Bool { turn.role == .user }
+    var canSpeak: Bool { turn.inputMode == .ai || turn.provider != nil }
     var body: some View {
         HStack {
             if isUser { Spacer(minLength: 50) }
@@ -689,6 +698,21 @@ struct DebateBubble: View {
                 HStack {
                     Text(store.speaker(turn.role)).font(.caption.bold()).foregroundStyle(turn.role.color)
                     Text(stage).font(.caption2).foregroundStyle(RhetorixColors.textTertiary)
+                    Spacer(minLength: 8)
+                    if canSpeak {
+                        Button {
+                            if speechPlayer.speakingTurnID == turn.id {
+                                speechPlayer.stop()
+                            } else {
+                                speechPlayer.speak(turn.content, turnID: turn.id, usesChinese: store.usesChinese)
+                            }
+                        } label: {
+                            Image(systemName: speechPlayer.speakingTurnID == turn.id ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                                .font(.caption)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(store.t(speechPlayer.speakingTurnID == turn.id ? "Stop AI voice" : "Read AI response"))
+                    }
                 }
                 Text(turn.content).foregroundStyle(RhetorixColors.textPrimary)
                 if !isUser { AIDisclaimer(color: RhetorixColors.textTertiary) }
@@ -903,6 +927,16 @@ struct SettingsView: View {
                 }
             }
             .listRowBackground(RhetorixColors.glass)
+            Section(store.t("Voice")) {
+                Toggle(store.t("Auto-read AI responses"), isOn: Binding(
+                    get: { store.autoSpeakAI },
+                    set: { store.setAutoSpeakAI($0) }
+                ))
+                Text(store.t("Uses the iPhone system voice. If speech is unavailable, debate text still works normally."))
+                    .font(.caption)
+                    .foregroundStyle(RhetorixColors.textSecondary)
+            }
+            .listRowBackground(RhetorixColors.glass)
             Section(store.t("Memory Profile")) {
                 Picker(store.t("MBTI"), selection: Binding<MBTIType?>(
                     get: { store.userProfileMemory.mbti },
@@ -1015,6 +1049,74 @@ struct ProviderConfigView: View {
         }
         .navigationTitle(provider.rawValue)
         .appScreen()
+    }
+}
+
+@MainActor
+final class AISpeechPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
+    @Published private(set) var speakingTurnID: String?
+
+    private let synthesizer = AVSpeechSynthesizer()
+
+    override init() {
+        super.init()
+        synthesizer.delegate = self
+    }
+
+    func speak(_ text: String, turnID: String, usesChinese: Bool) {
+        let cleaned = text
+            .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard cleaned.isEmpty == false else { return }
+
+        stop()
+        configureAudioSession()
+
+        let utterance = AVSpeechUtterance(string: cleaned)
+        utterance.voice = preferredVoice(usesChinese: usesChinese)
+        utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.9
+        utterance.pitchMultiplier = 1.0
+        utterance.volume = 1.0
+
+        speakingTurnID = turnID
+        synthesizer.speak(utterance)
+    }
+
+    func stop() {
+        if synthesizer.isSpeaking || synthesizer.isPaused {
+            synthesizer.stopSpeaking(at: .immediate)
+        }
+        speakingTurnID = nil
+    }
+
+    private func preferredVoice(usesChinese: Bool) -> AVSpeechSynthesisVoice? {
+        let primary = usesChinese ? "zh-CN" : "en-US"
+        return AVSpeechSynthesisVoice(language: primary)
+            ?? AVSpeechSynthesisVoice(language: usesChinese ? "zh-Hans" : "en-GB")
+            ?? AVSpeechSynthesisVoice.speechVoices().first
+    }
+
+    private func configureAudioSession() {
+        #if os(iOS)
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio, options: [.duckOthers])
+            try AVAudioSession.sharedInstance().setActive(true, options: [])
+        } catch {
+            // Speech synthesis can still work in many environments without an explicit audio session.
+        }
+        #endif
+    }
+
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+        Task { @MainActor in
+            self.speakingTurnID = nil
+        }
+    }
+
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
+        Task { @MainActor in
+            self.speakingTurnID = nil
+        }
     }
 }
 
