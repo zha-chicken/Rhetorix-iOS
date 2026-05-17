@@ -486,6 +486,7 @@ struct DebateView: View {
     @State private var draftInputMode: DebateInputMode = .text
     @State private var stageStartedAt = Date()
     @State private var now = Date()
+    @State private var isEndingDebate = false
 
     var session: DebateSession? { store.sessions.first { $0.id == sessionID } }
 
@@ -547,8 +548,20 @@ struct DebateView: View {
             if session.map({ store.needsAITurn($0) }) == true {
                 Button(store.t("AI Turn")) { Task { await store.advanceAIDebate(sessionID: sessionID) } }
             }
-            Button(store.t("End")) { Task { await store.endAndJudge(sessionID: sessionID); path.append(AppRoute.result(sessionID)) } }
-                .accessibilityIdentifier("debate.end")
+            Button {
+                Task { await endDebate() }
+            } label: {
+                if isEndingDebate {
+                    HStack(spacing: 6) {
+                        ProgressView()
+                        Text(store.t("Ending..."))
+                    }
+                } else {
+                    Text(store.t("End"))
+                }
+            }
+            .disabled(isEndingDebate || store.isWorking)
+            .accessibilityIdentifier("debate.end")
         }
         .navigationTitle(session.map { store.topicTitle($0.topic) } ?? store.t("Debate"))
         .appScreen()
@@ -562,6 +575,13 @@ struct DebateView: View {
         draftInputMode = .text
         speech.stop()
         Task { await store.sendUserTurn(sessionID: sessionID, text: text, inputMode: mode, stageDurationSeconds: duration) }
+    }
+
+    private func endDebate() async {
+        isEndingDebate = true
+        await store.endAndJudge(sessionID: sessionID)
+        isEndingDebate = false
+        path.append(AppRoute.result(sessionID))
     }
 }
 

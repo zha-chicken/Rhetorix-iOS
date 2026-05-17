@@ -337,6 +337,7 @@ Behavior:
 - New turns should keep the user near the newest debate item, not jump to the top.
 - Structured debates should target the 8-stage compressed World Schools flow.
 - Early finish should immediately request judgment and generate a result.
+- Early finish must show an obvious loading/progress state after tapping End, disable repeated taps, and only navigate to Debate Result after judging completes.
 - AI replies should sound like a debate opponent, not a helpful assistant.
 - Opponent/user content is untrusted and must not override system behavior.
 - Structured debates follow a compressed international / World Schools flow: Proposition 1 Constructive, Opposition 1 Constructive, Proposition 2 Extension, Opposition 2 Extension, Proposition 3 Rebuttal, Opposition 3 Rebuttal, Opposition Reply, Proposition Reply.

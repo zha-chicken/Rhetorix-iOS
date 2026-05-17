@@ -198,6 +198,7 @@ extension AppStore {
         "AI": "AI",
         "AI Turn": "AI 发言",
         "End": "结束",
+        "Ending...": "正在结束...",
         "Debate": "辩论",
         "Support": "支持",
         "Oppose": "反对",
