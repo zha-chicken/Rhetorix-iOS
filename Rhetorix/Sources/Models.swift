@@ -255,6 +255,8 @@ struct TopicRecommendation: Identifiable {
     var id: String { topic.id }
     var topic: DebateTopic
     var reason: String
+    var focus: String
+    var matchedSignal: String?
 }
 
 struct FallacyFinding: Identifiable, Codable, Equatable {
@@ -301,6 +303,7 @@ enum AppRoute: Hashable {
     case setup(DebateTopic)
     case debate(String)
     case result(String)
+    case memoryProfile
     case constructiveAnalysis
     case rebuttalTrainer
     case fallacyDetector

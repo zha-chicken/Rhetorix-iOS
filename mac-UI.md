@@ -399,6 +399,7 @@ Rules:
 - Recommendations require at least two engaged debates.
 - If there is not enough data, show a learning state instead of a recommendation.
 - The memory card may summarize favorite area, preferred mode, completion rate, average debate length, voice ratio, and stage timing.
+- The memory card links to a dedicated Memory Profile detail page.
 - Memory 2.0 may also show conservative profile signals:
   - debate style: analytical/evidence-first, values-first/persuasive, or balanced
   - value signals: environment-focused or animal welfare-focused only when repeated local evidence exists
@@ -406,7 +407,8 @@ Rules:
   - constructive-analysis focus: repeated issue types from saved Constructive Analysis results
   - pacing focus: slow rebuttal or reply turns derived from recorded stage timers
 - Settings should expose evidence counts and short evidence snippets so the profile feels inspectable, not mystical.
-- Recommended topics should be chosen from categories the user actually debates, while avoiding very recent repeats when possible.
+- Recommended topics should be chosen by Recommendation 2.0: combine categories the user actually debates with the strongest current weakness signal, while avoiding very recent repeats when possible.
+- The Memory Profile detail page shows local evidence counts, profile metrics, top signals with evidence snippets, and up to three recommended topics with their training focus.
 
 ### Tools
 

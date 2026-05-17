@@ -36,6 +36,8 @@ struct RootView: View {
                     DebateView(path: $path, sessionID: id)
                 case .result(let id):
                     ResultView(sessionID: id)
+                case .memoryProfile:
+                    MemoryProfileDetailView(path: $path)
                 case .constructiveAnalysis:
                     ConstructiveAnalysisView()
                 case .rebuttalTrainer:
@@ -156,6 +158,13 @@ struct MemoryInsightCard: View {
                     Label(store.t("Memory"), systemImage: "brain.head.profile")
                         .font(.headline)
                     Spacer()
+                    Button {
+                        path.append(AppRoute.memoryProfile)
+                    } label: {
+                        Text(store.t("Details"))
+                            .font(.caption.bold())
+                    }
+                    .buttonStyle(.plain)
                     Text(store.memoryProfile.hasEnoughData ? store.t("Real local memory") : store.t("Learning"))
                         .font(.caption.bold())
                         .foregroundStyle(RhetorixColors.textSecondary)
@@ -194,6 +203,9 @@ struct MemoryInsightCard: View {
                                 Text(recommendation.reason)
                                     .font(.caption2)
                                     .foregroundStyle(RhetorixColors.textTertiary)
+                                Text("\(store.t("Focus")): \(recommendation.focus)")
+                                    .font(.caption2.bold())
+                                    .foregroundStyle(RhetorixColors.cyan)
                             }
                             Spacer()
                             Image(systemName: "chevron.right")
@@ -1015,6 +1027,11 @@ struct SettingsView: View {
             }
             .listRowBackground(RhetorixColors.glass)
             Section(store.t("Memory Profile")) {
+                Button {
+                    path.append(AppRoute.memoryProfile)
+                } label: {
+                    Label(store.t("Open Memory Detail"), systemImage: "brain.head.profile")
+                }
                 Picker(store.t("MBTI"), selection: Binding<MBTIType?>(
                     get: { store.userProfileMemory.mbti },
                     set: { store.setMBTI($0) }
@@ -1063,6 +1080,158 @@ struct SettingsView: View {
         }
         .navigationTitle(store.t("Settings"))
         .appScreen()
+    }
+}
+
+struct MemoryProfileDetailView: View {
+    @EnvironmentObject private var store: AppStore
+    @Binding var path: NavigationPath
+
+    var recommendations: [TopicRecommendation] {
+        store.topicRecommendations(limit: 3)
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                GlassCard(accent: RhetorixColors.amber) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Label(store.t("Real local memory"), systemImage: "brain.head.profile")
+                                .font(.headline)
+                            Spacer()
+                            Text(store.userProfileMemory.hasInferenceEvidence ? store.t("Evidence-based") : store.t("Learning"))
+                                .font(.caption.bold())
+                                .foregroundStyle(RhetorixColors.textSecondary)
+                        }
+                        Text(store.memorySummaryText())
+                            .font(.subheadline)
+                            .foregroundStyle(RhetorixColors.textSecondary)
+                        HStack(spacing: 8) {
+                            MemoryProfilePill(title: store.t("Evidence"), value: "\(store.userProfileMemory.evidenceSessionCount) \(store.t("debates"))")
+                            MemoryProfilePill(title: store.t("Turns"), value: "\(store.userProfileMemory.evidenceTurnCount)")
+                        }
+                        if let mbti = store.userProfileMemory.mbti {
+                            MemoryProfilePill(title: store.t("MBTI"), value: mbti.rawValue)
+                        }
+                    }
+                }
+
+                MemoryMetricGrid(profile: store.memoryProfile)
+
+                if recommendations.isEmpty == false {
+                    SectionTitle(text: store.t("Recommendation 2.0"))
+                    VStack(spacing: 10) {
+                        ForEach(recommendations) { recommendation in
+                            Button {
+                                path.append(AppRoute.setup(recommendation.topic))
+                            } label: {
+                                RecommendationCard(recommendation: recommendation)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                } else {
+                    GlassCard(accent: RhetorixColors.cyan) {
+                        Text(store.t("Complete two debates to unlock real memory-based recommendations."))
+                            .font(.subheadline)
+                            .foregroundStyle(RhetorixColors.textSecondary)
+                    }
+                }
+
+                MemorySignalSection(title: store.t("Debate style"), label: store.t("Style"), signals: store.userProfileMemory.styleSignals)
+                MemorySignalSection(title: store.t("Value signal"), label: store.t("Values"), signals: store.userProfileMemory.valueSignals)
+                MemorySignalSection(title: store.t("Practice focus"), label: store.t("Focus"), signals: store.userProfileMemory.weaknessSignals)
+            }
+            .padding()
+        }
+        .navigationTitle(store.t("Memory Profile"))
+        .appScreen()
+    }
+}
+
+struct MemoryMetricGrid: View {
+    @EnvironmentObject private var store: AppStore
+    var profile: UserMemoryProfile
+
+    var body: some View {
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+            MetricTile(title: store.t("Completion rate"), value: "\(profile.completionRate)%")
+            MetricTile(title: store.t("Average length"), value: "\(profile.averageTurns) \(store.t("turns"))")
+            MetricTile(title: store.t("Voice ratio"), value: "\(profile.voiceTurnRatio)%")
+            MetricTile(title: store.t("Average stage time"), value: profile.averageStageSeconds.map { store.formatSeconds($0) } ?? store.t("Not enough data"))
+        }
+    }
+}
+
+struct MetricTile: View {
+    var title: String
+    var value: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(RhetorixColors.textSecondary)
+            Text(value)
+                .font(.headline.bold())
+                .foregroundStyle(RhetorixColors.textPrimary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(RoundedRectangle(cornerRadius: 14).fill(RhetorixColors.glass))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(RhetorixColors.border, lineWidth: 1))
+    }
+}
+
+struct RecommendationCard: View {
+    @EnvironmentObject private var store: AppStore
+    var recommendation: TopicRecommendation
+
+    var body: some View {
+        GlassCard(accent: RhetorixColors.cyan) {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: "target")
+                    .font(.title3)
+                    .foregroundStyle(RhetorixColors.cyan)
+                    .frame(width: 34, height: 34)
+                    .background(Circle().fill(RhetorixColors.glassStrong))
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(store.topicTitle(recommendation.topic))
+                        .font(.headline)
+                        .foregroundStyle(RhetorixColors.textPrimary)
+                    Text(recommendation.reason)
+                        .font(.caption)
+                        .foregroundStyle(RhetorixColors.textSecondary)
+                    Text("\(store.t("Recommended practice focus")): \(recommendation.focus)")
+                        .font(.caption.bold())
+                        .foregroundStyle(RhetorixColors.amber)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .foregroundStyle(RhetorixColors.textTertiary)
+            }
+        }
+    }
+}
+
+struct MemorySignalSection: View {
+    @EnvironmentObject private var store: AppStore
+    var title: String
+    var label: String
+    var signals: [MemorySignal]
+
+    var body: some View {
+        if signals.isEmpty == false {
+            SectionTitle(text: title)
+            VStack(spacing: 10) {
+                ForEach(signals) { signal in
+                    GlassCard(accent: RhetorixColors.amber) {
+                        MemorySignalRow(label: label, signal: signal)
+                    }
+                }
+            }
+        }
     }
 }
 

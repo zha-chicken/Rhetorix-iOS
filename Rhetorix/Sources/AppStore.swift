@@ -42,7 +42,7 @@ final class AppStore: ObservableObject {
         buildMemoryProfile()
     }
     var topicRecommendation: TopicRecommendation? {
-        buildTopicRecommendation()
+        topicRecommendations(limit: 1).first
     }
     var shouldAskMBTI: Bool {
         userProfileMemory.didAskMBTI == false
@@ -1024,28 +1024,83 @@ final class AppStore: ObservableObject {
         )
     }
 
-    private func buildTopicRecommendation() -> TopicRecommendation? {
+    func topicRecommendations(limit: Int = 3) -> [TopicRecommendation] {
         let profile = memoryProfile
-        guard profile.hasEnoughData, let favoriteCategory = profile.favoriteCategory else { return nil }
+        guard profile.hasEnoughData, let favoriteCategory = profile.favoriteCategory else { return [] }
 
         let recentTitles = Set(sessions.prefix(5).map { normalizedTopicTitle($0.topic.title) })
         let debatedCounts = Dictionary(grouping: sessions, by: { normalizedTopicTitle($0.topic.title) })
             .mapValues(\.count)
+        let favoriteCategoryKey = normalizedTopicTitle(favoriteCategory)
+        let weakness = userProfileMemory.weaknessSignals.first
+        let weaknessKeywords = recommendationKeywords(for: weakness?.title)
 
-        let categoryCandidates = topics
-            .filter { normalizedTopicTitle($0.category) == normalizedTopicTitle(favoriteCategory) }
-            .sorted { left, right in
-                let leftRecentPenalty = recentTitles.contains(normalizedTopicTitle(left.title)) ? 10 : 0
-                let rightRecentPenalty = recentTitles.contains(normalizedTopicTitle(right.title)) ? 10 : 0
-                let leftCount = debatedCounts[normalizedTopicTitle(left.title), default: 0] + leftRecentPenalty
-                let rightCount = debatedCounts[normalizedTopicTitle(right.title), default: 0] + rightRecentPenalty
-                if leftCount == rightCount { return left.title < right.title }
-                return leftCount < rightCount
+        let ranked = topics
+            .map { topic -> (DebateTopic, Int, Int) in
+                let titleKey = normalizedTopicTitle(topic.title)
+                let text = "\(topic.title) \(topic.category) \(topic.details)"
+                var score = 0
+                if normalizedTopicTitle(topic.category) == favoriteCategoryKey {
+                    score += 40
+                }
+                let weaknessMatches = recommendationKeywordMatches(in: text, keywords: weaknessKeywords)
+                score += weaknessMatches * 22
+                let historyPenalty = debatedCounts[titleKey, default: 0] * 9
+                let recentPenalty = recentTitles.contains(titleKey) ? 18 : 0
+                score -= historyPenalty + recentPenalty
+                return (topic, score, weaknessMatches)
             }
+            .sorted { left, right in
+                if left.1 == right.1 {
+                    let leftCount = debatedCounts[normalizedTopicTitle(left.0.title), default: 0]
+                    let rightCount = debatedCounts[normalizedTopicTitle(right.0.title), default: 0]
+                    if leftCount == rightCount { return left.0.title < right.0.title }
+                    return leftCount < rightCount
+                }
+                return left.1 > right.1
+            }
+            .prefix(max(1, limit))
 
-        guard let topic = categoryCandidates.first else { return nil }
-        let reason = "\(t("Based on your completed debates in")) \(category(favoriteCategory))"
-        return TopicRecommendation(topic: topic, reason: reason)
+        return ranked.map { item in
+            let reason: String
+            let focus: String
+            if let weakness, item.2 > 0 {
+                focus = t(weakness.title)
+                reason = "\(t("Balances your interest in")) \(category(favoriteCategory)) · \(t("Targets")) \(t(weakness.title))"
+            } else {
+                focus = category(favoriteCategory)
+                reason = "\(t("Based on your completed debates in")) \(category(favoriteCategory))"
+            }
+            return TopicRecommendation(topic: item.0, reason: reason, focus: focus, matchedSignal: weakness?.title)
+        }
+    }
+
+    private func recommendationKeywords(for weaknessTitle: String?) -> [String] {
+        guard let weaknessTitle else { return [] }
+        if weaknessTitle.contains("evidence") || weaknessTitle.contains("Evidence") {
+            return ["study", "data", "evidence", "statistics", "regulation", "screen", "tax", "surveillance", "misinformation", "AI", "climate", "energy", "health", "tests", "证据", "数据", "监管", "税", "气候", "健康"]
+        }
+        if weaknessTitle.contains("definition") || weaknessTitle.contains("Definition") {
+            return ["legal", "rights", "free will", "capitalism", "anonymity", "euthanasia", "animals", "privacy", "autonomy", "definition", "scope", "合法", "权利", "自由意志", "资本主义", "匿名", "安乐死", "隐私", "定义"]
+        }
+        if weaknessTitle.contains("clash") || weaknessTitle.contains("Causal") {
+            return ["versus", "harm", "benefit", "regulation", "ban", "replace", "tax", "mandatory", "priority", "clash", "利弊", "监管", "禁止", "取代", "强制", "优先"]
+        }
+        if weaknessTitle.contains("impact") || weaknessTitle.contains("Impact") {
+            return ["cost", "economics", "environment", "climate", "jobs", "health", "cities", "public", "future", "impact", "经济", "环境", "气候", "就业", "健康", "城市", "影响"]
+        }
+        if weaknessTitle.contains("structure") || weaknessTitle.contains("Slow") {
+            return ["school", "homework", "work", "admissions", "public transit", "structured", "education", "工作", "教育", "学校", "作业", "结构"]
+        }
+        return []
+    }
+
+    private func recommendationKeywordMatches(in text: String, keywords: [String]) -> Int {
+        guard keywords.isEmpty == false else { return 0 }
+        let lowercased = text.lowercased()
+        return keywords.reduce(0) { total, keyword in
+            lowercased.contains(keyword.lowercased()) ? total + 1 : total
+        }
     }
 
     private func mostCommon<T: Hashable>(_ values: [T]) -> T? {

@@ -29,15 +29,19 @@ Status: `Implemented baseline`
 
 ### 4. Profile Detail Page
 
-- Create a dedicated profile page for long-term memory.
-- Explain each inferred trait with evidence and confidence.
-- Connect weaknesses to suggested drills and topics.
+Status: `Implemented baseline`
+
+- Dedicated long-term memory detail page exists.
+- It shows local evidence counts, profile metrics, inferred signals, confidence, and evidence snippets.
+- It connects weaknesses to Recommendation 2.0 topic suggestions.
 
 ### 5. Recommendation 2.0
 
-- Recommend topics based on both interest and weakness.
-- Example: suggest definition-heavy topics if the user needs clearer definitions.
-- Avoid fake recommendations when evidence is thin.
+Status: `Implemented baseline`
+
+- Recommendations combine favorite topic category, recent-repeat avoidance, prior debate counts, and the strongest weakness signal.
+- If evidence is thin, the app keeps the learning state instead of inventing recommendations.
+- Remaining work: tune keyword matching with more real user data.
 
 ### 6. Automated Functional Testing
 
