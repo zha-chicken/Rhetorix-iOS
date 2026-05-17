@@ -16,7 +16,18 @@
 		100000000000000000000108 /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000009 /* Localization.swift */; };
 		100000000000000000000107 /* qrcode_donation.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000007 /* qrcode_donation.jpg */; };
 		100000000000000000000109 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000010 /* Assets.xcassets */; };
+		200000000000000000000101 /* RhetorixUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000001 /* RhetorixUITests.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		200000000000000000000402 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 100000000000000000000901 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 100000000000000000000401;
+			remoteInfo = Rhetorix;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		100000000000000000000001 /* RhetorixApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RhetorixApp.swift; sourceTree = "<group>"; };
@@ -29,10 +40,19 @@
 		100000000000000000000008 /* Rhetorix.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Rhetorix.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		100000000000000000000009 /* Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Localization.swift; sourceTree = "<group>"; };
 		100000000000000000000010 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		200000000000000000000001 /* RhetorixUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RhetorixUITests.swift; sourceTree = "<group>"; };
+		200000000000000000000008 /* RhetorixUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RhetorixUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		100000000000000000000201 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		200000000000000000000201 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -46,6 +66,7 @@
 			isa = PBXGroup;
 			children = (
 				100000000000000000000302 /* Rhetorix */,
+				200000000000000000000302 /* RhetorixUITests */,
 				100000000000000000000303 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -63,6 +84,7 @@
 			isa = PBXGroup;
 			children = (
 				100000000000000000000008 /* Rhetorix.app */,
+				200000000000000000000008 /* RhetorixUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -90,6 +112,14 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
+		200000000000000000000302 /* RhetorixUITests */ = {
+			isa = PBXGroup;
+			children = (
+				200000000000000000000001 /* RhetorixUITests.swift */,
+			);
+			path = RhetorixUITests;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -110,6 +140,24 @@
 			productReference = 100000000000000000000008 /* Rhetorix.app */;
 			productType = "com.apple.product-type.application";
 		};
+		200000000000000000000401 /* RhetorixUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 200000000000000000000701 /* Build configuration list for PBXNativeTarget "RhetorixUITests" */;
+			buildPhases = (
+				200000000000000000000501 /* Sources */,
+				200000000000000000000201 /* Frameworks */,
+				200000000000000000000601 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				200000000000000000000403 /* PBXTargetDependency */,
+			);
+			name = RhetorixUITests;
+			productName = RhetorixUITests;
+			productReference = 200000000000000000000008 /* RhetorixUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -122,6 +170,10 @@
 				TargetAttributes = {
 					100000000000000000000401 = {
 						CreatedOnToolsVersion = 26.4.1;
+					};
+					200000000000000000000401 = {
+						CreatedOnToolsVersion = 26.4.1;
+						TestTargetID = 100000000000000000000401;
 					};
 				};
 			};
@@ -139,6 +191,7 @@
 			projectRoot = "";
 			targets = (
 				100000000000000000000401 /* Rhetorix */,
+				200000000000000000000401 /* RhetorixUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -150,6 +203,13 @@
 			files = (
 				100000000000000000000109 /* Assets.xcassets in Resources */,
 				100000000000000000000107 /* qrcode_donation.jpg in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		200000000000000000000601 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -170,7 +230,23 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		200000000000000000000501 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				200000000000000000000101 /* RhetorixUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		200000000000000000000403 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 100000000000000000000401 /* Rhetorix */;
+			targetProxy = 200000000000000000000402 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		100000000000000000000801 /* Debug */ = {
@@ -290,6 +366,38 @@
 			};
 			name = Release;
 		};
+		200000000000000000000803 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rhetorix.ios.RhetorixUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = Rhetorix;
+			};
+			name = Debug;
+		};
+		200000000000000000000804 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rhetorix.ios.RhetorixUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = Rhetorix;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -307,6 +415,15 @@
 			buildConfigurations = (
 				100000000000000000000801 /* Debug */,
 				100000000000000000000802 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		200000000000000000000701 /* Build configuration list for PBXNativeTarget "RhetorixUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				200000000000000000000803 /* Debug */,
+				200000000000000000000804 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

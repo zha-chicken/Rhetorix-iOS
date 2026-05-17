@@ -18,6 +18,9 @@ final class AppStore: ObservableObject {
     private let ai = AIService()
     private let storageURL: URL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         .appendingPathComponent("rhetorix-store.json")
+    private var isUITestMode: Bool {
+        ProcessInfo.processInfo.arguments.contains("UITEST_MODE")
+    }
 
     var debateCount: Int { sessions.filter(\.isCompleted).count }
     var winRate: Int {
@@ -58,10 +61,22 @@ final class AppStore: ObservableObject {
     }
 
     func bootstrap() {
+        if ProcessInfo.processInfo.arguments.contains("UITEST_RESET_DATA") {
+            try? FileManager.default.removeItem(at: storageURL)
+        }
         load()
         topics = mergedTopics(existing: topics, defaults: Self.defaultTopics)
         if providerConfigs.isEmpty {
             providerConfigs = AiProvider.allCases.map { ProviderConfig(provider: $0, baseURL: $0.defaultBaseURL) }
+        }
+        if isUITestMode {
+            providerConfigs = providerConfigs.map { config in
+                if config.provider == .openAI {
+                    return ProviderConfig(provider: .openAI, apiKey: "ui-test-key", modelName: "mock-model", baseURL: AiProvider.openAI.defaultBaseURL, isEnabled: true)
+                }
+                return config
+            }
+            autoSpeakAI = false
         }
         refreshUserProfileMemory()
         save()
@@ -220,7 +235,9 @@ final class AppStore: ObservableObject {
         }
         isWorking = true
         do {
-            try await ai.assertSafe(trimmed, source: "user", config: config)
+            if isUITestMode == false {
+                try await ai.assertSafe(trimmed, source: "user", config: config)
+            }
             let role = session.mode == .faceToFace ? nextSpeaker(for: session) : SpeakerRole.user
             let userTurn = DebateTurn(
                 sessionID: session.id,
@@ -289,6 +306,22 @@ final class AppStore: ObservableObject {
         let session = sessions[index]
         let nextRole = nextSpeaker(for: session)
         guard nextRole == .support || nextRole == .oppose else { return }
+        if isUITestMode {
+            sessions[index].turns.append(
+                DebateTurn(
+                    sessionID: session.id,
+                    role: nextRole,
+                    content: "Mock AI response with direct clash, evidence, and impact weighing.",
+                    provider: config.provider,
+                    model: config.resolvedModel,
+                    inputMode: .ai,
+                    stageDurationSeconds: 1,
+                    stageLimitSeconds: stageTimeLimit(for: session)
+                )
+            )
+            save()
+            return
+        }
         let startedAt = Date()
         let result = try await ai.chat(
             systemPrompt: debatePrompt(session: session, side: nextRole),
@@ -315,6 +348,13 @@ final class AppStore: ObservableObject {
     private func judgeSession(at index: Int, config: ProviderConfig) async throws {
         guard sessions.indices.contains(index) else { return }
         let session = sessions[index]
+        if isUITestMode {
+            sessions[index].result = DebateResult(winner: .user, score: "3-2", summary: "Mock judgment: the user wins by clearer clash and better weighing.")
+            sessions[index].isCompleted = true
+            refreshUserProfileMemory()
+            save()
+            return
+        }
         let transcript = session.turns.enumerated().map { offset, turn in
             "\(stageTitle(for: session, turnIndex: offset)) - \(turn.role.rawValue): \(turn.content)"
         }.joined(separator: "\n\n")
@@ -351,6 +391,22 @@ final class AppStore: ObservableObject {
     func analyzeConstructive(text: String, provider: AiProvider, setWorking: Bool = true) async -> [ConstructiveAnalysisIssue] {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.isEmpty == false else { return [] }
+        if isUITestMode {
+            let issues = [
+                ConstructiveAnalysisIssue(
+                    claim: "Mock claim about the topic",
+                    issueType: "Unsupported evidence",
+                    quote: String(trimmed.prefix(80)),
+                    explanation: "The claim needs stronger evidence before it can carry the debate.",
+                    rebuttalPoints: ["Ask for source quality.", "Challenge whether the example is representative."],
+                    severity: "Medium"
+                )
+            ]
+            constructiveAnalysisHistory.insert(contentsOf: issues, at: 0)
+            refreshUserProfileMemory()
+            save()
+            return issues
+        }
         guard let config = config(for: provider) else {
             activeError = RhetorixError.missingProviderKey.localizedDescription
             return []
@@ -388,6 +444,11 @@ final class AppStore: ObservableObject {
     }
 
     func generateFallacies(text: String, provider: AiProvider) async -> [FallacyFinding] {
+        if isUITestMode {
+            return text.lowercased().contains("because everyone") ? [
+                FallacyFinding(name: "Appeal to popularity", quote: text, explanation: "Popularity alone does not prove the claim.", severity: "Medium")
+            ] : []
+        }
         guard let config = config(for: provider) else {
             activeError = RhetorixError.missingProviderKey.localizedDescription
             return []
@@ -408,6 +469,9 @@ final class AppStore: ObservableObject {
     }
 
     func generateRebuttalPrompt(topic: DebateTopic, side: DebateSide, provider: AiProvider) async -> String {
+        if isUITestMode {
+            return "Mock opposing argument: this policy creates costs, tradeoffs, and enforcement problems."
+        }
         guard let config = config(for: provider) else {
             activeError = RhetorixError.missingProviderKey.localizedDescription
             return ""
@@ -428,6 +492,13 @@ final class AppStore: ObservableObject {
     }
 
     func scoreRebuttal(topic: DebateTopic, prompt: String, response: String, provider: AiProvider) async -> RebuttalAttempt? {
+        if isUITestMode {
+            let attempt = RebuttalAttempt(topic: topic, promptArgument: prompt, userResponse: response, score: 87, feedback: "Mock feedback: strong clash; add more evidence.")
+            rebuttalAttempts.insert(attempt, at: 0)
+            refreshUserProfileMemory()
+            save()
+            return attempt
+        }
         guard let config = config(for: provider) else {
             activeError = RhetorixError.missingProviderKey.localizedDescription
             return nil

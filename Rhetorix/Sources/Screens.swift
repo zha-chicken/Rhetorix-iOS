@@ -103,6 +103,7 @@ struct HomeView: View {
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.borderedProminent)
+                        .accessibilityIdentifier("home.startVoiceDebate")
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -270,6 +271,7 @@ struct MBTIOnboardingView: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
+                .accessibilityIdentifier("onboarding.skipMBTI")
 
                 Text(store.t("Rhetorix only infers traits from real local debate history. It will not invent a profile when evidence is insufficient."))
                     .font(.caption)
@@ -374,11 +376,12 @@ struct TopicSelectionView: View {
             .listRowBackground(RhetorixColors.glass)
 
             Section(store.t("Trending")) {
-                ForEach(filtered) { topic in
+                ForEach(Array(filtered.enumerated()), id: \.element.id) { index, topic in
                     Button { path.append(AppRoute.setup(topic)) } label: {
                         TopicRow(topic: topic, debateCount: store.debateCount(for: topic))
                     }
                     .listRowBackground(RhetorixColors.glass)
+                    .accessibilityIdentifier("topic.row.\(index)")
                 }
             }
         }
@@ -454,6 +457,7 @@ struct DebateSetupView: View {
                     Text(store.t("Start Debate")).frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
+                .accessibilityIdentifier("setup.startDebate")
             }
             .padding()
         }
@@ -535,6 +539,7 @@ struct DebateView: View {
                 Button(store.t("AI Turn")) { Task { await store.advanceAIDebate(sessionID: sessionID) } }
             }
             Button(store.t("End")) { Task { await store.endAndJudge(sessionID: sessionID); path.append(AppRoute.result(sessionID)) } }
+                .accessibilityIdentifier("debate.end")
         }
         .navigationTitle(session.map { store.topicTitle($0.topic) } ?? store.t("Debate"))
         .appScreen()
@@ -659,11 +664,13 @@ struct DebateInputBar: View {
                 TextField(store.t("Speak or type your argument..."), text: $input, axis: .vertical)
                     .textFieldStyle(.roundedBorder)
                     .disabled(!canSpeak)
+                    .accessibilityIdentifier("debate.input")
 
                 Button(action: send) {
                     Image(systemName: "arrow.up.circle.fill").font(.title2)
                 }
                 .disabled(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isWorking || !canSpeak)
+                .accessibilityIdentifier("debate.send")
             }
             if speech.isRecording {
                 Label(store.t("Listening..."), systemImage: "waveform")
@@ -865,12 +872,14 @@ struct ToolsView: View {
                     CompactToolButton(title: store.t("Constructive Analysis"), icon: "magnifyingglass.circle.fill", accent: RhetorixColors.cyan) {
                         path.append(AppRoute.constructiveAnalysis)
                     }
+                    .accessibilityIdentifier("tools.constructiveAnalysis")
                     CompactToolButton(title: store.t("Rebuttal Trainer"), icon: "timer", accent: RhetorixColors.amber) {
                         path.append(AppRoute.rebuttalTrainer)
                     }
                     CompactToolButton(title: store.t("Logic Fallacy Detector"), icon: "magnifyingglass", accent: RhetorixColors.green) {
                         path.append(AppRoute.fallacyDetector)
                     }
+                    .accessibilityIdentifier("tools.fallacyDetector")
                     Link(destination: URL(string: "https://gptzero.me/hallucination-detector")!) {
                         VStack(spacing: 6) {
                             Image(systemName: "sparkles")
@@ -1275,6 +1284,7 @@ struct ConstructiveAnalysisView: View {
                             .scrollContentBackground(.hidden)
                             .background(RhetorixColors.glass)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .accessibilityIdentifier("constructive.input")
                         Button {
                             Task {
                                 isAnalyzingPaste = true
@@ -1292,6 +1302,7 @@ struct ConstructiveAnalysisView: View {
                         }
                         .buttonStyle(.borderedProminent)
                         .disabled(isAnalyzingPaste || inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .accessibilityIdentifier("constructive.analyze")
                     }
                 }
 
@@ -1532,6 +1543,7 @@ struct FallacyDetectorView: View {
                     .scrollContentBackground(.hidden)
                     .background(RhetorixColors.glass)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .accessibilityIdentifier("fallacy.input")
                 Picker(store.t("Provider"), selection: $provider) {
                     ForEach(AiProvider.allCases) { Text($0.rawValue).tag($0) }
                 }
@@ -1546,6 +1558,7 @@ struct FallacyDetectorView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(isAnalyzing || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .accessibilityIdentifier("fallacy.analyze")
                 if isAnalyzing {
                     GlassCard(accent: RhetorixColors.cyan) {
                         HStack(spacing: 12) {
