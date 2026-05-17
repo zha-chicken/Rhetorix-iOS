@@ -104,8 +104,19 @@ struct ProviderConfig: Identifiable, Codable, Equatable {
     var baseURL: String = ""
     var isEnabled: Bool = false
 
-    var resolvedModel: String { modelName.isEmpty ? provider.defaultModel : modelName }
-    var resolvedBaseURL: String { baseURL.isEmpty ? provider.defaultBaseURL : baseURL }
+    var resolvedModel: String {
+        let trimmed = modelName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? provider.defaultModel : trimmed
+    }
+
+    var resolvedBaseURL: String {
+        let trimmed = baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? provider.defaultBaseURL : trimmed
+    }
+
+    var resolvedAPIKey: String {
+        apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 }
 
 struct DebateTopic: Identifiable, Codable, Equatable, Hashable {

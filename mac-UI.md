@@ -282,6 +282,7 @@ Content:
 
 Stats must be dynamic and start at zero for a new user.
 The home screen should not include a visible donation/support entry.
+The home screen should not include a Face-to-Face quick action, although Face-to-Face remains available from debate setup.
 Live debate should be the most prominent action on the screen.
 Preparation tools should use compact auxiliary controls rather than large feature cards.
 
@@ -519,7 +520,7 @@ Provider detail behavior:
 
 - Model selection is a picker of common presets for that provider.
 - An `Other` model choice reveals a custom model field.
-- Test Connection verifies that the current provider, API key, base URL, and selected model can respond.
+- Test Connection verifies that the current provider, API key, base URL, and selected model can respond before saving, trims whitespace, tolerates base URLs that already include `/v1`, and does not require the provider to already be enabled.
 - Save Configuration is visually separated from the other settings and should read as the primary action on the page.
 
 Settings should be calm, utilitarian, and clear about success/error states.

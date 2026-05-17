@@ -74,7 +74,7 @@ final class AIService: Sendable {
     }
 
     private func rawChat(systemPrompt: String, messages: [ChatMessage], config: ProviderConfig, maxTokens: Int = 900) async throws -> ChatResult {
-        guard config.isEnabled, config.apiKey.isEmpty == false else { throw RhetorixError.missingProviderKey }
+        guard config.isEnabled, config.resolvedAPIKey.isEmpty == false else { throw RhetorixError.missingProviderKey }
         switch config.provider {
         case .openAI, .deepSeek, .groq, .ollama:
             return try await openAICompatibleChat(systemPrompt: systemPrompt, messages: messages, config: config, maxTokens: maxTokens)
@@ -95,7 +95,7 @@ final class AIService: Sendable {
         ]
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.setValue("Bearer \(config.apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(config.resolvedAPIKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = 60
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)
@@ -120,7 +120,7 @@ final class AIService: Sendable {
         ]
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.setValue(config.apiKey, forHTTPHeaderField: "x-api-key")
+        request.setValue(config.resolvedAPIKey, forHTTPHeaderField: "x-api-key")
         request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = 60
@@ -137,7 +137,8 @@ final class AIService: Sendable {
     private func geminiChat(systemPrompt: String, messages: [ChatMessage], config: ProviderConfig, maxTokens: Int) async throws -> ChatResult {
         let model = config.resolvedModel.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? config.resolvedModel
         let base = config.resolvedBaseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-        guard let url = URL(string: "\(base)/v1beta/models/\(model):generateContent?key=\(config.apiKey)") else {
+        let key = config.resolvedAPIKey.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? config.resolvedAPIKey
+        guard let url = URL(string: "\(base)/v1beta/models/\(model):generateContent?key=\(key)") else {
             throw RhetorixError.invalidResponse
         }
         let prompt = ([ChatMessage(role: "user", content: systemPrompt)] + messages)
@@ -168,7 +169,7 @@ final class AIService: Sendable {
         let payload: [String: Any] = ["model": "omni-moderation-latest", "input": text]
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.setValue("Bearer \(config.apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(config.resolvedAPIKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = 30
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)
@@ -219,7 +220,15 @@ final class AIService: Sendable {
 
     private func endpoint(base: String, path: String) throws -> URL {
         let trimmed = base.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-        guard let url = URL(string: "\(trimmed)/\(path)") else { throw RhetorixError.invalidResponse }
+        let pathParts = path.split(separator: "/", maxSplits: 1).map(String.init)
+        let normalizedPath: String
+        if let first = pathParts.first, trimmed.hasSuffix("/\(first)") {
+            normalizedPath = pathParts.count > 1 ? pathParts[1] : ""
+        } else {
+            normalizedPath = path
+        }
+        let separator = normalizedPath.isEmpty ? "" : "/"
+        guard let url = URL(string: "\(trimmed)\(separator)\(normalizedPath)") else { throw RhetorixError.invalidResponse }
         return url
     }
 

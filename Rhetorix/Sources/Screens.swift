@@ -121,9 +121,6 @@ struct HomeView: View {
                     FeatureCard(title: store.t("New Debate"), subtitle: store.t("Start a timed debate"), icon: "message.fill", accent: RhetorixColors.cyan) {
                         path.append(AppRoute.topicSelection)
                     }
-                    FeatureCard(title: store.t("Face-to-Face"), subtitle: store.t("Debate on one device"), icon: "person.2.fill", accent: RhetorixColors.amber) {
-                        path.append(AppRoute.setup(store.topics.first ?? AppStore.defaultTopics[0]))
-                    }
                     FeatureCard(title: store.t("History"), subtitle: store.t("Review debates"), icon: "clock.fill", accent: RhetorixColors.green) {
                         selectedTab = .history
                     }
@@ -1249,10 +1246,15 @@ struct ProviderConfigView: View {
 
     private func testConnection() async {
         normalizeModelBeforeSave()
+        var testConfig = config
+        testConfig.isEnabled = true
+        testConfig.apiKey = testConfig.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        testConfig.modelName = testConfig.modelName.trimmingCharacters(in: .whitespacesAndNewlines)
+        testConfig.baseURL = testConfig.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
         isTestingConnection = true
         connectionMessage = nil
         connectionSucceeded = nil
-        let result = await store.testProviderConnection(config)
+        let result = await store.testProviderConnection(testConfig)
         switch result {
         case .success(let reply):
             connectionSucceeded = true
