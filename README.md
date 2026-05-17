@@ -181,8 +181,8 @@ Rhetorix 的辩题推荐不是“猜你喜欢”的黑箱，也不会只根据 M
 
 ```text
 score =
-  favoriteCategoryMatch * 40
-  + weaknessKeywordMatches * 22
+  favoriteCategoryMatch * 16
+  + weaknessKeywordMatches * 34
   + mbtiKeywordMatches * 5
   - previousDebateCountForSameTopic * 9
   - recentRepeatPenalty
@@ -196,14 +196,17 @@ score =
 - `previousDebateCountForSameTopic`：用户已经辩过同一个题目的次数，次数越多扣分越多
 - `recentRepeatPenalty`：如果题目出现在最近 5 场辩论中，额外扣 18 分
 
+基础分数计算后，推荐列表会再做一次类别多样性选择：同一个 `category` 在本轮推荐中每已经出现一次，后续同类题目的有效排序分额外扣 `24`。这不会禁止同类题目出现，但会尽量让推荐覆盖不同类别。
+
 权重设计原则：
 
-- 真实历史优先：用户实际常辩领域 `+40`
-- 训练价值第二：当前弱点命中每项 `+22`
+- 训练价值优先：当前弱点命中每项 `+34`
+- 真实历史轻量参考：用户实际常辩领域 `+16`
 - MBTI 只做轻微偏置：每项 `+5`
 - 避免重复：同题每辩过一次 `-9`，最近重复 `-18`
+- 尽量多样：同一推荐批次中重复类别每次额外 `-24`
 
-因此 MBTI 不会压过真实行为数据。它只在多个题目都符合用户历史和训练目标时，轻微影响排序。
+因此推荐会优先命中训练弱点，同时尽可能给用户不同 category 的辩题。MBTI 不会压过真实行为数据。它只在多个题目都符合用户历史和训练目标时，轻微影响排序。
 
 MBTI 关键词不是四组粗分类，而是 16 个类型分别映射。映射参考 Myers-Briggs 官方对各类型偏好、决策方式和关注点的描述，再转化为辩题关键词。例如：
 

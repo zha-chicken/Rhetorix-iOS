@@ -1037,15 +1037,15 @@ final class AppStore: ObservableObject {
         let mbtiKeywords = recommendationKeywords(for: userProfileMemory.mbti)
 
         let ranked = topics
-            .map { topic -> (DebateTopic, Int, Int, Int) in
+            .map { topic -> (topic: DebateTopic, score: Int, weaknessMatches: Int, mbtiMatches: Int) in
                 let titleKey = normalizedTopicTitle(topic.title)
                 let text = "\(topic.title) \(topic.category) \(topic.details)"
                 var score = 0
                 if normalizedTopicTitle(topic.category) == favoriteCategoryKey {
-                    score += 40
+                    score += 16
                 }
                 let weaknessMatches = recommendationKeywordMatches(in: text, keywords: weaknessKeywords)
-                score += weaknessMatches * 22
+                score += weaknessMatches * 34
                 let mbtiMatches = recommendationKeywordMatches(in: text, keywords: mbtiKeywords)
                 score += mbtiMatches * 5
                 let historyPenalty = debatedCounts[titleKey, default: 0] * 9
@@ -1054,30 +1054,48 @@ final class AppStore: ObservableObject {
                 return (topic, score, weaknessMatches, mbtiMatches)
             }
             .sorted { left, right in
-                if left.1 == right.1 {
-                    let leftCount = debatedCounts[normalizedTopicTitle(left.0.title), default: 0]
-                    let rightCount = debatedCounts[normalizedTopicTitle(right.0.title), default: 0]
-                    if leftCount == rightCount { return left.0.title < right.0.title }
+                if left.score == right.score {
+                    let leftCount = debatedCounts[normalizedTopicTitle(left.topic.title), default: 0]
+                    let rightCount = debatedCounts[normalizedTopicTitle(right.topic.title), default: 0]
+                    if leftCount == rightCount { return left.topic.title < right.topic.title }
                     return leftCount < rightCount
                 }
-                return left.1 > right.1
+                return left.score > right.score
             }
-            .prefix(max(1, limit))
 
-        return ranked.map { item in
+        var selected: [(topic: DebateTopic, score: Int, weaknessMatches: Int, mbtiMatches: Int)] = []
+        var categoryCounts: [String: Int] = [:]
+        let targetCount = max(1, limit)
+        while selected.count < targetCount {
+            let next = ranked
+                .filter { candidate in selected.contains(where: { $0.topic.id == candidate.topic.id }) == false }
+                .max { left, right in
+                    let leftCategoryPenalty = categoryCounts[normalizedTopicTitle(left.topic.category), default: 0] * 24
+                    let rightCategoryPenalty = categoryCounts[normalizedTopicTitle(right.topic.category), default: 0] * 24
+                    let leftAdjusted = left.score - leftCategoryPenalty
+                    let rightAdjusted = right.score - rightCategoryPenalty
+                    if leftAdjusted == rightAdjusted { return left.topic.title > right.topic.title }
+                    return leftAdjusted < rightAdjusted
+                }
+            guard let next else { break }
+            selected.append(next)
+            categoryCounts[normalizedTopicTitle(next.topic.category), default: 0] += 1
+        }
+
+        return selected.map { item in
             let reason: String
             let focus: String
-            if let weakness, item.2 > 0 {
+            if let weakness, item.weaknessMatches > 0 {
                 focus = t(weakness.title)
                 reason = "\(t("Balances your interest in")) \(category(favoriteCategory)) · \(t("Targets")) \(t(weakness.title))"
-            } else if let mbti = userProfileMemory.mbti, item.3 > 0 {
+            } else if let mbti = userProfileMemory.mbti, item.mbtiMatches > 0 {
                 focus = mbti.rawValue
                 reason = "\(t("Based on your completed debates in")) \(category(favoriteCategory)) · MBTI \(mbti.rawValue)"
             } else {
                 focus = category(favoriteCategory)
                 reason = "\(t("Based on your completed debates in")) \(category(favoriteCategory))"
             }
-            return TopicRecommendation(topic: item.0, reason: reason, focus: focus, matchedSignal: weakness?.title)
+            return TopicRecommendation(topic: item.topic, reason: reason, focus: focus, matchedSignal: weakness?.title)
         }
     }
 
