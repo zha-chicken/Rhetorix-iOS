@@ -1034,9 +1034,10 @@ final class AppStore: ObservableObject {
         let favoriteCategoryKey = normalizedTopicTitle(favoriteCategory)
         let weakness = userProfileMemory.weaknessSignals.first
         let weaknessKeywords = recommendationKeywords(for: weakness?.title)
+        let mbtiKeywords = recommendationKeywords(for: userProfileMemory.mbti)
 
         let ranked = topics
-            .map { topic -> (DebateTopic, Int, Int) in
+            .map { topic -> (DebateTopic, Int, Int, Int) in
                 let titleKey = normalizedTopicTitle(topic.title)
                 let text = "\(topic.title) \(topic.category) \(topic.details)"
                 var score = 0
@@ -1045,10 +1046,12 @@ final class AppStore: ObservableObject {
                 }
                 let weaknessMatches = recommendationKeywordMatches(in: text, keywords: weaknessKeywords)
                 score += weaknessMatches * 22
+                let mbtiMatches = recommendationKeywordMatches(in: text, keywords: mbtiKeywords)
+                score += mbtiMatches * 5
                 let historyPenalty = debatedCounts[titleKey, default: 0] * 9
                 let recentPenalty = recentTitles.contains(titleKey) ? 18 : 0
                 score -= historyPenalty + recentPenalty
-                return (topic, score, weaknessMatches)
+                return (topic, score, weaknessMatches, mbtiMatches)
             }
             .sorted { left, right in
                 if left.1 == right.1 {
@@ -1067,6 +1070,9 @@ final class AppStore: ObservableObject {
             if let weakness, item.2 > 0 {
                 focus = t(weakness.title)
                 reason = "\(t("Balances your interest in")) \(category(favoriteCategory)) · \(t("Targets")) \(t(weakness.title))"
+            } else if let mbti = userProfileMemory.mbti, item.3 > 0 {
+                focus = mbti.rawValue
+                reason = "\(t("Based on your completed debates in")) \(category(favoriteCategory)) · MBTI \(mbti.rawValue)"
             } else {
                 focus = category(favoriteCategory)
                 reason = "\(t("Based on your completed debates in")) \(category(favoriteCategory))"
@@ -1093,6 +1099,20 @@ final class AppStore: ObservableObject {
             return ["school", "homework", "work", "admissions", "public transit", "structured", "education", "工作", "教育", "学校", "作业", "结构"]
         }
         return []
+    }
+
+    private func recommendationKeywords(for mbti: MBTIType?) -> [String] {
+        guard let mbti else { return [] }
+        switch mbti {
+        case .intj, .intp, .entj, .entp:
+            return ["AI", "technology", "science", "policy", "economics", "capitalism", "free will", "systems", "科技", "科学", "政策", "经济", "资本主义", "自由意志"]
+        case .infj, .infp, .enfj, .enfp:
+            return ["ethics", "rights", "fairness", "animals", "euthanasia", "education", "society", "dignity", "伦理", "权利", "公平", "动物", "教育", "社会", "尊严"]
+        case .istj, .isfj, .estj, .esfj:
+            return ["law", "schools", "homework", "admissions", "work", "public", "mandatory", "regulation", "法律", "学校", "作业", "工作", "公共", "强制", "监管"]
+        case .istp, .isfp, .estp, .esfp:
+            return ["cities", "health", "sports", "media", "social media", "remote work", "transit", "practical", "城市", "健康", "媒体", "社交媒体", "远程工作", "公共交通"]
+        }
     }
 
     private func recommendationKeywordMatches(in text: String, keywords: [String]) -> Int {

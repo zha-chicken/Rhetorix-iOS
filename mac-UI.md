@@ -396,6 +396,7 @@ Rules:
 - Memory is computed from local session history only.
 - The app must not invent interests, strengths, weaknesses, or topic preferences.
 - MBTI is the only self-reported profile item. It appears as a first-use sheet, can be skipped, and can be changed later in Settings.
+- MBTI may add only a small recommendation bias. It must never outweigh real debate history, weakness signals, or recent-repeat avoidance.
 - Recommendations require at least two engaged debates.
 - If there is not enough data, show a learning state instead of a recommendation.
 - The memory card may summarize favorite area, preferred mode, completion rate, average debate length, voice ratio, and stage timing.
@@ -407,7 +408,7 @@ Rules:
   - constructive-analysis focus: repeated issue types from saved Constructive Analysis results
   - pacing focus: slow rebuttal or reply turns derived from recorded stage timers
 - Settings should expose evidence counts and short evidence snippets so the profile feels inspectable, not mystical.
-- Recommended topics should be chosen by Recommendation 2.0: combine categories the user actually debates with the strongest current weakness signal, while avoiding very recent repeats when possible.
+- Recommended topics should be chosen by Recommendation 2.0: combine categories the user actually debates with the strongest current weakness signal, add only a small MBTI preference bias when available, and avoid very recent repeats when possible.
 - The Memory Profile detail page shows local evidence counts, profile metrics, top signals with evidence snippets, and up to three recommended topics with their training focus.
 
 ### Tools
