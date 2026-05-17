@@ -11,7 +11,7 @@ final class AppStore: ObservableObject {
     @Published var userProfileMemory = UserProfileMemory()
     @Published var selectedLanguage = "English"
     @Published var appTheme: AppTheme = .dark
-    @Published var autoSpeakAI = false
+    @Published var autoSpeakAI = true
     @Published var activeError: String?
     @Published var isWorking = false
 
@@ -1038,7 +1038,7 @@ final class AppStore: ObservableObject {
         userProfileMemory = snapshot.userProfileMemory ?? UserProfileMemory()
         selectedLanguage = snapshot.selectedLanguage
         appTheme = snapshot.appTheme ?? .dark
-        autoSpeakAI = snapshot.autoSpeakAI ?? false
+        autoSpeakAI = snapshot.autoSpeakAI ?? true
     }
 
     private struct Snapshot: Codable {

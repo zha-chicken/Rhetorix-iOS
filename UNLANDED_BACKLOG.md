@@ -9,8 +9,8 @@ This file tracks goals that are not fully landed yet. It should be updated when 
 Status: `Implemented baseline`
 
 - Local AI speech playback for AI debate turns has been added through Apple system text-to-speech.
-- Manual playback is available on AI message bubbles.
-- Optional auto-read is available in Settings.
+- AI responses auto-read by default for new installs.
+- Users can turn off auto-read in Settings and use manual playback on AI message bubbles.
 - Online TTS remains out of MVP.
 - Remaining work: real device verification across silent mode, Bluetooth/headphones, and Chinese/English voices.
 
