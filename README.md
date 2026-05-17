@@ -211,6 +211,25 @@ score =
 
 因此推荐会优先命中训练弱点，同时尽可能给用户不同 category 的辩题。MBTI 不会压过真实行为数据。它只在多个题目都符合用户历史和训练目标时，轻微影响排序。用户在赛后选择 `technique` 的喜欢/不喜欢反馈只会被记录，用于未来解释和产品分析，不影响辩题推荐排序。
 
+### 推荐算法设计依据
+
+Rhetorix 的推荐系统不是通用内容消费推荐，而是面向辩论训练的学习型推荐。因此，算法目标不是单纯最大化用户过去偏好的相似度，而是在“用户愿意开始辩论”和“本场辩论能训练到具体能力”之间取得平衡。
+
+相关资料对当前设计有三点支持：
+
+- 推荐系统研究通常认为，若过度追求准确命中过去偏好，推荐结果容易出现过度专门化，变得单调且可预测。因此，推荐列表需要在相关性之外保留多样性、新颖性和一定探索空间。Rhetorix 使用最近重复惩罚和同批次 category 多样性惩罚，目的就是避免用户反复看到同一类辩题。
+- 个性化学习路径推荐研究强调，学习型推荐应当结合学习者画像、学习过程数据、反馈和目标约束，而不应只做静态兴趣匹配。Rhetorix 使用本地辩论历史、完成情况、阶段用时、裁判反馈、立论分析结果和赛后显式反馈，符合“动态学习者模型”的基本方向。
+- 刻意练习研究强调，能力提升需要具体任务、针对性反馈、重复练习和对特定弱点的改进。Rhetorix 将 `weaknessKeywordMatches` 设置为最高权重，是因为它的推荐目标不是娱乐内容分发，而是帮助用户持续练习证据、定义、交锋、结构和影响权衡等辩论能力。
+
+基于以上原则，当前推荐算法采用“弱点优先、兴趣辅助、MBTI 轻量参考、显式反馈校准、多样性约束”的结构。这个设计适合当前阶段的 Rhetorix：它可解释、可本地运行、对小样本用户友好，并且不需要服务器端协同过滤或大规模用户行为数据。后续更值得优先改进的方向不是立刻更换复杂模型，而是为本地辩题库补充更细的训练标签，例如 `evidence-heavy`、`definition-heavy`、`value clash`、`impact weighing`、`policy mechanism` 等，使弱点匹配从关键词匹配升级为明确的训练目标匹配。
+
+参考资料：
+
+- [Serendipity in Recommender Systems: A Systematic Literature Review](https://jcst.ict.ac.cn/article/cstr/32374.14.s11390-020-0135-9)
+- [Personalized Learning Path Recommendation Based on Knowledge Graphs: A Survey](https://www.mdpi.com/2079-9292/15/1/238)
+- [A Personalized Learning Path Recommendation Method Incorporating Multi-Algorithm](https://www.mdpi.com/2076-3417/13/10/5946)
+- [Deliberate practice and acquisition of expert performance: a general overview](https://pubmed.ncbi.nlm.nih.gov/18778378/)
+
 MBTI 关键词不是四组粗分类，而是 16 个类型分别映射。映射参考 Myers-Briggs 官方对各类型偏好、决策方式和关注点的描述，再转化为辩题关键词。例如：
 
 - INTJ / INTP 更容易轻微偏向系统、科学、技术、哲学和抽象因果问题
