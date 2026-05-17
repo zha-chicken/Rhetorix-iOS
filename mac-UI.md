@@ -240,6 +240,8 @@ Use chips for filters, categories, modes, providers, and result filters. Selecte
 
 Text fields use glass containers with white input text and low-opacity white placeholders. API key fields should include visibility controls and clear save/test states.
 
+Voice-first debate input uses a centered oversized microphone control. A smaller keyboard button on the left reveals the text fallback, and a send control remains available when a drafted voice transcript or typed argument exists. AI vs AI rounds do not show human input controls.
+
 ## Primary Navigation
 
 The bottom tab bar has four destinations:
@@ -307,11 +309,12 @@ Content:
 - Selected topic summary
 - Debate mode: User vs AI, AI vs AI, Face to Face
 - Difficulty selection
-- User position: Support or Oppose
+- User position: Support or Oppose, shown only for User vs AI
 - AI provider selection
 - Start debate button
 
 Every displayed control must affect the actual route or debate setup.
+AI vs AI and Face to Face do not show a user position selector because there is no single user side to choose.
 
 ### Live Debate
 
@@ -340,6 +343,8 @@ Behavior:
 - User vs AI, AI vs AI, and Face to Face all use the same structured stage order; only the input source changes.
 - Debate should feel quick and conversational, not like filling out a form.
 - Voice input should be the default target interaction on real devices.
+- The microphone button should be the dominant input target, centered in the input bar; text input is revealed by a smaller keyboard button.
+- AI vs AI debate screens should keep the debate transcript and AI Turn control, but should not show voice or text input controls.
 - In Simulator, voice input may show an unavailable message and text remains usable.
 - Timers should make each stage feel consequential without forcing full tournament-length speeches on mobile.
 - AI message bubbles include a compact voice playback control.
@@ -468,15 +473,19 @@ Purpose: practice writing a rebuttal under time pressure.
 
 Content:
 
+- Topic selection before generation
+- Provider selection
+- Loading state while generating the opponent argument
 - Argument to resist
-- Timer
+- 2.5-minute timer that starts after the argument is generated
 - Rebuttal input
-- Submit action
+- Submit action with loading state while scoring
 - Score result
 - Category bars
 - Feedback panel
 
 Timer and scoring flow must be real.
+Before a topic is selected, the screen should show a compact setup card instead of an oversized empty page.
 
 ### Donation
 
@@ -503,7 +512,14 @@ Content:
 
 - Language segmented control
 - Provider list with enabled/disabled state
-- Provider detail for API key, model, base URL, save, and test connection
+- Provider detail for API key, model preset picker, optional custom model, base URL, save, and test connection
+
+Provider detail behavior:
+
+- Model selection is a picker of common presets for that provider.
+- An `Other` model choice reveals a custom model field.
+- Test Connection verifies that the current provider, API key, base URL, and selected model can respond.
+- Save Configuration is visually separated from the other settings and should read as the primary action on the page.
 
 Settings should be calm, utilitarian, and clear about success/error states.
 

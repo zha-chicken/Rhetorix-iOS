@@ -443,9 +443,11 @@ struct DebateSetupView: View {
                 Picker(store.t("Difficulty"), selection: $difficulty) {
                     ForEach(DebateDifficulty.allCases) { Text(store.debateDifficulty($0)).tag($0) }
                 }.pickerStyle(.segmented)
-                Picker(store.t("Your Position"), selection: $side) {
-                    ForEach(DebateSide.allCases) { Text(store.debateSide($0)).tag($0) }
-                }.pickerStyle(.segmented)
+                if mode == .userVsAi {
+                    Picker(store.t("Your Position"), selection: $side) {
+                        ForEach(DebateSide.allCases) { Text(store.debateSide($0)).tag($0) }
+                    }.pickerStyle(.segmented)
+                }
                 Picker(store.t("AI Provider"), selection: $provider) {
                     ForEach(AiProvider.allCases) { Text($0.rawValue).tag($0) }
                 }
@@ -464,6 +466,11 @@ struct DebateSetupView: View {
         .navigationTitle(store.t("Debate Setup"))
         .onAppear {
             provider = store.preferredProvider
+        }
+        .onChange(of: mode) { _, newMode in
+            if newMode != .userVsAi {
+                side = .support
+            }
         }
         .appScreen()
     }
@@ -511,14 +518,16 @@ struct DebateView: View {
                     }
                 }
             }
-            DebateInputBar(
-                input: $input,
-                speech: speech,
-                canSpeak: session.map { store.canHumanType(in: $0) } ?? false,
-                isWorking: store.isWorking,
-                usesChinese: store.usesChinese,
-                send: sendInput
-            )
+            if session?.mode != .aiVsAi {
+                DebateInputBar(
+                    input: $input,
+                    speech: speech,
+                    canSpeak: session.map { store.canHumanType(in: $0) } ?? false,
+                    isWorking: store.isWorking,
+                    usesChinese: store.usesChinese,
+                    send: sendInput
+                )
+            }
         }
         .onAppear { stageStartedAt = Date() }
         .onDisappear {
@@ -644,10 +653,24 @@ struct DebateInputBar: View {
     var isWorking: Bool
     var usesChinese: Bool
     var send: () -> Void
+    @State private var isTextInputVisible = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 16) {
+                Button {
+                    isTextInputVisible.toggle()
+                } label: {
+                    Image(systemName: isTextInputVisible ? "keyboard.chevron.compact.down" : "keyboard")
+                        .font(.system(size: 22, weight: .semibold))
+                        .frame(width: 48, height: 48)
+                        .background(Circle().fill(RhetorixColors.glassStrong))
+                }
+                .disabled(!canSpeak || isWorking)
+                .accessibilityIdentifier("debate.keyboard")
+
+                Spacer()
+
                 Button {
                     if speech.isRecording {
                         speech.stop()
@@ -656,22 +679,33 @@ struct DebateInputBar: View {
                     }
                 } label: {
                     Image(systemName: speech.isRecording ? "stop.circle.fill" : "mic.circle.fill")
-                        .font(.system(size: 34, weight: .semibold))
+                        .font(.system(size: 66, weight: .semibold))
                         .foregroundStyle(speech.isRecording ? RhetorixColors.salmon : RhetorixColors.cyan)
+                        .frame(width: 88, height: 88)
+                        .background(Circle().fill(RhetorixColors.glassStrong))
+                        .overlay(Circle().stroke((speech.isRecording ? RhetorixColors.salmon : RhetorixColors.cyan).opacity(0.36), lineWidth: 1.5))
                 }
                 .disabled(!canSpeak || isWorking)
+                .accessibilityIdentifier("debate.voice")
 
-                TextField(store.t("Speak or type your argument..."), text: $input, axis: .vertical)
-                    .textFieldStyle(.roundedBorder)
-                    .disabled(!canSpeak)
-                    .accessibilityIdentifier("debate.input")
+                Spacer()
 
                 Button(action: send) {
-                    Image(systemName: "arrow.up.circle.fill").font(.title2)
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.system(size: 34, weight: .semibold))
+                        .frame(width: 48, height: 48)
                 }
                 .disabled(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isWorking || !canSpeak)
                 .accessibilityIdentifier("debate.send")
             }
+
+            if isTextInputVisible {
+                TextField(store.t("Speak or type your argument..."), text: $input, axis: .vertical)
+                    .textFieldStyle(.roundedBorder)
+                    .disabled(!canSpeak)
+                    .accessibilityIdentifier("debate.input")
+            }
+
             if speech.isRecording {
                 Label(store.t("Listening..."), systemImage: "waveform")
                     .font(.caption)
@@ -681,7 +715,7 @@ struct DebateInputBar: View {
                     .font(.caption)
                     .foregroundStyle(RhetorixColors.salmon)
             } else {
-                Text(store.t("Voice is primary. Text remains available."))
+                Text(store.t(isTextInputVisible ? "Voice is primary. Text remains available." : "Tap the keyboard button to type instead of speaking."))
                     .font(.caption2)
                     .foregroundStyle(RhetorixColors.textTertiary)
             }
@@ -1036,6 +1070,13 @@ struct ProviderConfigView: View {
     var provider: AiProvider
     @State private var config: ProviderConfig
     @State private var showKey = false
+    @State private var selectedModel = ""
+    @State private var customModel = ""
+    @State private var isTestingConnection = false
+    @State private var connectionMessage: String?
+    @State private var connectionSucceeded: Bool?
+
+    private let otherModelTag = "__other_model__"
 
     init(provider: AiProvider) {
         self.provider = provider
@@ -1043,21 +1084,164 @@ struct ProviderConfigView: View {
     }
 
     var body: some View {
-        Form {
-            Toggle("\(store.t("Enable")) \(provider.rawValue)", isOn: $config.isEnabled)
-            TextField(store.t("API Key"), text: $config.apiKey)
-                .textContentType(.password)
-            TextField(store.t("Model"), text: $config.modelName)
-            TextField(store.t("Base URL"), text: $config.baseURL)
-            Button(store.t("Save Configuration")) {
-                store.saveProvider(config)
+        ScrollView {
+            VStack(spacing: 16) {
+                GlassCard(accent: RhetorixColors.cyan) {
+                    Toggle("\(store.t("Enable")) \(provider.rawValue)", isOn: $config.isEnabled)
+                }
+
+                GlassCard(accent: RhetorixColors.amber) {
+                    VStack(alignment: .leading, spacing: 14) {
+                        Text(store.t("API Configuration"))
+                            .font(.headline)
+                        HStack {
+                            Group {
+                                if showKey {
+                                    TextField(store.t("API Key"), text: $config.apiKey)
+                                } else {
+                                    SecureField(store.t("API Key"), text: $config.apiKey)
+                                }
+                            }
+                            .textContentType(.password)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            Button {
+                                showKey.toggle()
+                            } label: {
+                                Image(systemName: showKey ? "eye.slash" : "eye")
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(12)
+                        .background(RhetorixColors.glassStrong)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                        Picker(store.t("Model"), selection: $selectedModel) {
+                            ForEach(provider.modelChoices, id: \.self) { model in
+                                Text(model).tag(model)
+                            }
+                            Text(store.t("Other")).tag(otherModelTag)
+                        }
+                        .pickerStyle(.menu)
+                        .onChange(of: selectedModel) { _, newValue in
+                            if newValue == otherModelTag {
+                                config.modelName = customModel
+                            } else {
+                                config.modelName = newValue
+                                customModel = ""
+                            }
+                        }
+
+                        if selectedModel == otherModelTag {
+                            TextField(store.t("Custom Model"), text: $customModel)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                                .textFieldStyle(.roundedBorder)
+                                .onChange(of: customModel) { _, newValue in
+                                    config.modelName = newValue
+                                }
+                        }
+
+                        TextField(store.t("Base URL"), text: $config.baseURL)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .textFieldStyle(.roundedBorder)
+                    }
+                }
+
+                GlassCard(accent: connectionSucceeded == true ? RhetorixColors.green : RhetorixColors.salmon) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Button {
+                            Task { await testConnection() }
+                        } label: {
+                            HStack {
+                                if isTestingConnection {
+                                    ProgressView()
+                                } else {
+                                    Image(systemName: "antenna.radiowaves.left.and.right")
+                                }
+                                Text(store.t("Test Connection"))
+                                    .font(.headline)
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(isTestingConnection)
+
+                        if let connectionMessage {
+                            Text(connectionMessage)
+                                .font(.caption)
+                                .foregroundStyle(connectionSucceeded == true ? RhetorixColors.green : RhetorixColors.salmon)
+                        } else {
+                            Text(store.t("Test whether this provider and model can respond before saving."))
+                                .font(.caption)
+                                .foregroundStyle(RhetorixColors.textSecondary)
+                        }
+                    }
+                }
             }
+            .padding()
         }
         .onAppear {
             config = store.config(for: provider) ?? ProviderConfig(provider: provider, baseURL: provider.defaultBaseURL)
+            syncModelSelection()
         }
         .navigationTitle(provider.rawValue)
+        .safeAreaInset(edge: .bottom) {
+            Button {
+                normalizeModelBeforeSave()
+                store.saveProvider(config)
+                connectionMessage = store.t("Configuration saved.")
+                connectionSucceeded = true
+            } label: {
+                Label(store.t("Save Configuration"), systemImage: "checkmark.circle.fill")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 6)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .padding(.horizontal)
+            .padding(.vertical, 10)
+            .background(.ultraThinMaterial)
+        }
         .appScreen()
+    }
+
+    private func syncModelSelection() {
+        let resolved = config.resolvedModel
+        if provider.modelChoices.contains(resolved) {
+            selectedModel = resolved
+            customModel = ""
+        } else {
+            selectedModel = otherModelTag
+            customModel = config.modelName
+        }
+    }
+
+    private func normalizeModelBeforeSave() {
+        if selectedModel == otherModelTag {
+            config.modelName = customModel.trimmingCharacters(in: .whitespacesAndNewlines)
+        } else {
+            config.modelName = selectedModel
+        }
+    }
+
+    private func testConnection() async {
+        normalizeModelBeforeSave()
+        isTestingConnection = true
+        connectionMessage = nil
+        connectionSucceeded = nil
+        let result = await store.testProviderConnection(config)
+        switch result {
+        case .success(let reply):
+            connectionSucceeded = true
+            connectionMessage = "\(store.t("Connection successful.")) \(reply)"
+        case .failure(let error):
+            connectionSucceeded = false
+            connectionMessage = "\(store.t("Connection failed.")) \(error.localizedDescription)"
+        }
+        isTestingConnection = false
     }
 }
 
@@ -1609,26 +1793,57 @@ struct FallacyDetectorView: View {
 
 struct RebuttalTrainerView: View {
     @EnvironmentObject private var store: AppStore
-    @State private var topic = AppStore.defaultTopics[0]
+    @State private var topic: DebateTopic?
     @State private var provider: AiProvider = .openAI
     @State private var prompt = ""
     @State private var response = ""
     @State private var attempt: RebuttalAttempt?
+    @State private var isGeneratingPrompt = false
+    @State private var isScoring = false
+    @State private var startedAt: Date?
+    @State private var now = Date()
 
     var body: some View {
         ScrollView {
             VStack(spacing: 14) {
-                Picker(store.t("Topic"), selection: $topic) {
-                    ForEach(store.topics) { Text(store.topicTitle($0)).tag($0) }
+                GlassCard(accent: RhetorixColors.cyan) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(store.t("Choose a topic before generating a practice argument."))
+                            .font(.headline)
+                            .foregroundStyle(RhetorixColors.textPrimary)
+                        Picker(store.t("Topic"), selection: $topic) {
+                            Text(store.t("Choose a Topic")).tag(Optional<DebateTopic>.none)
+                            ForEach(store.topics) { Text(store.topicTitle($0)).tag(Optional($0)) }
+                        }
+                        Picker(store.t("Provider"), selection: $provider) {
+                            ForEach(AiProvider.allCases) { Text($0.rawValue).tag($0) }
+                        }
+                    }
                 }
-                Picker(store.t("Provider"), selection: $provider) {
-                    ForEach(AiProvider.allCases) { Text($0.rawValue).tag($0) }
-                }
-                Button(store.t("Generate Argument")) {
-                    Task { prompt = await store.generateRebuttalPrompt(topic: topic, side: .oppose, provider: provider) }
+
+                Button {
+                    Task { await generateArgument() }
+                } label: {
+                    HStack {
+                        if isGeneratingPrompt {
+                            ProgressView()
+                        } else {
+                            Image(systemName: "sparkles")
+                        }
+                        Text(isGeneratingPrompt ? store.t("Generating...") : store.t("Generate Argument"))
+                            .font(.headline)
+                    }
+                    .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
+                .disabled(topic == nil || isGeneratingPrompt)
+
                 if prompt.isEmpty == false {
+                    if let startedAt {
+                        GlassCard(accent: RhetorixColors.salmon) {
+                            StageTimerView(limit: 150, startedAt: startedAt, now: now)
+                        }
+                    }
                     GlassCard(accent: RhetorixColors.amber) {
                         VStack(alignment: .leading) {
                             Text(store.t("Argument to resist")).font(.headline)
@@ -1641,10 +1856,29 @@ struct RebuttalTrainerView: View {
                         .scrollContentBackground(.hidden)
                         .background(RhetorixColors.glass)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
-                    Button(store.t("Submit Rebuttal")) {
-                        Task { attempt = await store.scoreRebuttal(topic: topic, prompt: prompt, response: response, provider: provider) }
+                    Button {
+                        Task { await submitRebuttal() }
+                    } label: {
+                        HStack {
+                            if isScoring {
+                                ProgressView()
+                            } else {
+                                Image(systemName: "checkmark.seal.fill")
+                            }
+                            Text(isScoring ? store.t("Scoring...") : store.t("Submit Rebuttal"))
+                                .font(.headline)
+                        }
+                        .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
+                    .disabled(isScoring || response.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                } else if topic != nil {
+                    GlassCard(accent: RhetorixColors.amber) {
+                        Text(store.t("Generate an opponent argument to start the 2.5-minute rebuttal timer."))
+                            .font(.subheadline)
+                            .foregroundStyle(RhetorixColors.textSecondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }
                 if let attempt {
                     GlassCard(accent: RhetorixColors.green) {
@@ -1659,10 +1893,31 @@ struct RebuttalTrainerView: View {
             .padding()
         }
         .navigationTitle(store.t("Rebuttal Trainer"))
+        .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             provider = store.preferredProvider
         }
+        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { value in
+            now = value
+        }
         .appScreen()
+    }
+
+    private func generateArgument() async {
+        guard let topic else { return }
+        isGeneratingPrompt = true
+        attempt = nil
+        response = ""
+        prompt = await store.generateRebuttalPrompt(topic: topic, side: .oppose, provider: provider)
+        startedAt = prompt.isEmpty ? nil : Date()
+        isGeneratingPrompt = false
+    }
+
+    private func submitRebuttal() async {
+        guard let topic else { return }
+        isScoring = true
+        attempt = await store.scoreRebuttal(topic: topic, prompt: prompt, response: response, provider: provider)
+        isScoring = false
     }
 }
 

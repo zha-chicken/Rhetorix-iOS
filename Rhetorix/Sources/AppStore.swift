@@ -95,6 +95,15 @@ final class AppStore: ObservableObject {
         save()
     }
 
+    func testProviderConnection(_ config: ProviderConfig) async -> Result<String, Error> {
+        do {
+            let reply = try await ai.testConnection(config: config)
+            return .success(reply)
+        } catch {
+            return .failure(error)
+        }
+    }
+
     func setLanguage(_ language: String) {
         selectedLanguage = language
         save()

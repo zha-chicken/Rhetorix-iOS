@@ -24,6 +24,18 @@ enum RhetorixError: LocalizedError {
 }
 
 final class AIService: Sendable {
+    func testConnection(config: ProviderConfig) async throws -> String {
+        let result = try await rawChat(
+            systemPrompt: "You are a connection test endpoint. Reply with a short OK message only.",
+            messages: [ChatMessage(role: "user", content: "Return OK if this API key and model can respond.")],
+            config: config,
+            maxTokens: 24
+        )
+        let trimmed = result.content.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.isEmpty == false else { throw RhetorixError.invalidResponse }
+        return trimmed
+    }
+
     func chat(systemPrompt: String, messages: [ChatMessage], config: ProviderConfig, maxTokens: Int = 900) async throws -> ChatResult {
         for message in messages where message.role != "assistant" {
             try await assertSafe(message.content, source: "user", config: config)

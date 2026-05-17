@@ -14,6 +14,10 @@ final class RhetorixUITests: XCTestCase {
         XCTAssertTrue(start.waitForExistence(timeout: 5))
         start.tap()
 
+        let keyboard = app.buttons["debate.keyboard"]
+        XCTAssertTrue(keyboard.waitForExistence(timeout: 5))
+        keyboard.tap()
+
         let input = firstExistingElement([
             app.textFields["debate.input"],
             app.textViews["debate.input"],

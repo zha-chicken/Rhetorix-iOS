@@ -74,6 +74,23 @@ enum AiProvider: String, Codable, CaseIterable, Identifiable {
         }
     }
 
+    var modelChoices: [String] {
+        switch self {
+        case .openAI:
+            ["gpt-4o-mini", "gpt-4.1-mini", "gpt-4.1", "o4-mini"]
+        case .anthropic:
+            ["claude-3-haiku-20240307", "claude-3-5-haiku-latest", "claude-3-5-sonnet-latest", "claude-3-7-sonnet-latest"]
+        case .gemini:
+            ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash"]
+        case .deepSeek:
+            ["deepseek-v4-pro", "deepseek-v4-flash", "deepseek-chat", "deepseek-reasoner"]
+        case .groq:
+            ["llama-3.1-8b-instant", "llama-3.3-70b-versatile", "mixtral-8x7b-32768"]
+        case .ollama:
+            ["llama3.1", "qwen2.5", "mistral"]
+        }
+    }
+
     var isOpenAICompatible: Bool {
         self == .openAI || self == .deepSeek || self == .groq || self == .ollama
     }
