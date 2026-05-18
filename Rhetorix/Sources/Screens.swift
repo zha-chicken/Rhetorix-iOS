@@ -649,7 +649,9 @@ struct DebateStatus: View {
                     Text(store.t("Oppose"))
                     Text("\(session.turns.filter { $0.role == .oppose || ($0.role == .user && session.userSide == .oppose) }.count)").font(.title.bold()).foregroundStyle(RhetorixColors.salmon)
                 }
-                StageTimerView(limit: store.stageTimeLimit(for: session), startedAt: stageStartedAt, now: now)
+                if session.mode != .aiVsAi {
+                    StageTimerView(limit: store.stageTimeLimit(for: session), startedAt: stageStartedAt, now: now)
+                }
             }
         }
     }

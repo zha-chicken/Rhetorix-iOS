@@ -328,6 +328,7 @@ Content:
 - Topic title
 - Round and turn state
 - Stage timer with warning and overtime states
+- AI vs AI debate screens do not show the stage timer, because there is no human speaker under time pressure.
 - Score or side-balance indicator
 - Debate message cards
 - AI thinking state
