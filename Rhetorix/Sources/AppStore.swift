@@ -46,6 +46,9 @@ final class AppStore: ObservableObject {
     var topicRecommendation: TopicRecommendation? {
         topicRecommendations(limit: 1).first
     }
+    private var recommendationEligibleSessions: [DebateSession] {
+        sessions.filter { $0.mode != .aiVsAi }
+    }
     var shouldAskMBTI: Bool {
         userProfileMemory.didAskMBTI == false
     }
@@ -320,6 +323,7 @@ final class AppStore: ObservableObject {
     }
 
     func sendUserTurn(sessionID: String, text: String, inputMode: DebateInputMode = .text, stageDurationSeconds: Int? = nil) async {
+        guard isWorking == false else { return }
         guard let index = sessions.firstIndex(where: { $0.id == sessionID }) else { return }
         let session = sessions[index]
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -360,6 +364,7 @@ final class AppStore: ObservableObject {
     }
 
     func advanceAIDebate(sessionID: String) async {
+        guard isWorking == false else { return }
         guard let index = sessions.firstIndex(where: { $0.id == sessionID }) else { return }
         let session = sessions[index]
         guard let config = config(for: session.provider) else {
@@ -381,6 +386,7 @@ final class AppStore: ObservableObject {
     }
 
     func endAndJudge(sessionID: String) async {
+        guard isWorking == false else { return }
         guard let index = sessions.firstIndex(where: { $0.id == sessionID }) else { return }
         let session = sessions[index]
         guard let config = config(for: session.provider) else {
@@ -904,8 +910,9 @@ final class AppStore: ObservableObject {
     }
 
     private func buildUserProfileMemory() -> UserProfileMemory {
-        let completedSessions = sessions.filter(\.isCompleted)
-        let userTurns = sessions
+        let eligibleSessions = recommendationEligibleSessions
+        let completedSessions = eligibleSessions.filter(\.isCompleted)
+        let userTurns = eligibleSessions
             .filter { $0.mode == .userVsAi }
             .flatMap(\.turns)
             .filter { $0.role == .user }
@@ -1041,7 +1048,7 @@ final class AppStore: ObservableObject {
     }
 
     private func buildSlowRebuttalSignal() -> MemorySignal? {
-        let slowTurns = sessions.flatMap { session in
+        let slowTurns = recommendationEligibleSessions.flatMap { session in
             session.turns.enumerated().compactMap { index, turn -> String? in
                 guard turn.role == .user else { return nil }
                 guard let duration = turn.stageDurationSeconds, let limit = turn.stageLimitSeconds, limit > 0 else { return nil }
@@ -1065,7 +1072,7 @@ final class AppStore: ObservableObject {
     }
 
     private func buildMemoryProfile() -> UserMemoryProfile {
-        let engaged = sessions.filter { $0.turns.isEmpty == false || $0.isCompleted }
+        let engaged = recommendationEligibleSessions.filter { $0.turns.isEmpty == false || $0.isCompleted }
         let completed = engaged.filter(\.isCompleted)
         let totalTurns = engaged.reduce(0) { $0 + $1.turns.count }
         let humanTurns = engaged
@@ -1095,8 +1102,9 @@ final class AppStore: ObservableObject {
         let profile = memoryProfile
         guard profile.hasEnoughData, let favoriteCategory = profile.favoriteCategory else { return [] }
 
-        let recentTitles = Set(sessions.prefix(5).map { normalizedTopicTitle($0.topic.title) })
-        let debatedCounts = Dictionary(grouping: sessions, by: { normalizedTopicTitle($0.topic.title) })
+        let eligibleSessions = recommendationEligibleSessions
+        let recentTitles = Set(eligibleSessions.prefix(5).map { normalizedTopicTitle($0.topic.title) })
+        let debatedCounts = Dictionary(grouping: eligibleSessions, by: { normalizedTopicTitle($0.topic.title) })
             .mapValues(\.count)
         let favoriteCategoryKey = normalizedTopicTitle(favoriteCategory)
         let weakness = userProfileMemory.weaknessSignals.first
@@ -1176,6 +1184,7 @@ final class AppStore: ObservableObject {
     private func recommendationCategoryFeedbackScores() -> [String: Int] {
         var scores: [String: Int] = [:]
         for feedback in userProfileMemory.recommendationFeedback ?? [] where feedback.reasonType == .category {
+            guard let session = sessions.first(where: { $0.id == feedback.sessionID }), session.mode != .aiVsAi else { continue }
             let key = normalizedTopicTitle(feedback.category)
             switch feedback.sentiment {
             case .like:

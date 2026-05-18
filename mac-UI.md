@@ -350,6 +350,7 @@ Behavior:
 - Voice input should be the default target interaction on real devices.
 - The microphone button should be the dominant input target, centered in the input bar; text input is revealed by a smaller keyboard button.
 - AI vs AI debate screens should keep the debate transcript and AI Turn control, but should not show voice or text input controls.
+- AI Turn must be disabled while an AI response or judgment request is already running, so repeated taps cannot create duplicate same-side responses.
 - In Simulator, voice input may show an unavailable message and text remains usable.
 - Timers should make each stage feel consequential without forcing full tournament-length speeches on mobile.
 - AI message bubbles include a compact voice playback control.
@@ -398,6 +399,7 @@ Purpose: make Rhetorix adapt to real user behavior without fake personalization.
 Rules:
 
 - Memory is computed from local session history only.
+- AI vs AI sessions are excluded from recommendation and memory signals because they do not represent the user's own debate behavior.
 - The app must not invent interests, strengths, weaknesses, or topic preferences.
 - MBTI is the only self-reported profile item. It appears as a first-use sheet, can be skipped, and can be changed later in Settings.
 - MBTI may add only a small recommendation bias. It must never outweigh real debate history, weakness signals, or recent-repeat avoidance.

@@ -587,6 +587,7 @@ struct DebateView: View {
         .toolbar {
             if session.map({ store.needsAITurn($0) }) == true {
                 Button(store.t("AI Turn")) { Task { await store.advanceAIDebate(sessionID: sessionID) } }
+                    .disabled(store.isWorking)
             }
             Button {
                 Task { await endDebate() }
