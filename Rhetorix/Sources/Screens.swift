@@ -537,10 +537,16 @@ struct DebateView: View {
                 }
                 .onChange(of: session?.turns.count ?? 0) {
                     stageStartedAt = Date()
-                    if let last = session?.turns.last {
-                        withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
-                        if store.autoSpeakAI, last.inputMode == .ai {
-                            aiSpeech.speak(last.content, turnID: last.id, usesChinese: store.usesChinese)
+                        if let last = session?.turns.last {
+                            withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
+                            if store.autoSpeakAI, last.inputMode == .ai {
+                            aiSpeech.speak(
+                                last.content,
+                                turnID: last.id,
+                                usesChinese: store.usesChinese,
+                                engine: store.voiceOutputEngine,
+                                volcengineConfig: store.volcengineTTSConfig
+                            )
                         }
                     }
                 }
@@ -791,7 +797,13 @@ struct DebateBubble: View {
                             if speechPlayer.speakingTurnID == turn.id {
                                 speechPlayer.stop()
                             } else {
-                                speechPlayer.speak(turn.content, turnID: turn.id, usesChinese: store.usesChinese)
+                                speechPlayer.speak(
+                                    turn.content,
+                                    turnID: turn.id,
+                                    usesChinese: store.usesChinese,
+                                    engine: store.voiceOutputEngine,
+                                    volcengineConfig: store.volcengineTTSConfig
+                                )
                             }
                         } label: {
                             Image(systemName: speechPlayer.speakingTurnID == turn.id ? "speaker.slash.fill" : "speaker.wave.2.fill")
@@ -1124,7 +1136,62 @@ struct SettingsView: View {
                     get: { store.autoSpeakAI },
                     set: { store.setAutoSpeakAI($0) }
                 ))
-                Text(store.t("Uses the iPhone system voice. If speech is unavailable, debate text still works normally."))
+                Picker(store.t("Voice Engine"), selection: Binding(
+                    get: { store.voiceOutputEngine },
+                    set: { store.setVoiceOutputEngine($0) }
+                )) {
+                    ForEach(VoiceOutputEngine.allCases) { engine in
+                        Text(store.t(engine.rawValue)).tag(engine)
+                    }
+                }
+                if store.voiceOutputEngine == .volcengine {
+                    TextField(store.t("Volcengine App ID"), text: Binding(
+                        get: { store.volcengineTTSConfig.appID },
+                        set: {
+                            var next = store.volcengineTTSConfig
+                            next.appID = $0
+                            store.setVolcengineTTSConfig(next)
+                        }
+                    ))
+                    SecureField(store.t("Volcengine Access Token"), text: Binding(
+                        get: { store.volcengineTTSConfig.accessToken },
+                        set: {
+                            var next = store.volcengineTTSConfig
+                            next.accessToken = $0
+                            store.setVolcengineTTSConfig(next)
+                        }
+                    ))
+                    TextField(store.t("Volcengine Cluster"), text: Binding(
+                        get: { store.volcengineTTSConfig.cluster },
+                        set: {
+                            var next = store.volcengineTTSConfig
+                            next.cluster = $0
+                            store.setVolcengineTTSConfig(next)
+                        }
+                    ))
+                    TextField(store.t("Volcengine Voice Type"), text: Binding(
+                        get: { store.volcengineTTSConfig.voiceType },
+                        set: {
+                            var next = store.volcengineTTSConfig
+                            next.voiceType = $0
+                            store.setVolcengineTTSConfig(next)
+                        }
+                    ))
+                    VStack(alignment: .leading) {
+                        Text("\(store.t("Voice Speed")) \(store.volcengineTTSConfig.speedRatio, specifier: "%.1f")x")
+                            .font(.caption)
+                            .foregroundStyle(RhetorixColors.textSecondary)
+                        Slider(value: Binding(
+                            get: { store.volcengineTTSConfig.speedRatio },
+                            set: {
+                                var next = store.volcengineTTSConfig
+                                next.speedRatio = $0
+                                store.setVolcengineTTSConfig(next)
+                            }
+                        ), in: 0.7...1.3, step: 0.1)
+                    }
+                }
+                Text(store.t("Volcengine reads AI responses when configured. System voice remains the fallback if online speech is unavailable."))
                     .font(.caption)
                     .foregroundStyle(RhetorixColors.textSecondary)
             }
@@ -1561,6 +1628,8 @@ final class AISpeechPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
     @Published private(set) var speakingTurnID: String?
 
     private let synthesizer = AVSpeechSynthesizer()
+    private var audioPlayer: AVAudioPlayer?
+    private var onlineSpeechTask: Task<Void, Never>?
     private var pendingUtteranceCount = 0
 
     override init() {
@@ -1568,12 +1637,49 @@ final class AISpeechPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
         synthesizer.delegate = self
     }
 
-    func speak(_ text: String, turnID: String, usesChinese: Bool) {
+    func speak(_ text: String, turnID: String, usesChinese: Bool, engine: VoiceOutputEngine = .system, volcengineConfig: VolcengineTTSConfig = VolcengineTTSConfig()) {
         let cleaned = Self.speechReadyText(text)
         guard cleaned.isEmpty == false else { return }
 
         stop()
         configureAudioSession()
+
+        if engine == .volcengine, volcengineConfig.isConfigured {
+            speakingTurnID = turnID
+            let chunks = Self.speechChunks(from: cleaned, maxLength: usesChinese ? 220 : 360)
+            onlineSpeechTask = Task { [weak self] in
+                guard let self else { return }
+                do {
+                    for chunk in chunks {
+                        try Task.checkCancellation()
+                        let data = try await Self.fetchVolcengineAudio(text: chunk, config: volcengineConfig)
+                        try Task.checkCancellation()
+                        try await self.playOnlineAudio(data)
+                    }
+                    await MainActor.run {
+                        self.speakingTurnID = nil
+                    }
+                } catch is CancellationError {
+                    await MainActor.run {
+                        self.speakingTurnID = nil
+                    }
+                } catch {
+                    await MainActor.run {
+                        self.speakSystem(cleaned, turnID: turnID, usesChinese: usesChinese, shouldStopFirst: false)
+                    }
+                }
+            }
+            return
+        }
+
+        speakSystem(cleaned, turnID: turnID, usesChinese: usesChinese, shouldStopFirst: false)
+    }
+
+    private func speakSystem(_ cleaned: String, turnID: String, usesChinese: Bool, shouldStopFirst: Bool = true) {
+        if shouldStopFirst {
+            stop()
+            configureAudioSession()
+        }
 
         let voice = preferredVoice(usesChinese: usesChinese)
         let chunks = Self.speechChunks(from: cleaned, maxLength: usesChinese ? 130 : 210)
@@ -1595,6 +1701,12 @@ final class AISpeechPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
     }
 
     func stop() {
+        onlineSpeechTask?.cancel()
+        onlineSpeechTask = nil
+        if audioPlayer?.isPlaying == true {
+            audioPlayer?.stop()
+        }
+        audioPlayer = nil
         if synthesizer.isSpeaking || synthesizer.isPaused {
             synthesizer.stopSpeaking(at: .immediate)
         }
@@ -1715,6 +1827,103 @@ final class AISpeechPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
                 self.speakingTurnID = nil
             }
         }
+    }
+
+    private func playOnlineAudio(_ data: Data) async throws {
+        try await MainActor.run {
+            let player = try AVAudioPlayer(data: data)
+            player.prepareToPlay()
+            player.play()
+            audioPlayer = player
+        }
+
+        while true {
+            try Task.checkCancellation()
+            let isPlaying = await MainActor.run { audioPlayer?.isPlaying == true }
+            if isPlaying == false {
+                break
+            }
+            try await Task.sleep(nanoseconds: 150_000_000)
+        }
+    }
+
+    private static func fetchVolcengineAudio(text: String, config: VolcengineTTSConfig) async throws -> Data {
+        var request = URLRequest(url: URL(string: "https://openspeech.bytedance.com/api/v1/tts")!)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 20
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer;\(config.accessToken.trimmingCharacters(in: .whitespacesAndNewlines))", forHTTPHeaderField: "Authorization")
+
+        let payload = VolcengineTTSRequest(
+            app: VolcengineTTSRequest.App(
+                appid: config.appID.trimmingCharacters(in: .whitespacesAndNewlines),
+                token: config.accessToken.trimmingCharacters(in: .whitespacesAndNewlines),
+                cluster: config.cluster.trimmingCharacters(in: .whitespacesAndNewlines)
+            ),
+            user: VolcengineTTSRequest.User(uid: "rhetorix-ios"),
+            audio: VolcengineTTSRequest.Audio(
+                voice_type: config.voiceType.trimmingCharacters(in: .whitespacesAndNewlines),
+                encoding: "mp3",
+                speed_ratio: config.speedRatio,
+                volume_ratio: 1.0,
+                pitch_ratio: 1.0
+            ),
+            request: VolcengineTTSRequest.Request(
+                reqid: UUID().uuidString,
+                text: text,
+                text_type: "plain",
+                operation: "query"
+            )
+        )
+        request.httpBody = try JSONEncoder().encode(payload)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            throw URLError(.badServerResponse)
+        }
+        let decoded = try JSONDecoder().decode(VolcengineTTSResponse.self, from: data)
+        guard let audio = decoded.data, let audioData = Data(base64Encoded: audio), audioData.isEmpty == false else {
+            throw NSError(domain: "VolcengineTTS", code: decoded.code ?? -1, userInfo: [NSLocalizedDescriptionKey: decoded.message ?? "Volcengine returned no audio data."])
+        }
+        return audioData
+    }
+
+    private struct VolcengineTTSRequest: Encodable {
+        var app: App
+        var user: User
+        var audio: Audio
+        var request: Request
+
+        struct App: Encodable {
+            var appid: String
+            var token: String
+            var cluster: String
+        }
+
+        struct User: Encodable {
+            var uid: String
+        }
+
+        struct Audio: Encodable {
+            var voice_type: String
+            var encoding: String
+            var speed_ratio: Double
+            var volume_ratio: Double
+            var pitch_ratio: Double
+        }
+
+        struct Request: Encodable {
+            var reqid: String
+            var text: String
+            var text_type: String
+            var operation: String
+        }
+    }
+
+    private struct VolcengineTTSResponse: Decodable {
+        var code: Int?
+        var message: String?
+        var data: String?
     }
 
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {

@@ -353,7 +353,7 @@ Behavior:
 - Timers should make each stage feel consequential without forcing full tournament-length speeches on mobile.
 - AI message bubbles include a compact voice playback control.
 - Automatic AI voice playback is enabled by default for new installs, can be disabled in Settings, and must never block text display.
-- System voice playback should use the best available enhanced or premium local voice for the active language, clean Markdown/structured text before reading, and speak long AI responses in short sentence-like chunks.
+- Voice output supports a configurable engine. Volcengine can be selected for higher-quality online speech when App ID, Access Token, Cluster, and Voice Type are configured. If Volcengine is unavailable or fails, playback falls back to the local system voice. System voice playback should use the best available enhanced or premium local voice for the active language, clean Markdown/structured text before reading, and speak long AI responses in short sentence-like chunks.
 
 ### Debate Result
 

@@ -119,6 +119,28 @@ struct ProviderConfig: Identifiable, Codable, Equatable {
     }
 }
 
+enum VoiceOutputEngine: String, Codable, CaseIterable, Identifiable {
+    case system = "System Voice"
+    case volcengine = "Volcengine"
+
+    var id: String { rawValue }
+}
+
+struct VolcengineTTSConfig: Codable, Equatable {
+    var appID: String = ""
+    var accessToken: String = ""
+    var cluster: String = "volcano_tts"
+    var voiceType: String = "zh_female_meilinvyou_emo_v2_mars_bigtts"
+    var speedRatio: Double = 1.0
+
+    var isConfigured: Bool {
+        appID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false &&
+        accessToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false &&
+        cluster.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false &&
+        voiceType.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+    }
+}
+
 struct DebateTopic: Identifiable, Codable, Equatable, Hashable {
     var id: String = UUID().uuidString
     var title: String

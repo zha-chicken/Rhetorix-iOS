@@ -12,6 +12,8 @@ final class AppStore: ObservableObject {
     @Published var selectedLanguage = "English"
     @Published var appTheme: AppTheme = .dark
     @Published var autoSpeakAI = true
+    @Published var voiceOutputEngine: VoiceOutputEngine = .system
+    @Published var volcengineTTSConfig = VolcengineTTSConfig()
     @Published var activeError: String?
     @Published var isWorking = false
 
@@ -116,6 +118,16 @@ final class AppStore: ObservableObject {
 
     func setAutoSpeakAI(_ enabled: Bool) {
         autoSpeakAI = enabled
+        save()
+    }
+
+    func setVoiceOutputEngine(_ engine: VoiceOutputEngine) {
+        voiceOutputEngine = engine
+        save()
+    }
+
+    func setVolcengineTTSConfig(_ config: VolcengineTTSConfig) {
+        volcengineTTSConfig = config
         save()
     }
 
@@ -1283,7 +1295,9 @@ final class AppStore: ObservableObject {
             userProfileMemory: userProfileMemory,
             selectedLanguage: selectedLanguage,
             appTheme: appTheme,
-            autoSpeakAI: autoSpeakAI
+            autoSpeakAI: autoSpeakAI,
+            voiceOutputEngine: voiceOutputEngine,
+            volcengineTTSConfig: volcengineTTSConfig
         )
         if let data = try? JSONEncoder().encode(snapshot) {
             try? data.write(to: storageURL)
@@ -1304,6 +1318,8 @@ final class AppStore: ObservableObject {
         selectedLanguage = snapshot.selectedLanguage
         appTheme = snapshot.appTheme ?? .dark
         autoSpeakAI = snapshot.autoSpeakAI ?? true
+        voiceOutputEngine = snapshot.voiceOutputEngine ?? .system
+        volcengineTTSConfig = snapshot.volcengineTTSConfig ?? VolcengineTTSConfig()
     }
 
     private struct Snapshot: Codable {
@@ -1316,6 +1332,8 @@ final class AppStore: ObservableObject {
         var selectedLanguage: String
         var appTheme: AppTheme?
         var autoSpeakAI: Bool?
+        var voiceOutputEngine: VoiceOutputEngine?
+        var volcengineTTSConfig: VolcengineTTSConfig?
     }
 
     private struct DebateStage {
