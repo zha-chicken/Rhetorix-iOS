@@ -537,7 +537,7 @@ Settings should be calm, utilitarian, and clear about success/error states.
 
 ## Safety Interruption
 
-AI-powered screens must not show blocked model output. Before a user prompt is sent to a model, and before a model response is displayed or stored, the app runs a content safety check for hate, political-sensitive content, dangerous item-making instructions, and sexual content.
+AI-powered screens must not show blocked model output. Before a user prompt is sent to a model, before a custom topic is saved or used, and before a model response is displayed or stored, the app runs a content safety check for hate, political-sensitive content, dangerous item-making instructions, and sexual content.
 
 If any safety step fails through timeout, invalid result, or invalid API key, the app blocks the content and shows:
 

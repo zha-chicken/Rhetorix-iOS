@@ -370,6 +370,7 @@ struct TopicSelectionView: View {
     @State private var showCustomTopicDialog = false
     @State private var customTopicTitle = ""
     @State private var customTopicDetails = ""
+    @State private var isCreatingCustomTopic = false
 
     var filtered: [DebateTopic] {
         search.isEmpty ? store.topics : store.topics.filter {
@@ -412,10 +413,17 @@ struct TopicSelectionView: View {
                 .textInputAutocapitalization(.sentences)
             Button(store.t("Cancel"), role: .cancel) { }
             Button(store.t("Create Topic")) {
-                if let topic = store.addCustomTopic(title: customTopicTitle, details: customTopicDetails) {
-                    path.append(AppRoute.setup(topic))
+                let title = customTopicTitle
+                let details = customTopicDetails
+                Task {
+                    isCreatingCustomTopic = true
+                    if let topic = await store.addCustomTopicAfterSafetyCheck(title: title, details: details) {
+                        path.append(AppRoute.setup(topic))
+                    }
+                    isCreatingCustomTopic = false
                 }
             }
+            .disabled(isCreatingCustomTopic || customTopicTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         } message: {
             Text(store.t("Create a debate topic that is saved locally and can be reused."))
         }
@@ -2423,6 +2431,7 @@ struct RebuttalTrainerView: View {
     @State private var attempt: RebuttalAttempt?
     @State private var isGeneratingPrompt = false
     @State private var isScoring = false
+    @State private var isAddingCustomTopic = false
     @State private var startedAt: Date?
     @State private var now = Date()
 
@@ -2451,13 +2460,20 @@ struct RebuttalTrainerView: View {
                             .autocorrectionDisabled(false)
                             .textFieldStyle(.roundedBorder)
                         Button {
-                            addCustomRebuttalTopic()
+                            Task { await addCustomRebuttalTopic() }
                         } label: {
-                            Label(store.t("Add Custom Topic"), systemImage: "plus.circle.fill")
+                            HStack {
+                                if isAddingCustomTopic {
+                                    ProgressView()
+                                } else {
+                                    Image(systemName: "plus.circle.fill")
+                                }
+                                Text(isAddingCustomTopic ? store.t("Checking...") : store.t("Add Custom Topic"))
+                            }
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.bordered)
-                        .disabled(customTopicTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .disabled(isAddingCustomTopic || customTopicTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         Picker(store.t("Provider"), selection: $provider) {
                             ForEach(AiProvider.allCases) { Text($0.rawValue).tag($0) }
                         }
@@ -2556,8 +2572,10 @@ struct RebuttalTrainerView: View {
         isGeneratingPrompt = false
     }
 
-    private func addCustomRebuttalTopic() {
-        guard let created = store.addCustomTopic(title: customTopicTitle, details: customTopicDetails) else { return }
+    private func addCustomRebuttalTopic() async {
+        isAddingCustomTopic = true
+        defer { isAddingCustomTopic = false }
+        guard let created = await store.addCustomTopicAfterSafetyCheck(title: customTopicTitle, details: customTopicDetails) else { return }
         topic = created
         prompt = ""
         response = ""

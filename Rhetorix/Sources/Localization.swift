@@ -175,6 +175,7 @@ extension AppStore {
         "Create a debate topic that is saved locally and can be reused.": "创建一个保存到本地、之后可重复使用的辩题。",
         "Use a custom topic": "使用自定义辩题",
         "Add Custom Topic": "添加自定义辩题",
+        "Checking...": "检测中...",
         "Edit this topic in a future build.": "后续版本可编辑这个话题。",
         "Choose a Topic": "选择话题",
         "Proposition 1 Constructive": "正方一辩立论",

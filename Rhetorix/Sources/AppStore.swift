@@ -192,6 +192,37 @@ final class AppStore: ObservableObject {
         return topic
     }
 
+    @discardableResult
+    func addCustomTopicAfterSafetyCheck(title: String, details: String = "") async -> DebateTopic? {
+        let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanDetails = details.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard cleanTitle.isEmpty == false else { return nil }
+
+        if isUITestMode == false {
+            guard let config = providerConfigs.first(where: { $0.isEnabled && $0.resolvedAPIKey.isEmpty == false }) else {
+                activeError = RhetorixError.safetyServiceFailed.localizedDescription
+                return nil
+            }
+            do {
+                let textToCheck = cleanDetails.isEmpty ? cleanTitle : "\(cleanTitle)\n\(cleanDetails)"
+                try await ai.assertSafe(textToCheck, source: "user_custom_topic", config: config)
+            } catch let error as RhetorixError {
+                switch error {
+                case .blockedBySafety:
+                    activeError = error.localizedDescription
+                default:
+                    activeError = RhetorixError.safetyServiceFailed.localizedDescription
+                }
+                return nil
+            } catch {
+                activeError = RhetorixError.safetyServiceFailed.localizedDescription
+                return nil
+            }
+        }
+
+        return addCustomTopic(title: cleanTitle, details: cleanDetails)
+    }
+
     func memorySummaryText() -> String {
         let profile = memoryProfile
         guard profile.hasEnoughData else {
