@@ -56,7 +56,7 @@ struct RootView: View {
         } message: {
             Text(store.activeError ?? "")
         }
-        .sheet(isPresented: Binding(get: { store.shouldAskMBTI }, set: { if !$0 && store.userProfileMemory.didAskMBTI == false { store.setMBTI(nil) } })) {
+        .sheet(isPresented: Binding(get: { store.shouldAskMBTI }, set: { if !$0 && store.userProfileMemory.mbti == nil { store.skipMBTIForNow() } })) {
             MBTIOnboardingView()
                 .environmentObject(store)
                 .interactiveDismissDisabled()
@@ -273,7 +273,7 @@ struct MBTIOnboardingView: View {
                 }
 
                 Button {
-                    store.setMBTI(nil)
+                    store.skipMBTIForNow()
                     dismiss()
                 } label: {
                     Text(store.t("Skip for now"))

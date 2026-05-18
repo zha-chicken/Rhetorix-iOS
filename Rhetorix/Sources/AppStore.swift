@@ -16,6 +16,7 @@ final class AppStore: ObservableObject {
     @Published var volcengineTTSConfig = VolcengineTTSConfig()
     @Published var activeError: String?
     @Published var isWorking = false
+    @Published var dismissedMBTIPromptForSession = false
 
     private let ai = AIService()
     private let storageURL: URL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -50,7 +51,7 @@ final class AppStore: ObservableObject {
         sessions.filter { $0.mode != .aiVsAi }
     }
     var shouldAskMBTI: Bool {
-        userProfileMemory.didAskMBTI == false
+        userProfileMemory.mbti == nil && dismissedMBTIPromptForSession == false
     }
     var preferredProvider: AiProvider {
         if let configured = providerConfigs.first(where: { $0.isEnabled && $0.apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false }) {
@@ -136,12 +137,22 @@ final class AppStore: ObservableObject {
 
     func setMBTI(_ type: MBTIType?) {
         userProfileMemory.mbti = type
-        userProfileMemory.didAskMBTI = true
+        userProfileMemory.didAskMBTI = type != nil
+        if type == nil {
+            dismissedMBTIPromptForSession = true
+        }
+        save()
+    }
+
+    func skipMBTIForNow() {
+        userProfileMemory.didAskMBTI = false
+        dismissedMBTIPromptForSession = true
         save()
     }
 
     func resetMBTIPrompt() {
         userProfileMemory.didAskMBTI = false
+        dismissedMBTIPromptForSession = false
         save()
     }
 

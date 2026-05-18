@@ -402,6 +402,7 @@ Rules:
 - AI vs AI sessions are excluded from recommendation preference and memory signals because they do not represent the user's own debate behavior. They may still count for recent-topic and repeat-topic penalties so users are not immediately recommended a topic they just watched.
 - The app must not invent interests, strengths, weaknesses, or topic preferences.
 - MBTI is the only self-reported profile item. It appears as a first-use sheet, can be skipped, and can be changed later in Settings.
+- The MBTI sheet is driven by actual MBTI data: if no MBTI is stored, it appears on app launch; if an MBTI is stored, it does not appear. Skipping only suppresses the sheet for the current app session.
 - MBTI may add only a small recommendation bias. It must never outweigh real debate history, weakness signals, or recent-repeat avoidance.
 - Recommendations require at least two engaged debates.
 - If there is not enough data, show a learning state instead of a recommendation.
