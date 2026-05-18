@@ -1561,6 +1561,7 @@ final class AISpeechPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
     @Published private(set) var speakingTurnID: String?
 
     private let synthesizer = AVSpeechSynthesizer()
+    private var pendingUtteranceCount = 0
 
     override init() {
         super.init()
@@ -1568,36 +1569,85 @@ final class AISpeechPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
     }
 
     func speak(_ text: String, turnID: String, usesChinese: Bool) {
-        let cleaned = text
-            .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleaned = Self.speechReadyText(text)
         guard cleaned.isEmpty == false else { return }
 
         stop()
         configureAudioSession()
 
-        let utterance = AVSpeechUtterance(string: cleaned)
-        utterance.voice = preferredVoice(usesChinese: usesChinese)
-        utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.9
-        utterance.pitchMultiplier = 1.0
-        utterance.volume = 1.0
+        let voice = preferredVoice(usesChinese: usesChinese)
+        let chunks = Self.speechChunks(from: cleaned, maxLength: usesChinese ? 130 : 210)
+        guard chunks.isEmpty == false else { return }
 
         speakingTurnID = turnID
-        synthesizer.speak(utterance)
+        pendingUtteranceCount = chunks.count
+
+        for (index, chunk) in chunks.enumerated() {
+            let utterance = AVSpeechUtterance(string: chunk)
+            utterance.voice = voice
+            utterance.rate = usesChinese ? AVSpeechUtteranceDefaultSpeechRate * 0.82 : AVSpeechUtteranceDefaultSpeechRate * 0.88
+            utterance.pitchMultiplier = 0.96
+            utterance.volume = 1.0
+            utterance.preUtteranceDelay = index == 0 ? 0 : 0.06
+            utterance.postUtteranceDelay = Self.postDelay(for: chunk)
+            synthesizer.speak(utterance)
+        }
     }
 
     func stop() {
         if synthesizer.isSpeaking || synthesizer.isPaused {
             synthesizer.stopSpeaking(at: .immediate)
         }
+        pendingUtteranceCount = 0
         speakingTurnID = nil
     }
 
     private func preferredVoice(usesChinese: Bool) -> AVSpeechSynthesisVoice? {
-        let primary = usesChinese ? "zh-CN" : "en-US"
-        return AVSpeechSynthesisVoice(language: primary)
-            ?? AVSpeechSynthesisVoice(language: usesChinese ? "zh-Hans" : "en-GB")
-            ?? AVSpeechSynthesisVoice.speechVoices().first
+        let preferredLanguages = usesChinese ? ["zh-CN", "zh-Hans", "zh-Hant"] : ["en-US", "en-GB", "en-AU"]
+        let voices = AVSpeechSynthesisVoice.speechVoices()
+        if let best = voices
+            .filter({ voice in preferredLanguages.contains { languageMatches(voice.language, preferred: $0) } })
+            .max(by: { voiceScore($0, preferredLanguages: preferredLanguages) < voiceScore($1, preferredLanguages: preferredLanguages) }) {
+            return best
+        }
+        return AVSpeechSynthesisVoice(language: preferredLanguages[0])
+            ?? voices.first
+    }
+
+    private func languageMatches(_ language: String, preferred: String) -> Bool {
+        language == preferred || language.hasPrefix(preferred.split(separator: "-").first.map(String.init) ?? preferred)
+    }
+
+    private func voiceScore(_ voice: AVSpeechSynthesisVoice, preferredLanguages: [String]) -> Int {
+        var score = 0
+        if voice.language == preferredLanguages.first {
+            score += 60
+        } else if preferredLanguages.contains(voice.language) {
+            score += 42
+        } else if preferredLanguages.contains(where: { languageMatches(voice.language, preferred: $0) }) {
+            score += 24
+        }
+
+        switch voice.quality {
+        case .premium:
+            score += 45
+        case .enhanced:
+            score += 30
+        default:
+            score += 5
+        }
+
+        let loweredIdentifier = voice.identifier.lowercased()
+        if loweredIdentifier.contains("compact") {
+            score -= 24
+        }
+        if loweredIdentifier.contains("premium") || loweredIdentifier.contains("enhanced") {
+            score += 8
+        }
+        if voice.name.lowercased().contains("siri") {
+            score += 6
+        }
+        return score
     }
 
     private func configureAudioSession() {
@@ -1611,14 +1661,65 @@ final class AISpeechPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
         #endif
     }
 
+    private static func speechReadyText(_ text: String) -> String {
+        text
+            .replacingOccurrences(of: #"```[\s\S]*?```"#, with: " ", options: .regularExpression)
+            .replacingOccurrences(of: #"`([^`]+)`"#, with: "$1", options: .regularExpression)
+            .replacingOccurrences(of: #"\*\*([^*]+)\*\*"#, with: "$1", options: .regularExpression)
+            .replacingOccurrences(of: #"__([^_]+)__"#, with: "$1", options: .regularExpression)
+            .replacingOccurrences(of: #"\[([^\]]+)\]\([^)]+\)"#, with: "$1", options: .regularExpression)
+            .replacingOccurrences(of: #"(?m)^\s{0,3}[-*+]\s+"#, with: "", options: .regularExpression)
+            .replacingOccurrences(of: #"(?m)^\s{0,3}\d+[.)]\s+"#, with: "", options: .regularExpression)
+            .replacingOccurrences(of: #"[{}\[\]\"|<>]"#, with: " ", options: .regularExpression)
+            .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private static func speechChunks(from text: String, maxLength: Int) -> [String] {
+        let separators = CharacterSet(charactersIn: ".!?。！？；;\n")
+        var chunks: [String] = []
+        var current = ""
+
+        for scalar in text.unicodeScalars {
+            current.append(Character(scalar))
+            if separators.contains(scalar) || current.count >= maxLength {
+                let trimmed = current.trimmingCharacters(in: .whitespacesAndNewlines)
+                if trimmed.isEmpty == false {
+                    chunks.append(trimmed)
+                }
+                current = ""
+            }
+        }
+
+        let remaining = current.trimmingCharacters(in: .whitespacesAndNewlines)
+        if remaining.isEmpty == false {
+            chunks.append(remaining)
+        }
+        return chunks
+    }
+
+    private static func postDelay(for chunk: String) -> TimeInterval {
+        if chunk.hasSuffix("。") || chunk.hasSuffix(".") || chunk.hasSuffix("!") || chunk.hasSuffix("?") || chunk.hasSuffix("！") || chunk.hasSuffix("？") {
+            return 0.12
+        }
+        if chunk.hasSuffix("；") || chunk.hasSuffix(";") {
+            return 0.09
+        }
+        return 0.05
+    }
+
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
         Task { @MainActor in
-            self.speakingTurnID = nil
+            self.pendingUtteranceCount = max(0, self.pendingUtteranceCount - 1)
+            if self.pendingUtteranceCount == 0 {
+                self.speakingTurnID = nil
+            }
         }
     }
 
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
         Task { @MainActor in
+            self.pendingUtteranceCount = 0
             self.speakingTurnID = nil
         }
     }
