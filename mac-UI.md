@@ -399,7 +399,7 @@ Purpose: make Rhetorix adapt to real user behavior without fake personalization.
 Rules:
 
 - Memory is computed from local session history only.
-- AI vs AI sessions are excluded from recommendation and memory signals because they do not represent the user's own debate behavior.
+- AI vs AI sessions are excluded from recommendation preference and memory signals because they do not represent the user's own debate behavior. They may still count for recent-topic and repeat-topic penalties so users are not immediately recommended a topic they just watched.
 - The app must not invent interests, strengths, weaknesses, or topic preferences.
 - MBTI is the only self-reported profile item. It appears as a first-use sheet, can be skipped, and can be changed later in Settings.
 - MBTI may add only a small recommendation bias. It must never outweigh real debate history, weakness signals, or recent-repeat avoidance.

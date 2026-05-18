@@ -1102,9 +1102,8 @@ final class AppStore: ObservableObject {
         let profile = memoryProfile
         guard profile.hasEnoughData, let favoriteCategory = profile.favoriteCategory else { return [] }
 
-        let eligibleSessions = recommendationEligibleSessions
-        let recentTitles = Set(eligibleSessions.prefix(5).map { normalizedTopicTitle($0.topic.title) })
-        let debatedCounts = Dictionary(grouping: eligibleSessions, by: { normalizedTopicTitle($0.topic.title) })
+        let recentTitles = Set(sessions.prefix(5).map { normalizedTopicTitle($0.topic.title) })
+        let debatedCounts = Dictionary(grouping: sessions, by: { normalizedTopicTitle($0.topic.title) })
             .mapValues(\.count)
         let favoriteCategoryKey = normalizedTopicTitle(favoriteCategory)
         let weakness = userProfileMemory.weaknessSignals.first
