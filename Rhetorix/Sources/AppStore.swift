@@ -199,7 +199,8 @@ final class AppStore: ObservableObject {
             title: cleanTitle,
             category: "Custom",
             details: cleanDetails.isEmpty ? "Custom debate topic." : cleanDetails,
-            debateCount: 0
+            debateCount: 0,
+            trainingTags: Self.inferredTrainingTags(title: cleanTitle, category: "Custom", details: cleanDetails)
         )
         topics.insert(topic, at: 0)
         save()
@@ -1123,16 +1124,18 @@ final class AppStore: ObservableObject {
         let feedbackScores = recommendationCategoryFeedbackScores()
 
         let ranked = topics
-            .map { topic -> (topic: DebateTopic, score: Int, weaknessMatches: Int, mbtiMatches: Int, feedbackScore: Int) in
+            .map { topic -> (topic: DebateTopic, score: Int, weaknessMatches: Int, tagMatches: Int, mbtiMatches: Int, feedbackScore: Int) in
                 let titleKey = normalizedTopicTitle(topic.title)
                 let categoryKey = normalizedTopicTitle(topic.category)
-                let text = "\(topic.title) \(topic.category) \(topic.details)"
+                let text = topicRecommendationText(topic)
                 var score = 0
                 if categoryKey == favoriteCategoryKey {
                     score += 16
                 }
+                let tagMatches = recommendationTagMatches(in: topic.trainingTags, weaknessTitle: weakness?.title)
+                score += tagMatches * 52
                 let weaknessMatches = recommendationKeywordMatches(in: text, keywords: weaknessKeywords)
-                score += weaknessMatches * 34
+                score += weaknessMatches * 18
                 let mbtiMatches = recommendationKeywordMatches(in: text, keywords: mbtiKeywords)
                 score += mbtiMatches * 5
                 let feedbackScore = feedbackScores[categoryKey, default: 0]
@@ -1140,7 +1143,7 @@ final class AppStore: ObservableObject {
                 let historyPenalty = debatedCounts[titleKey, default: 0] * 9
                 let recentPenalty = recentTitles.contains(titleKey) ? 18 : 0
                 score -= historyPenalty + recentPenalty
-                return (topic, score, weaknessMatches, mbtiMatches, feedbackScore)
+                return (topic, score, weaknessMatches, tagMatches, mbtiMatches, feedbackScore)
             }
             .sorted { left, right in
                 if left.score == right.score {
@@ -1152,7 +1155,7 @@ final class AppStore: ObservableObject {
                 return left.score > right.score
             }
 
-        var selected: [(topic: DebateTopic, score: Int, weaknessMatches: Int, mbtiMatches: Int, feedbackScore: Int)] = []
+        var selected: [(topic: DebateTopic, score: Int, weaknessMatches: Int, tagMatches: Int, mbtiMatches: Int, feedbackScore: Int)] = []
         var categoryCounts: [String: Int] = [:]
         let targetCount = max(1, limit)
         while selected.count < targetCount {
@@ -1174,7 +1177,7 @@ final class AppStore: ObservableObject {
         return selected.map { item in
             let reason: String
             let focus: String
-            if let weakness, item.weaknessMatches > 0 {
+            if let weakness, item.tagMatches > 0 || item.weaknessMatches > 0 {
                 focus = t(weakness.title)
                 reason = "\(t("Balances your interest in")) \(category(favoriteCategory)) · \(t("Targets")) \(t(weakness.title))"
             } else if item.feedbackScore != 0 {
@@ -1208,6 +1211,38 @@ final class AppStore: ObservableObject {
 
     private func storeCategoryFeedbackFocus(_ score: Int) -> String {
         score > 0 ? t("Liked category") : t("Disliked category")
+    }
+
+    private func topicRecommendationText(_ topic: DebateTopic) -> String {
+        "\(topic.title) \(topic.category) \(topic.details) \(topic.trainingTags.map(\.rawValue).joined(separator: " "))"
+    }
+
+    private func recommendationTagMatches(in tags: [DebateTrainingTag], weaknessTitle: String?) -> Int {
+        let targets = recommendationTrainingTags(for: weaknessTitle)
+        guard targets.isEmpty == false else { return 0 }
+        let tagSet = Set(tags)
+        return targets.filter { tagSet.contains($0) }.count
+    }
+
+    private func recommendationTrainingTags(for weaknessTitle: String?) -> [DebateTrainingTag] {
+        guard let weaknessTitle else { return [] }
+        let normalized = weaknessTitle.lowercased()
+        if normalized.contains("evidence") || normalized.contains("信息不实") || normalized.contains("证据") {
+            return [.evidenceHeavy, .causalReasoning, .policyMechanism, .feasibility]
+        }
+        if normalized.contains("definition") || normalized.contains("scope") || normalized.contains("定义") || normalized.contains("范围") {
+            return [.definitionHeavy, .structureBurden, .rightsAutonomy]
+        }
+        if normalized.contains("clash") || normalized.contains("causal") || normalized.contains("direct") || normalized.contains("交锋") || normalized.contains("反驳") {
+            return [.directClash, .valueClash, .comparativeWeighing, .causalReasoning]
+        }
+        if normalized.contains("impact") || normalized.contains("weigh") || normalized.contains("影响") || normalized.contains("权衡") {
+            return [.impactWeighing, .comparativeWeighing, .stakeholderAnalysis]
+        }
+        if normalized.contains("structure") || normalized.contains("slow") || normalized.contains("结构") || normalized.contains("节奏") {
+            return [.structureBurden, .policyMechanism, .comparativeWeighing]
+        }
+        return []
     }
 
     private func recommendationKeywords(for weaknessTitle: String?) -> [String] {
@@ -1323,7 +1358,14 @@ final class AppStore: ObservableObject {
 
     private func mergedTopics(existing: [DebateTopic], defaults: [DebateTopic]) -> [DebateTopic] {
         var merged = existing.map { topic in
-            DebateTopic(id: topic.id, title: topic.title, category: topic.category, details: topic.details, debateCount: 0)
+            DebateTopic(
+                id: topic.id,
+                title: topic.title,
+                category: topic.category,
+                details: topic.details,
+                debateCount: 0,
+                trainingTags: topic.trainingTags.isEmpty ? Self.inferredTrainingTags(title: topic.title, category: topic.category, details: topic.details) : topic.trainingTags
+            )
         }
         let existingTitles = Set(merged.map { normalizedTopicTitle($0.title) })
         let missingDefaults = defaults.filter { existingTitles.contains(normalizedTopicTitle($0.title)) == false }
@@ -1404,7 +1446,70 @@ final class AppStore: ObservableObject {
     ]
 
     static let defaultTopics: [DebateTopic] = defaultTopicSpecs.map {
-        DebateTopic(title: $0.title, category: $0.category, details: $0.details)
+        DebateTopic(
+            title: $0.title,
+            category: $0.category,
+            details: $0.details,
+            trainingTags: inferredTrainingTags(title: $0.title, category: $0.category, details: $0.details)
+        )
+    }
+
+    private static func inferredTrainingTags(title: String, category: String, details: String) -> [DebateTrainingTag] {
+        let text = "\(title) \(category) \(details)".lowercased()
+        var tags: [DebateTrainingTag] = []
+
+        func add(_ tag: DebateTrainingTag) {
+            if tags.contains(tag) == false {
+                tags.append(tag)
+            }
+        }
+
+        if containsAny(text, ["data", "evidence", "statistics", "study", "research", "tests", "diagnoses", "predictive", "misinformation", "climate", "health", "crime", "tax", "funding", "cost", "energy", "security", "safety", "证据", "数据", "研究"]) {
+            add(.evidenceHeavy)
+        }
+        if containsAny(text, ["define", "definition", "scope", "legal", "rights", "free will", "morality", "objective", "privacy", "copyright", "authorship", "consent", "public interest", "tradition", "justice", "mercy", "patriotism", "定义", "范围", "权利"]) {
+            add(.definitionHeavy)
+        }
+        if containsAny(text, ["policy", "regulation", "regulated", "ban", "banned", "required", "mandatory", "government", "governments", "law", "tax", "fund", "public services", "schools", "admissions", "voting", "enforced", "监管", "政策", "禁止", "强制"]) {
+            add(.policyMechanism)
+        }
+        if containsAny(text, ["cost", "budget", "funding", "enforcement", "practical", "feasibility", "implementation", "liability", "access", "market", "taxes", "measurement", "teacher readiness", "transport", "可行", "执行", "成本"]) {
+            add(.feasibility)
+        }
+        if containsAny(text, ["harm", "benefit", "impact", "inequality", "wellbeing", "mental health", "suffering", "climate", "jobs", "safety", "future generations", "public health", "quality", "影响", "伤害", "就业", "健康"]) {
+            add(.impactWeighing)
+        }
+        if containsAny(text, ["compare", "weigh", "tradeoff", "versus", "over", "priority", "balance", "autonomy", "collective", "freedom", "safety", "equality over excellence", "truth matter more", "比较", "权衡", "优先"]) {
+            add(.comparativeWeighing)
+        }
+        if containsAny(text, ["autonomy", "freedom", "rights", "privacy", "consent", "dignity", "choice", "civil liberties", "expression", "parental rights", "right to", "自由", "自主", "隐私", "尊严"]) {
+            add(.rightsAutonomy)
+        }
+        if containsAny(text, ["fairness", "justice", "values", "moral", "ethics", "tradition", "identity", "community", "culture", "religion", "harm", "equality", "merit", "公平", "正义", "道德", "伦理"]) {
+            add(.valueClash)
+        }
+        if containsAny(text, ["students", "children", "parents", "teachers", "companies", "governments", "citizens", "immigrants", "workers", "cities", "patients", "artists", "athletes", "animals", "future generations", "用户", "学生", "政府", "企业"]) {
+            add(.stakeholderAnalysis)
+        }
+        if containsAny(text, ["cause", "causal", "because", "lead to", "replace", "automation", "addiction", "deterrence", "predictive", "outcomes", "effects", "incentives", "导致", "因果", "激励"]) {
+            add(.causalReasoning)
+        }
+        if containsAny(text, ["speech", "hate speech", "offensive", "censorship", "public discourse", "civil disobedience", "controversial", "political", "misinformation", "debate", "argument"]) {
+            add(.directClash)
+        }
+        if containsAny(text, ["framework", "standards", "assessment", "accountability", "burden", "discipline", "curriculum", "governance", "judges", "admissions", "grades", "结构", "标准", "框架"]) {
+            add(.structureBurden)
+        }
+
+        if tags.isEmpty {
+            add(.valueClash)
+            add(.stakeholderAnalysis)
+        }
+        return Array(tags.prefix(5))
+    }
+
+    private static func containsAny(_ text: String, _ keywords: [String]) -> Bool {
+        keywords.contains { text.contains($0) }
     }
 
     private static let defaultTopicSpecs: [(title: String, category: String, details: String)] = [

@@ -141,12 +141,68 @@ struct VolcengineTTSConfig: Codable, Equatable {
     }
 }
 
+enum DebateTrainingTag: String, Codable, CaseIterable, Hashable {
+    case evidenceHeavy = "evidence-heavy"
+    case definitionHeavy = "definition-heavy"
+    case impactWeighing = "impact-weighing"
+    case policyMechanism = "policy-mechanism"
+    case valueClash = "value-clash"
+    case rightsAutonomy = "rights-autonomy"
+    case stakeholderAnalysis = "stakeholder-analysis"
+    case causalReasoning = "causal-reasoning"
+    case comparativeWeighing = "comparative-weighing"
+    case feasibility = "feasibility"
+    case directClash = "direct-clash"
+    case structureBurden = "structure-burden"
+}
+
 struct DebateTopic: Identifiable, Codable, Equatable, Hashable {
     var id: String = UUID().uuidString
     var title: String
     var category: String
     var details: String
     var debateCount: Int = 0
+    var trainingTags: [DebateTrainingTag] = []
+
+    init(
+        id: String = UUID().uuidString,
+        title: String,
+        category: String,
+        details: String,
+        debateCount: Int = 0,
+        trainingTags: [DebateTrainingTag] = []
+    ) {
+        self.id = id
+        self.title = title
+        self.category = category
+        self.details = details
+        self.debateCount = debateCount
+        self.trainingTags = trainingTags
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case title
+        case category
+        case details
+        case debateCount
+        case trainingTags
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(String.self, forKey: .id) ?? UUID().uuidString
+        title = try container.decode(String.self, forKey: .title)
+        category = try container.decode(String.self, forKey: .category)
+        details = try container.decode(String.self, forKey: .details)
+        debateCount = try container.decodeIfPresent(Int.self, forKey: .debateCount) ?? 0
+        if let decodedTags = try? container.decodeIfPresent([DebateTrainingTag].self, forKey: .trainingTags) {
+            trainingTags = decodedTags ?? []
+        } else {
+            let rawTags = (try? container.decodeIfPresent([String].self, forKey: .trainingTags)) ?? []
+            trainingTags = rawTags.compactMap(DebateTrainingTag.init(rawValue:))
+        }
+    }
 }
 
 enum SpeakerRole: String, Codable {

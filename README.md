@@ -183,7 +183,8 @@ Rhetorix 的辩题推荐不是“猜你喜欢”的黑箱，也不会只根据 M
 ```text
 score =
   favoriteCategoryMatch * 16
-  + weaknessKeywordMatches * 34
+  + weaknessTrainingTagMatches * 52
+  + weaknessKeywordMatches * 18
   + mbtiKeywordMatches * 5
   + categoryFeedbackScore
   - previousDebateCountForSameTopic * 9
@@ -193,7 +194,8 @@ score =
 其中：
 
 - `favoriteCategoryMatch`：辩题类别是否等于用户最常辩的类别，命中为 1，否则为 0
-- `weaknessKeywordMatches`：辩题是否适合训练当前最明显弱点，例如证据不足、定义不清、缺少交锋、影响权衡不足
+- `weaknessTrainingTagMatches`：辩题的结构化训练标签是否命中当前最明显弱点，例如 `evidence-heavy`、`definition-heavy`、`impact-weighing`、`policy-mechanism`
+- `weaknessKeywordMatches`：训练标签之外的轻量文本兜底匹配，用于兼容自定义辩题和旧数据
 - `mbtiKeywordMatches`：MBTI 只提供轻量话题偏好关键词，每个命中只加 5 分
 - `categoryFeedbackScore`：辩论结束后用户选择 `like + category` 会让同类题目每次 `+12`；选择 `dislike + category` 会让同类题目每次 `-18`
 - `previousDebateCountForSameTopic`：用户已经辩过同一个题目的次数，次数越多扣分越多
@@ -203,7 +205,8 @@ score =
 
 权重设计原则：
 
-- 训练价值优先：当前弱点命中每项 `+34`
+- 训练价值优先：结构化训练标签命中每项 `+52`
+- 文本匹配只做兜底：弱点关键词命中每项 `+18`
 - 真实历史轻量参考：用户实际常辩领域 `+16`
 - MBTI 只做轻微偏置：每项 `+5`
 - 显式用户反馈参与 category 偏好：喜欢类别 `+12`，不喜欢类别 `-18`
@@ -211,6 +214,21 @@ score =
 - 尽量多样：同一推荐批次中重复类别每次额外 `-24`
 
 因此推荐会优先命中训练弱点，同时尽可能给用户不同 category 的辩题。MBTI 不会压过真实行为数据。它只在多个题目都符合用户历史和训练目标时，轻微影响排序。用户在赛后选择 `technique` 的喜欢/不喜欢反馈只会被记录，用于未来解释和产品分析，不影响辩题推荐排序。
+
+每个本地辩题现在会携带最多 5 个训练标签。默认题库会在启动时根据题目、类别和说明自动补充标签；旧本地数据和自定义题如果没有标签，也会通过同一套规则补齐。当前标签集合包括：
+
+- `evidence-heavy`
+- `definition-heavy`
+- `impact-weighing`
+- `policy-mechanism`
+- `value-clash`
+- `rights-autonomy`
+- `stakeholder-analysis`
+- `causal-reasoning`
+- `comparative-weighing`
+- `feasibility`
+- `direct-clash`
+- `structure-burden`
 
 ### 推荐算法设计依据
 
@@ -220,9 +238,9 @@ Rhetorix 的推荐系统不是通用内容消费推荐，而是面向辩论训�
 
 - 推荐系统研究通常认为，若过度追求准确命中过去偏好，推荐结果容易出现过度专门化，变得单调且可预测。因此，推荐列表需要在相关性之外保留多样性、新颖性和一定探索空间。Rhetorix 使用最近重复惩罚和同批次 category 多样性惩罚，目的就是避免用户反复看到同一类辩题。
 - 个性化学习路径推荐研究强调，学习型推荐应当结合学习者画像、学习过程数据、反馈和目标约束，而不应只做静态兴趣匹配。Rhetorix 使用本地辩论历史、完成情况、阶段用时、裁判反馈、立论分析结果和赛后显式反馈，符合“动态学习者模型”的基本方向。
-- 刻意练习研究强调，能力提升需要具体任务、针对性反馈、重复练习和对特定弱点的改进。Rhetorix 将 `weaknessKeywordMatches` 设置为最高权重，是因为它的推荐目标不是娱乐内容分发，而是帮助用户持续练习证据、定义、交锋、结构和影响权衡等辩论能力。
+- 刻意练习研究强调，能力提升需要具体任务、针对性反馈、重复练习和对特定弱点的改进。Rhetorix 将 `weaknessTrainingTagMatches` 设置为最高权重，是因为它的推荐目标不是娱乐内容分发，而是帮助用户持续练习证据、定义、交锋、结构和影响权衡等辩论能力。
 
-基于以上原则，当前推荐算法采用“弱点优先、兴趣辅助、MBTI 轻量参考、显式反馈校准、多样性约束”的结构。这个设计适合当前阶段的 Rhetorix：它可解释、可本地运行、对小样本用户友好，并且不需要服务器端协同过滤或大规模用户行为数据。后续更值得优先改进的方向不是立刻更换复杂模型，而是为本地辩题库补充更细的训练标签，例如 `evidence-heavy`、`definition-heavy`、`value clash`、`impact weighing`、`policy mechanism` 等，使弱点匹配从关键词匹配升级为明确的训练目标匹配。
+基于以上原则，当前推荐算法采用“弱点优先、训练标签匹配、兴趣辅助、MBTI 轻量参考、显式反馈校准、多样性约束”的结构。这个设计适合当前阶段的 Rhetorix：它可解释、可本地运行、对小样本用户友好，并且不需要服务器端协同过滤或大规模用户行为数据。相比早期纯关键词匹配，结构化训练标签让推荐更接近“本题能训练什么能力”，而不是只判断题面中是否出现某个词。
 
 参考资料：
 
