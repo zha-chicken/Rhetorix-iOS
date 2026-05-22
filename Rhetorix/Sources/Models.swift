@@ -280,7 +280,99 @@ struct DebateResult: Identifiable, Codable, Equatable {
     var winner: SpeakerRole?
     var score: String
     var summary: String
+    var judgeRationale: String = ""
+    var keyClashes: [DebateReviewPoint] = []
+    var strongestSupportArguments: [DebateReviewPoint] = []
+    var strongestOpposeArguments: [DebateReviewPoint] = []
+    var improvementActions: [DebateReviewPoint] = []
+    var nextPracticeFocus: String = ""
     var createdAt: Date = Date()
+
+    init(
+        id: String = UUID().uuidString,
+        winner: SpeakerRole?,
+        score: String,
+        summary: String,
+        judgeRationale: String = "",
+        keyClashes: [DebateReviewPoint] = [],
+        strongestSupportArguments: [DebateReviewPoint] = [],
+        strongestOpposeArguments: [DebateReviewPoint] = [],
+        improvementActions: [DebateReviewPoint] = [],
+        nextPracticeFocus: String = "",
+        createdAt: Date = Date()
+    ) {
+        self.id = id
+        self.winner = winner
+        self.score = score
+        self.summary = summary
+        self.judgeRationale = judgeRationale
+        self.keyClashes = keyClashes
+        self.strongestSupportArguments = strongestSupportArguments
+        self.strongestOpposeArguments = strongestOpposeArguments
+        self.improvementActions = improvementActions
+        self.nextPracticeFocus = nextPracticeFocus
+        self.createdAt = createdAt
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case winner
+        case score
+        case summary
+        case judgeRationale
+        case keyClashes
+        case strongestSupportArguments
+        case strongestOpposeArguments
+        case improvementActions
+        case nextPracticeFocus
+        case createdAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(String.self, forKey: .id) ?? UUID().uuidString
+        winner = try container.decodeIfPresent(SpeakerRole.self, forKey: .winner)
+        score = try container.decodeIfPresent(String.self, forKey: .score) ?? "N/A"
+        summary = try container.decodeIfPresent(String.self, forKey: .summary) ?? ""
+        judgeRationale = try container.decodeIfPresent(String.self, forKey: .judgeRationale) ?? ""
+        keyClashes = try container.decodeIfPresent([DebateReviewPoint].self, forKey: .keyClashes) ?? []
+        strongestSupportArguments = try container.decodeIfPresent([DebateReviewPoint].self, forKey: .strongestSupportArguments) ?? []
+        strongestOpposeArguments = try container.decodeIfPresent([DebateReviewPoint].self, forKey: .strongestOpposeArguments) ?? []
+        improvementActions = try container.decodeIfPresent([DebateReviewPoint].self, forKey: .improvementActions) ?? []
+        nextPracticeFocus = try container.decodeIfPresent(String.self, forKey: .nextPracticeFocus) ?? ""
+        createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
+    }
+}
+
+struct DebateReviewPoint: Identifiable, Codable, Equatable, Hashable {
+    var id: String = UUID().uuidString
+    var title: String
+    var detail: String
+
+    init(id: String = UUID().uuidString, title: String, detail: String) {
+        self.id = id
+        self.title = title
+        self.detail = detail
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case title
+        case detail
+    }
+
+    init(from decoder: Decoder) throws {
+        if let single = try? decoder.singleValueContainer(), let text = try? single.decode(String.self) {
+            id = UUID().uuidString
+            title = String(text.prefix(64))
+            detail = text
+            return
+        }
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(String.self, forKey: .id) ?? UUID().uuidString
+        title = try container.decodeIfPresent(String.self, forKey: .title) ?? ""
+        detail = try container.decodeIfPresent(String.self, forKey: .detail) ?? ""
+    }
 }
 
 struct UserMemoryProfile {

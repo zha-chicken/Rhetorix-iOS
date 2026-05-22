@@ -915,6 +915,8 @@ struct ResultView: View {
                 if session.result != nil {
                     ResultFeedbackSection(session: session)
                         .listRowBackground(Color.clear)
+                    DeepDebateReviewSection(result: session.result!)
+                        .listRowBackground(Color.clear)
                 }
                 Section(store.t("Transcript")) {
                     ForEach(session.turns) { turn in
@@ -930,6 +932,102 @@ struct ResultView: View {
         }
         .navigationTitle(store.t("Debate Result"))
         .appScreen()
+    }
+}
+
+struct DeepDebateReviewSection: View {
+    @EnvironmentObject private var store: AppStore
+    var result: DebateResult
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if result.judgeRationale.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false {
+                GlassCard(accent: RhetorixColors.amber) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label(store.t("Why the judge decided"), systemImage: "scale.3d")
+                            .font(.headline)
+                            .foregroundStyle(RhetorixColors.textPrimary)
+                        Text(result.judgeRationale)
+                            .font(.body)
+                            .foregroundStyle(RhetorixColors.textSecondary)
+                        AIDisclaimer()
+                    }
+                }
+            }
+            ReviewPointSection(
+                title: store.t("Key clashes"),
+                icon: "bolt.horizontal.circle.fill",
+                accent: RhetorixColors.salmon,
+                points: result.keyClashes
+            )
+            ReviewPointSection(
+                title: store.t("Strongest support arguments"),
+                icon: "hand.thumbsup.fill",
+                accent: RhetorixColors.green,
+                points: result.strongestSupportArguments
+            )
+            ReviewPointSection(
+                title: store.t("Strongest oppose arguments"),
+                icon: "hand.raised.fill",
+                accent: RhetorixColors.peach,
+                points: result.strongestOpposeArguments
+            )
+            ReviewPointSection(
+                title: store.t("Improvement actions"),
+                icon: "target",
+                accent: RhetorixColors.cyan,
+                points: result.improvementActions
+            )
+            if result.nextPracticeFocus.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false {
+                GlassCard(accent: RhetorixColors.cyan) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label(store.t("Next practice focus"), systemImage: "arrow.forward.circle.fill")
+                            .font(.headline)
+                            .foregroundStyle(RhetorixColors.textPrimary)
+                        Text(result.nextPracticeFocus)
+                            .font(.body.weight(.medium))
+                            .foregroundStyle(RhetorixColors.textPrimary)
+                        AIDisclaimer()
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct ReviewPointSection: View {
+    var title: String
+    var icon: String
+    var accent: Color
+    var points: [DebateReviewPoint]
+
+    var body: some View {
+        if points.isEmpty == false {
+            GlassCard(accent: accent) {
+                VStack(alignment: .leading, spacing: 12) {
+                    Label(title, systemImage: icon)
+                        .font(.headline)
+                        .foregroundStyle(RhetorixColors.textPrimary)
+                    ForEach(points) { point in
+                        VStack(alignment: .leading, spacing: 6) {
+                            if point.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false {
+                                Text(point.title)
+                                    .font(.subheadline.bold())
+                                    .foregroundStyle(accent)
+                            }
+                            Text(point.detail)
+                                .font(.body)
+                                .foregroundStyle(RhetorixColors.textSecondary)
+                        }
+                        .padding(12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(RhetorixColors.glassStrong)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+                    AIDisclaimer()
+                }
+            }
+        }
     }
 }
 

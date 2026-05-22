@@ -367,6 +367,13 @@ Content:
 - Winner label
 - Final score
 - Short outcome explanation
+- Deep review cards generated from the debate transcript:
+  - Judge rationale explaining why the winning side won and why the other side fell short
+  - Key clashes with what each side contested and which side carried each clash
+  - Strongest support-side arguments with why they worked
+  - Strongest oppose-side arguments with why they worked
+  - Concrete improvement actions for the next round
+  - One next practice focus
 - Key moments
 - Debate transcript
 - Post-result recommendation feedback: compact thumbs-up and thumbs-down buttons appear below the result card. Choosing either opens a native choice prompt asking what the user liked/disliked: Category or Technique.

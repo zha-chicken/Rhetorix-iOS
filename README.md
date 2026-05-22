@@ -462,12 +462,15 @@ App 入口。创建全局 `AppStore`，注入 SwiftUI 环境，并根据用户�
 - DebateSession
 - DebateTurn
 - DebateResult
+- DebateReviewPoint
 - AiProvider
 - ProviderConfig
 - ConstructiveAnalysisIssue
 - FallacyFinding
 - RebuttalAttempt
 - AppTheme
+
+`DebateResult` 不只保存胜负和一句总结，还会保存结构化深度复盘：裁判判决理由、关键交锋、支持方最强论点、反对方最强论点、下一轮可执行改进项和下一次训练重点。旧版本本地数据仍可读取；缺失的新字段会以空值处理。
 
 ### AIService.swift
 

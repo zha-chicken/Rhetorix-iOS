@@ -462,7 +462,27 @@ final class AppStore: ObservableObject {
         guard sessions.indices.contains(index) else { return }
         let session = sessions[index]
         if isUITestMode {
-            sessions[index].result = DebateResult(winner: .user, score: "3-2", summary: "Mock judgment: the user wins by clearer clash and better weighing.")
+            sessions[index].result = DebateResult(
+                winner: .user,
+                score: "3-2",
+                summary: "Mock judgment: the user wins by clearer clash and better weighing.",
+                judgeRationale: "The user did more comparative work on the core clash and explained why their impact mattered more.",
+                keyClashes: [
+                    DebateReviewPoint(title: "Impact weighing", detail: "Both sides claimed social harm, but the user compared probability and scale more clearly."),
+                    DebateReviewPoint(title: "Evidence quality", detail: "The AI had broader examples, while the user gave more direct warranting for the decisive point.")
+                ],
+                strongestSupportArguments: [
+                    DebateReviewPoint(title: "Clear burden framing", detail: "Support explained what must be proven and returned to that burden in later speeches.")
+                ],
+                strongestOpposeArguments: [
+                    DebateReviewPoint(title: "Practical risk objection", detail: "Oppose challenged implementation risk, but did not weigh it strongly enough against Support's case.")
+                ],
+                improvementActions: [
+                    DebateReviewPoint(title: "Add one sourced example", detail: "Use one concrete source or case study before the final weighing step."),
+                    DebateReviewPoint(title: "Signpost rebuttals", detail: "Label rebuttals as definition, evidence, mechanism, or impact so the judge can track clash faster.")
+                ],
+                nextPracticeFocus: "Practice turning rebuttals into explicit impact comparisons within one sentence."
+            )
             sessions[index].isCompleted = true
             refreshUserProfileMemory()
             save()
@@ -485,7 +505,15 @@ final class AppStore: ObservableObject {
             \(transcript)
 
             For User vs AI, return winner as USER if the user's side won, otherwise SUPPORT or OPPOSE for the AI side. For AI vs AI or Face to Face, return SUPPORT, OPPOSE, or TIE.
-            Return JSON: {"winner":"USER|SUPPORT|OPPOSE|TIE","score":"5-3","summary":"brief explanation in the requested language"}
+            Produce a debate review that is useful for practice, not just a verdict.
+            Requirements:
+            - Judge direct clash, evidence quality, definitions, mechanisms, impact weighing, and speech discipline.
+            - Key clashes must identify what both sides actually contested.
+            - Strongest arguments should explain why an argument was effective, not just repeat it.
+            - Improvement actions must be concrete next steps a debater can apply in the next round.
+            - For User vs AI, improvementActions should focus on the human user. For Face to Face, write neutral advice for both speakers. For AI vs AI, write learning notes a human observer can practice.
+            Return JSON only with this exact shape:
+            {"winner":"USER|SUPPORT|OPPOSE|TIE","score":"5-3","summary":"2-3 sentence outcome explanation","judgeRationale":"why the winner won and why the loser fell short","keyClashes":[{"title":"clash name","detail":"what each side argued and who won this clash"}],"strongestSupportArguments":[{"title":"argument name","detail":"why it worked"}],"strongestOpposeArguments":[{"title":"argument name","detail":"why it worked"}],"improvementActions":[{"title":"action name","detail":"specific drill or fix"}],"nextPracticeFocus":"one focused skill for the next debate"}
             """)],
             config: config
         )
@@ -675,7 +703,45 @@ final class AppStore: ObservableObject {
         } else {
             winner = nil
         }
-        return DebateResult(winner: winner, score: json["score"] as? String ?? "N/A", summary: json["summary"] as? String ?? raw)
+        return DebateResult(
+            winner: winner,
+            score: stringValue(json["score"]) ?? "N/A",
+            summary: stringValue(json["summary"]) ?? raw,
+            judgeRationale: stringValue(json["judgeRationale"]) ?? stringValue(json["rationale"]) ?? "",
+            keyClashes: reviewPoints(from: json["keyClashes"]),
+            strongestSupportArguments: reviewPoints(from: json["strongestSupportArguments"] ?? json["supportArguments"]),
+            strongestOpposeArguments: reviewPoints(from: json["strongestOpposeArguments"] ?? json["opposeArguments"]),
+            improvementActions: reviewPoints(from: json["improvementActions"] ?? json["improvements"]),
+            nextPracticeFocus: stringValue(json["nextPracticeFocus"]) ?? ""
+        )
+    }
+
+    private func stringValue(_ value: Any?) -> String? {
+        if let string = value as? String {
+            let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? nil : trimmed
+        }
+        if let number = value as? NSNumber {
+            return number.stringValue
+        }
+        return nil
+    }
+
+    private func reviewPoints(from value: Any?) -> [DebateReviewPoint] {
+        if let strings = value as? [String] {
+            return strings.compactMap { text in
+                let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard trimmed.isEmpty == false else { return nil }
+                return DebateReviewPoint(title: String(trimmed.prefix(64)), detail: trimmed)
+            }
+        }
+        guard let items = value as? [[String: Any]] else { return [] }
+        return items.compactMap { item in
+            let title = stringValue(item["title"]) ?? stringValue(item["name"]) ?? stringValue(item["claim"]) ?? ""
+            let detail = stringValue(item["detail"]) ?? stringValue(item["explanation"]) ?? stringValue(item["why"]) ?? ""
+            guard title.isEmpty == false || detail.isEmpty == false else { return nil }
+            return DebateReviewPoint(title: title.isEmpty ? String(detail.prefix(64)) : title, detail: detail.isEmpty ? title : detail)
+        }
     }
 
     private func parseFallacies(_ raw: String) -> [FallacyFinding] {
@@ -929,7 +995,15 @@ final class AppStore: ObservableObject {
             .flatMap(\.turns)
             .filter { $0.role == .user }
         let userTexts = userTurns.map(\.content)
-        let feedbackTexts = completedSessions.compactMap(\.result?.summary) + rebuttalAttempts.map(\.feedback)
+        let resultReviewTexts = completedSessions.flatMap { session -> [String] in
+            guard let result = session.result else { return [] }
+            return [result.summary, result.judgeRationale, result.nextPracticeFocus]
+                + result.keyClashes.flatMap { [$0.title, $0.detail] }
+                + result.strongestSupportArguments.flatMap { [$0.title, $0.detail] }
+                + result.strongestOpposeArguments.flatMap { [$0.title, $0.detail] }
+                + result.improvementActions.flatMap { [$0.title, $0.detail] }
+        }
+        let feedbackTexts = resultReviewTexts.filter { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false } + rebuttalAttempts.map(\.feedback)
         let constructiveTexts = constructiveAnalysisHistory.flatMap { issue in
             [issue.issueType, issue.explanation] + issue.rebuttalPoints
         }
