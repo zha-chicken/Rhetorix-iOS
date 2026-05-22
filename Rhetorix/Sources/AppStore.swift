@@ -491,6 +491,7 @@ final class AppStore: ObservableObject {
         let transcript = session.turns.enumerated().map { offset, turn in
             "\(stageTitle(for: session, turnIndex: offset)) - \(turn.role.rawValue): \(turn.content)"
         }.joined(separator: "\n\n")
+        let judgeSafetyTexts = [session.topic.title, session.topic.details] + session.turns.map(\.content)
         let result = try await ai.chat(
             systemPrompt: """
             You are an impartial debate judge using international school debate standards: matter, method, manner, direct clash, weighing, and reply-speech discipline.
@@ -515,7 +516,8 @@ final class AppStore: ObservableObject {
             Return JSON only with this exact shape:
             {"winner":"USER|SUPPORT|OPPOSE|TIE","score":"5-3","summary":"2-3 sentence outcome explanation","judgeRationale":"why the winner won and why the loser fell short","keyClashes":[{"title":"clash name","detail":"what each side argued and who won this clash"}],"strongestSupportArguments":[{"title":"argument name","detail":"why it worked"}],"strongestOpposeArguments":[{"title":"argument name","detail":"why it worked"}],"improvementActions":[{"title":"action name","detail":"specific drill or fix"}],"nextPracticeFocus":"one focused skill for the next debate"}
             """)],
-            config: config
+            config: config,
+            safetyTexts: judgeSafetyTexts
         )
         sessions[index].result = parseJudge(result.content, session: session)
         sessions[index].isCompleted = true

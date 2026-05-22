@@ -36,9 +36,12 @@ final class AIService: Sendable {
         return trimmed
     }
 
-    func chat(systemPrompt: String, messages: [ChatMessage], config: ProviderConfig, maxTokens: Int = 900) async throws -> ChatResult {
-        for message in messages where message.role != "assistant" {
-            try await assertSafe(message.content, source: "user", config: config)
+    func chat(systemPrompt: String, messages: [ChatMessage], config: ProviderConfig, maxTokens: Int = 900, safetyTexts: [String]? = nil) async throws -> ChatResult {
+        let inputsToCheck = safetyTexts ?? messages.compactMap { message in
+            message.role == "assistant" ? nil : message.content
+        }
+        for text in inputsToCheck {
+            try await assertSafe(text, source: "user", config: config)
         }
         let result = try await rawChat(systemPrompt: systemPrompt, messages: messages, config: config, maxTokens: maxTokens)
         try await assertSafe(result.content, source: "assistant", config: config)
