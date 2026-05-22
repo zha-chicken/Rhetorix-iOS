@@ -54,7 +54,16 @@ final class AIService: Sendable {
         do {
             let reasons: [String]
             if config.provider == .openAI {
-                reasons = try await openAIModeration(text: text, config: config)
+                do {
+                    reasons = try await openAIModeration(text: text, config: config)
+                } catch let error as RhetorixError {
+                    if case .blockedBySafety = error {
+                        throw error
+                    }
+                    reasons = try await chatSafetyClassification(text: text, config: config)
+                } catch {
+                    reasons = try await chatSafetyClassification(text: text, config: config)
+                }
             } else {
                 reasons = try await chatSafetyClassification(text: text, config: config)
             }
@@ -190,19 +199,63 @@ final class AIService: Sendable {
         let result = try await rawChat(
             systemPrompt: prompt,
             messages: [ChatMessage(role: "user", content: "Classify this text only:\n\n\(text)")],
-            config: config
+            config: config,
+            maxTokens: 160
         )
-        guard let data = result.content
-            .replacingOccurrences(of: "```json", with: "")
-            .replacingOccurrences(of: "```", with: "")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .data(using: .utf8),
-            let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-            let allowed = json["allowed"] as? Bool
-        else { throw RhetorixError.invalidResponse }
-        let categories = json["categories"] as? [String] ?? []
+        guard let json = parseSafetyJSON(result.content), let allowed = boolValue(json["allowed"]) else {
+            throw RhetorixError.invalidResponse
+        }
+        let categories = stringArrayValue(json["categories"])
         if allowed, categories.isEmpty { return [] }
         return categories.map { safetyLabel($0) ?? $0 }
+    }
+
+    private func parseSafetyJSON(_ raw: String) -> [String: Any]? {
+        let cleaned = raw
+            .replacingOccurrences(of: "```json", with: "")
+            .replacingOccurrences(of: "```", with: "")
+            .replacingOccurrences(of: "\u{feff}", with: "")
+            .replacingOccurrences(of: "\u{200b}", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        var candidates = [cleaned]
+        if let start = cleaned.firstIndex(of: "{"), let end = cleaned.lastIndex(of: "}"), start <= end {
+            candidates.append(String(cleaned[start...end]))
+        }
+        for candidate in candidates.map(repairJSON) {
+            guard let data = candidate.data(using: .utf8),
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { continue }
+            return json
+        }
+        return nil
+    }
+
+    private func repairJSON(_ text: String) -> String {
+        text.replacingOccurrences(of: ",\\s*([}\\]])", with: "$1", options: .regularExpression)
+    }
+
+    private func boolValue(_ value: Any?) -> Bool? {
+        if let bool = value as? Bool { return bool }
+        if let number = value as? NSNumber { return number.boolValue }
+        if let string = value as? String {
+            let lower = string.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            if ["true", "yes", "allowed", "allow"].contains(lower) { return true }
+            if ["false", "no", "blocked", "block", "disallowed"].contains(lower) { return false }
+        }
+        return nil
+    }
+
+    private func stringArrayValue(_ value: Any?) -> [String] {
+        if let strings = value as? [String] { return strings }
+        if let values = value as? [Any] {
+            return values.compactMap { $0 as? String }
+        }
+        if let string = value as? String {
+            return string
+                .split { $0 == "," || $0 == ";" || $0 == "|" || $0.isNewline }
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { $0.isEmpty == false }
+        }
+        return []
     }
 
     private func sendJSON(_ request: URLRequest) async throws -> [String: Any] {

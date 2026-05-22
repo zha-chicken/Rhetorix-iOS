@@ -383,6 +383,7 @@ Rhetorix 采用 fail-closed 的内容安全策略。
 Provider 行为：
 
 - OpenAI 优先使用 `/v1/moderations`
+- 如果 `/v1/moderations` 不可用或返回异常，则回退到同一个 OpenAI/兼容 Provider 的普通问答接口进行安全分类
 - 非 OpenAI Provider 使用用户配置的对应 Provider 进行安全分类
 - 例如用户配置 DeepSeek，则使用 DeepSeek 检测
 
