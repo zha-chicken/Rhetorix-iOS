@@ -109,8 +109,10 @@ User vs AI、AI vs AI、Face to Face 都使用同一套结构。区别是 User v
 - 双方发言卡片
 - AI 生成状态
 - 语音优先输入，文字输入保留
-- AI 回答默认自动朗读；可在 Settings 中选择系统语音或火山引擎在线语音
-- 火山引擎语音需要用户配置 App ID、Access Token、Cluster 和 Voice Type；失败时自动回退到系统语音
+- AI 回答默认自动朗读；可在 Settings 中选择系统语音、火山引擎在线语音或 Voicebox 本地/远程语音服务
+- 火山引擎语音需要用户配置 App ID、Access Token、Cluster 和 Voice Type；Voicebox 需要用户运行 Voicebox 服务并配置 Server URL、Profile ID、Engine 和 Model Size
+- Voicebox 通过 `/generate/stream` 返回 WAV 音频，由 Rhetorix 在 iPhone 端播放；真机使用时通常需要填写局域网 IP 或远程 HTTPS 地址，而不是 `127.0.0.1`
+- 在线语音不可用时自动回退到系统语音
 - 可在 Settings 中关闭自动朗读，改为手动点击朗读
 - 每次发言会记录输入方式和本阶段用时
 - 提前结束并进入评分

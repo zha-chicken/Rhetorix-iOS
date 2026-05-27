@@ -122,6 +122,7 @@ struct ProviderConfig: Identifiable, Codable, Equatable {
 enum VoiceOutputEngine: String, Codable, CaseIterable, Identifiable {
     case system = "System Voice"
     case volcengine = "Volcengine"
+    case voicebox = "Voicebox"
 
     var id: String { rawValue }
 }
@@ -138,6 +139,21 @@ struct VolcengineTTSConfig: Codable, Equatable {
         accessToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false &&
         cluster.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false &&
         voiceType.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+    }
+}
+
+struct VoiceboxTTSConfig: Codable, Equatable {
+    var baseURL: String = "http://127.0.0.1:17493"
+    var profileID: String = ""
+    var engine: String = "qwen"
+    var modelSize: String = "1.7B"
+
+    static let engineChoices = ["qwen", "qwen_custom_voice", "luxtts", "chatterbox", "chatterbox_turbo", "tada", "kokoro"]
+    static let modelSizeChoices = ["1.7B", "0.6B", "1B", "3B"]
+
+    var isConfigured: Bool {
+        baseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false &&
+        profileID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
     }
 }
 

@@ -553,7 +553,8 @@ struct DebateView: View {
                                 turnID: last.id,
                                 usesChinese: store.usesChinese,
                                 engine: store.voiceOutputEngine,
-                                volcengineConfig: store.volcengineTTSConfig
+                                volcengineConfig: store.volcengineTTSConfig,
+                                voiceboxConfig: store.voiceboxTTSConfig
                             )
                         }
                     }
@@ -813,7 +814,8 @@ struct DebateBubble: View {
                                     turnID: turn.id,
                                     usesChinese: store.usesChinese,
                                     engine: store.voiceOutputEngine,
-                                    volcengineConfig: store.volcengineTTSConfig
+                                    volcengineConfig: store.volcengineTTSConfig,
+                                    voiceboxConfig: store.voiceboxTTSConfig
                                 )
                             }
                         } label: {
@@ -1300,7 +1302,55 @@ struct SettingsView: View {
                         ), in: 0.7...1.3, step: 0.1)
                     }
                 }
-                Text(store.t("Volcengine reads AI responses when configured. System voice remains the fallback if online speech is unavailable."))
+                if store.voiceOutputEngine == .voicebox {
+                    TextField(store.t("Voicebox Server URL"), text: Binding(
+                        get: { store.voiceboxTTSConfig.baseURL },
+                        set: {
+                            var next = store.voiceboxTTSConfig
+                            next.baseURL = $0
+                            store.setVoiceboxTTSConfig(next)
+                        }
+                    ))
+                    .textInputAutocapitalization(.never)
+                    .keyboardType(.URL)
+                    TextField(store.t("Voicebox Profile ID"), text: Binding(
+                        get: { store.voiceboxTTSConfig.profileID },
+                        set: {
+                            var next = store.voiceboxTTSConfig
+                            next.profileID = $0
+                            store.setVoiceboxTTSConfig(next)
+                        }
+                    ))
+                    .textInputAutocapitalization(.never)
+                    Picker(store.t("Voicebox Engine"), selection: Binding(
+                        get: { store.voiceboxTTSConfig.engine },
+                        set: {
+                            var next = store.voiceboxTTSConfig
+                            next.engine = $0
+                            store.setVoiceboxTTSConfig(next)
+                        }
+                    )) {
+                        ForEach(VoiceboxTTSConfig.engineChoices, id: \.self) { engine in
+                            Text(engine).tag(engine)
+                        }
+                    }
+                    Picker(store.t("Voicebox Model Size"), selection: Binding(
+                        get: { store.voiceboxTTSConfig.modelSize },
+                        set: {
+                            var next = store.voiceboxTTSConfig
+                            next.modelSize = $0
+                            store.setVoiceboxTTSConfig(next)
+                        }
+                    )) {
+                        ForEach(VoiceboxTTSConfig.modelSizeChoices, id: \.self) { size in
+                            Text(size).tag(size)
+                        }
+                    }
+                    Text(store.t("Use a LAN or remote Voicebox server URL on a real iPhone. 127.0.0.1 only works when the server runs on the same device or simulator host."))
+                        .font(.caption)
+                        .foregroundStyle(RhetorixColors.textSecondary)
+                }
+                Text(store.t("Online voice engines read AI responses when configured. System voice remains the fallback if online speech is unavailable."))
                     .font(.caption)
                     .foregroundStyle(RhetorixColors.textSecondary)
             }
@@ -1746,7 +1796,14 @@ final class AISpeechPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
         synthesizer.delegate = self
     }
 
-    func speak(_ text: String, turnID: String, usesChinese: Bool, engine: VoiceOutputEngine = .system, volcengineConfig: VolcengineTTSConfig = VolcengineTTSConfig()) {
+    func speak(
+        _ text: String,
+        turnID: String,
+        usesChinese: Bool,
+        engine: VoiceOutputEngine = .system,
+        volcengineConfig: VolcengineTTSConfig = VolcengineTTSConfig(),
+        voiceboxConfig: VoiceboxTTSConfig = VoiceboxTTSConfig()
+    ) {
         let cleaned = Self.speechReadyText(text)
         guard cleaned.isEmpty == false else { return }
 
@@ -1762,6 +1819,34 @@ final class AISpeechPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
                     for chunk in chunks {
                         try Task.checkCancellation()
                         let data = try await Self.fetchVolcengineAudio(text: chunk, config: volcengineConfig)
+                        try Task.checkCancellation()
+                        try await self.playOnlineAudio(data)
+                    }
+                    await MainActor.run {
+                        self.speakingTurnID = nil
+                    }
+                } catch is CancellationError {
+                    await MainActor.run {
+                        self.speakingTurnID = nil
+                    }
+                } catch {
+                    await MainActor.run {
+                        self.speakSystem(cleaned, turnID: turnID, usesChinese: usesChinese, shouldStopFirst: false)
+                    }
+                }
+            }
+            return
+        }
+
+        if engine == .voicebox, voiceboxConfig.isConfigured {
+            speakingTurnID = turnID
+            let chunks = Self.speechChunks(from: cleaned, maxLength: usesChinese ? 260 : 420)
+            onlineSpeechTask = Task { [weak self] in
+                guard let self else { return }
+                do {
+                    for chunk in chunks {
+                        try Task.checkCancellation()
+                        let data = try await Self.fetchVoiceboxAudio(text: chunk, usesChinese: usesChinese, config: voiceboxConfig)
                         try Task.checkCancellation()
                         try await self.playOnlineAudio(data)
                     }
@@ -1997,6 +2082,43 @@ final class AISpeechPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
         return audioData
     }
 
+    private static func fetchVoiceboxAudio(text: String, usesChinese: Bool, config: VoiceboxTTSConfig) async throws -> Data {
+        let base = config.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard var components = URLComponents(string: base) else {
+            throw URLError(.badURL)
+        }
+        let basePath = components.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        components.path = "/" + ([basePath, "generate", "stream"].filter { $0.isEmpty == false }.joined(separator: "/"))
+        guard let url = components.url else {
+            throw URLError(.badURL)
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 60
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("audio/wav", forHTTPHeaderField: "Accept")
+
+        let payload = VoiceboxTTSRequest(
+            profile_id: config.profileID.trimmingCharacters(in: .whitespacesAndNewlines),
+            text: text,
+            language: usesChinese ? "zh" : "en",
+            model_size: config.modelSize,
+            engine: config.engine,
+            normalize: true
+        )
+        request.httpBody = try JSONEncoder().encode(payload)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            throw URLError(.badServerResponse)
+        }
+        guard data.isEmpty == false else {
+            throw URLError(.zeroByteResource)
+        }
+        return data
+    }
+
     private struct VolcengineTTSRequest: Encodable {
         var app: App
         var user: User
@@ -2033,6 +2155,15 @@ final class AISpeechPlayer: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
         var code: Int?
         var message: String?
         var data: String?
+    }
+
+    private struct VoiceboxTTSRequest: Encodable {
+        var profile_id: String
+        var text: String
+        var language: String
+        var model_size: String
+        var engine: String
+        var normalize: Bool
     }
 
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {

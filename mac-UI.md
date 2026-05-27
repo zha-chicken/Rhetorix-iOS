@@ -355,7 +355,7 @@ Behavior:
 - Timers should make each stage feel consequential without forcing full tournament-length speeches on mobile.
 - AI message bubbles include a compact voice playback control.
 - Automatic AI voice playback is enabled by default for new installs, can be disabled in Settings, and must never block text display.
-- Voice output supports a configurable engine. Volcengine can be selected for higher-quality online speech when App ID, Access Token, Cluster, and Voice Type are configured. If Volcengine is unavailable or fails, playback falls back to the local system voice. System voice playback should use the best available enhanced or premium local voice for the active language, clean Markdown/structured text before reading, and speak long AI responses in short sentence-like chunks.
+- Voice output supports a configurable engine. Volcengine can be selected for higher-quality online speech when App ID, Access Token, Cluster, and Voice Type are configured. Voicebox can be selected as a local/remote voice server by entering a server URL, voice profile ID, engine, and model size; Rhetorix plays the returned WAV audio on the iPhone. If an online voice engine is unavailable or fails, playback falls back to the local system voice. System voice playback should use the best available enhanced or premium local voice for the active language, clean Markdown/structured text before reading, and speak long AI responses in short sentence-like chunks.
 
 ### Debate Result
 
@@ -534,6 +534,7 @@ Purpose: configure language and AI providers.
 Content:
 
 - Language segmented control
+- Voice settings for automatic AI reading, voice engine, and engine-specific configuration
 - Provider list with enabled/disabled state
 - Provider detail for API key, model preset picker, optional custom model, base URL, save, and test connection
 

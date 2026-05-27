@@ -14,6 +14,7 @@ final class AppStore: ObservableObject {
     @Published var autoSpeakAI = true
     @Published var voiceOutputEngine: VoiceOutputEngine = .system
     @Published var volcengineTTSConfig = VolcengineTTSConfig()
+    @Published var voiceboxTTSConfig = VoiceboxTTSConfig()
     @Published var activeError: String?
     @Published var isWorking = false
     @Published var dismissedMBTIPromptForSession = false
@@ -132,6 +133,11 @@ final class AppStore: ObservableObject {
 
     func setVolcengineTTSConfig(_ config: VolcengineTTSConfig) {
         volcengineTTSConfig = config
+        save()
+    }
+
+    func setVoiceboxTTSConfig(_ config: VoiceboxTTSConfig) {
+        voiceboxTTSConfig = config
         save()
     }
 
@@ -1465,7 +1471,8 @@ final class AppStore: ObservableObject {
             appTheme: appTheme,
             autoSpeakAI: autoSpeakAI,
             voiceOutputEngine: voiceOutputEngine,
-            volcengineTTSConfig: volcengineTTSConfig
+            volcengineTTSConfig: volcengineTTSConfig,
+            voiceboxTTSConfig: voiceboxTTSConfig
         )
         if let data = try? JSONEncoder().encode(snapshot) {
             try? data.write(to: storageURL)
@@ -1488,6 +1495,7 @@ final class AppStore: ObservableObject {
         autoSpeakAI = snapshot.autoSpeakAI ?? true
         voiceOutputEngine = snapshot.voiceOutputEngine ?? .system
         volcengineTTSConfig = snapshot.volcengineTTSConfig ?? VolcengineTTSConfig()
+        voiceboxTTSConfig = snapshot.voiceboxTTSConfig ?? VoiceboxTTSConfig()
     }
 
     private struct Snapshot: Codable {
@@ -1502,6 +1510,7 @@ final class AppStore: ObservableObject {
         var autoSpeakAI: Bool?
         var voiceOutputEngine: VoiceOutputEngine?
         var volcengineTTSConfig: VolcengineTTSConfig?
+        var voiceboxTTSConfig: VoiceboxTTSConfig?
     }
 
     private struct DebateStage {
