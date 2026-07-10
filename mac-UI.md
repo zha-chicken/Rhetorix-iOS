@@ -241,6 +241,8 @@ Finalizing or destructive actions:
 
 Use chips for filters, categories, modes, providers, and result filters. Selected chips must show stronger fill and brighter border; selection should not rely on color alone.
 
+Single-choice selections use the shared themed chip row (equal-width pill chips, optional caption label above) or, for longer option lists such as onboarding goals, a vertical list of selectable rows with a checkmark indicator. Do not use the system segmented picker style or wheel/inline pickers — both ignore the glass design system.
+
 ### Inputs
 
 Text fields use glass containers with white input text and low-opacity white placeholders. API key fields should include visibility controls and clear save/test states.
@@ -333,9 +335,11 @@ Content:
 
 - Selected topic summary
 - Debate mode: User vs AI, AI vs AI, Face to Face
-- Difficulty selection
+- Format and difficulty selection
 - User position: Support or Oppose, shown only for User vs AI
 - Start debate button
+
+Each choice row shows a small caption label (Mode, Format, Difficulty, Your Position) above a row of themed pill chips — never the bare system segmented control, which renders as a flat gray bar off the design system. The selected chip uses stronger glass fill, a brighter cyan border, and bold text. The start action uses the shared brand primary treatment (gradient rounded rectangle with icon, title, and a mode/difficulty context line), not a system prominent button.
 
 Every displayed control must affect the actual route or debate setup.
 AI vs AI and Face to Face do not show a user position selector because there is no single user side to choose.
