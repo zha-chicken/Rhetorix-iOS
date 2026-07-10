@@ -21,8 +21,10 @@ final class AppStore: ObservableObject {
     @Published var dismissedMBTIPromptForSession = false
 
     private let ai = AIService()
+    private let keychain = KeychainStore(service: "com.rhetorix.ios.credentials")
     private let storageURL: URL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         .appendingPathComponent("rhetorix-store.json")
+    private var canStripSecretsFromSnapshot = false
     private var isUITestMode: Bool {
         ProcessInfo.processInfo.arguments.contains("UITEST_MODE")
     }
@@ -102,6 +104,7 @@ final class AppStore: ObservableObject {
         if providerConfigs.isEmpty {
             providerConfigs = AiProvider.allCases.map { ProviderConfig(provider: $0, baseURL: $0.defaultBaseURL) }
         }
+        hydrateSecretsFromKeychain()
         if isUITestMode {
             providerConfigs = providerConfigs.map { config in
                 if config.provider == .openAI {
@@ -120,6 +123,14 @@ final class AppStore: ObservableObject {
     }
 
     func saveProvider(_ config: ProviderConfig) {
+        if isUITestMode == false {
+            do {
+                try persistSecret(config.resolvedAPIKey, account: providerKeychainAccount(config.provider))
+            } catch {
+                canStripSecretsFromSnapshot = false
+                activeError = error.localizedDescription
+            }
+        }
         if let index = providerConfigs.firstIndex(where: { $0.provider == config.provider }) {
             providerConfigs[index] = config
         } else {
@@ -158,6 +169,14 @@ final class AppStore: ObservableObject {
     }
 
     func setVolcengineTTSConfig(_ config: VolcengineTTSConfig) {
+        if isUITestMode == false {
+            do {
+                try persistSecret(config.accessToken.trimmingCharacters(in: .whitespacesAndNewlines), account: "tts.volcengine.access-token")
+            } catch {
+                canStripSecretsFromSnapshot = false
+                activeError = error.localizedDescription
+            }
+        }
         volcengineTTSConfig = config
         save()
     }
@@ -1718,20 +1737,82 @@ final class AppStore: ObservableObject {
         title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
 
+    private func hydrateSecretsFromKeychain() {
+        if isUITestMode {
+            canStripSecretsFromSnapshot = true
+            return
+        }
+
+        var migrationSucceeded = true
+        providerConfigs = providerConfigs.map { config in
+            var hydrated = config
+            let legacyValue = config.resolvedAPIKey
+            do {
+                if legacyValue.isEmpty == false {
+                    try keychain.set(legacyValue, for: providerKeychainAccount(config.provider))
+                    hydrated.apiKey = legacyValue
+                } else if let stored = try keychain.value(for: providerKeychainAccount(config.provider)) {
+                    hydrated.apiKey = stored
+                }
+            } catch {
+                migrationSucceeded = false
+                activeError = error.localizedDescription
+            }
+            return hydrated
+        }
+
+        let legacyVolcengineToken = volcengineTTSConfig.accessToken.trimmingCharacters(in: .whitespacesAndNewlines)
+        do {
+            if legacyVolcengineToken.isEmpty == false {
+                try keychain.set(legacyVolcengineToken, for: "tts.volcengine.access-token")
+            } else if let stored = try keychain.value(for: "tts.volcengine.access-token") {
+                volcengineTTSConfig.accessToken = stored
+            }
+        } catch {
+            migrationSucceeded = false
+            activeError = error.localizedDescription
+        }
+        canStripSecretsFromSnapshot = migrationSucceeded
+    }
+
+    private func providerKeychainAccount(_ provider: AiProvider) -> String {
+        "provider.\(provider.rawValue.lowercased().replacingOccurrences(of: " ", with: "-"))"
+    }
+
+    private func persistSecret(_ value: String, account: String) throws {
+        if value.isEmpty {
+            try keychain.removeValue(for: account)
+        } else {
+            try keychain.set(value, for: account)
+        }
+    }
+
     private func save() {
+        let persistedProviderConfigs: [ProviderConfig]
+        var persistedVolcengineConfig = volcengineTTSConfig
+        if canStripSecretsFromSnapshot {
+            persistedProviderConfigs = providerConfigs.map { config in
+                var safe = config
+                safe.apiKey = ""
+                return safe
+            }
+            persistedVolcengineConfig.accessToken = ""
+        } else {
+            persistedProviderConfigs = providerConfigs
+        }
         let snapshot = Snapshot(
             topics: topics,
             sessions: sessions,
             rebuttalAttempts: rebuttalAttempts,
             constructiveAnalysisHistory: constructiveAnalysisHistory,
-            providerConfigs: providerConfigs,
+            providerConfigs: persistedProviderConfigs,
             userProfileMemory: userProfileMemory,
             learningProfile: learningProfile,
             selectedLanguage: selectedLanguage,
             appTheme: appTheme,
             autoSpeakAI: autoSpeakAI,
             voiceOutputEngine: voiceOutputEngine,
-            volcengineTTSConfig: volcengineTTSConfig,
+            volcengineTTSConfig: persistedVolcengineConfig,
             voiceboxTTSConfig: voiceboxTTSConfig
         )
         if let data = try? JSONEncoder().encode(snapshot) {

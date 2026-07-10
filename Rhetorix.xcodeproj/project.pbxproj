@@ -16,6 +16,7 @@
 		100000000000000000000108 /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000009 /* Localization.swift */; };
 		100000000000000000000107 /* qrcode_donation.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000007 /* qrcode_donation.jpg */; };
 		100000000000000000000109 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000010 /* Assets.xcassets */; };
+		100000000000000000000110 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 100000000000000000000011 /* KeychainStore.swift */; };
 		200000000000000000000101 /* RhetorixUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000001 /* RhetorixUITests.swift */; };
 /* End PBXBuildFile section */
 
@@ -40,6 +41,7 @@
 		100000000000000000000008 /* Rhetorix.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Rhetorix.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		100000000000000000000009 /* Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Localization.swift; sourceTree = "<group>"; };
 		100000000000000000000010 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		100000000000000000000011 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
 		200000000000000000000001 /* RhetorixUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RhetorixUITests.swift; sourceTree = "<group>"; };
 		200000000000000000000008 /* RhetorixUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RhetorixUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -98,6 +100,7 @@
 				100000000000000000000004 /* AIService.swift */,
 				100000000000000000000005 /* AppStore.swift */,
 				100000000000000000000009 /* Localization.swift */,
+				100000000000000000000011 /* KeychainStore.swift */,
 				100000000000000000000006 /* Screens.swift */,
 			);
 			path = Sources;
@@ -226,6 +229,7 @@
 				100000000000000000000104 /* AIService.swift in Sources */,
 				100000000000000000000105 /* AppStore.swift in Sources */,
 				100000000000000000000108 /* Localization.swift in Sources */,
+				100000000000000000000110 /* KeychainStore.swift in Sources */,
 				100000000000000000000106 /* Screens.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
