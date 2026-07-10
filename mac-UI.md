@@ -341,7 +341,7 @@ Purpose: conduct the debate.
 
 Content:
 
-- Topic title
+- A compact inline `Live Debate` navigation title, with the full motion shown as a wrapping bold header at the top of the debate content so long questions are never truncated
 - Round and turn state
 - Stage timer with warning and overtime states
 - AI vs AI debate screens do not show the stage timer, because there is no human speaker under time pressure.

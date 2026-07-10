@@ -664,6 +664,11 @@ struct DebateView: View {
                 ScrollView {
                     VStack(spacing: 12) {
                         if let session {
+                            Text(store.topicTitle(session.topic))
+                                .font(.title3.bold())
+                                .foregroundStyle(RhetorixColors.textPrimary)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .frame(maxWidth: .infinity, alignment: .leading)
                             if let skill = session.practiceSkill {
                                 DebatePracticeFocusCard(skill: skill)
                             }
@@ -742,7 +747,8 @@ struct DebateView: View {
             .disabled(isEndingDebate || store.isWorking)
             .accessibilityIdentifier("debate.end")
         }
-        .navigationTitle(session.map { store.topicTitle($0.topic) } ?? store.t("Debate"))
+        .navigationTitle(store.t("Live Debate"))
+        .navigationBarTitleDisplayMode(.inline)
         .appScreen()
     }
 
