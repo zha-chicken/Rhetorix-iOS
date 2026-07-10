@@ -349,73 +349,166 @@ struct GuidedPracticeView: View {
         }
     }
 
+    private var debateMinutes: Int { store.learningProfile.practiceDuration.rawValue }
+    private var totalMinutes: Int { debateMinutes + 4 }
+
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                GlassCard(accent: RhetorixColors.cyan, padding: 20) {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Label(store.t("Today's skill"), systemImage: skill.icon)
-                            .font(.caption.bold())
-                            .foregroundStyle(RhetorixColors.cyan)
-                        Text(store.t(skill.rawValue))
-                            .font(.title2.bold())
-                        Text(store.t(skill.lessonSummary))
-                            .foregroundStyle(RhetorixColors.textSecondary)
-                        Text(store.t(skill.strategy))
-                            .font(.headline)
-                            .foregroundStyle(RhetorixColors.amber)
-                            .padding(10)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(RoundedRectangle(cornerRadius: 12).fill(RhetorixColors.glassStrong))
-                    }
-                }
+            VStack(alignment: .leading, spacing: 14) {
+                heroCard
 
-                GlassCard(accent: RhetorixColors.green) {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Label(store.t("Worked example"), systemImage: "lightbulb.fill")
-                            .font(.headline)
-                        Text(store.t(skill.example))
-                            .foregroundStyle(RhetorixColors.textSecondary)
-                    }
-                }
+                PracticeStepHeader(number: 1, title: store.t("Learn the move"), duration: "~2 \(store.t("min"))")
+                learnCard
 
-                GlassCard(accent: RhetorixColors.amber) {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(store.t("Use this checklist")).font(.headline)
-                        ForEach(skill.checklist, id: \.self) { item in
-                            Label(store.t(item), systemImage: "checkmark.circle")
-                                .font(.subheadline)
-                        }
-                    }
-                }
+                PracticeStepHeader(number: 2, title: store.t("Debate for real"), duration: "~\(debateMinutes) \(store.t("min"))")
+                motionCard
 
-                if let topic {
-                    GlassCard(accent: RhetorixColors.peach) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(store.t("Practice motion")).font(.caption.bold()).foregroundStyle(RhetorixColors.peach)
-                            Text(store.topicTitle(topic)).font(.headline)
-                            Text(store.topicDetails(topic)).font(.caption).foregroundStyle(RhetorixColors.textSecondary)
-                        }
-                    }
-                }
-
-                Button {
-                    startPractice()
-                } label: {
-                    PrimaryActionLabel(
-                        title: store.t("Start Guided Practice"),
-                        detail: "\(store.t(skill.rawValue)) · \(store.learningProfile.practiceDuration.rawValue) \(store.t("min"))",
-                        systemImage: "mic.fill"
-                    )
-                }
-                .buttonStyle(.rhetorixPrimary)
-                .disabled(topic == nil)
-                .accessibilityIdentifier("practice.start")
+                PracticeStepHeader(number: 3, title: store.t("Get coached"), duration: "~2 \(store.t("min"))")
+                coachCard
             }
             .padding()
         }
+        .safeAreaInset(edge: .bottom) { startButton }
         .navigationTitle(store.t("Guided Practice"))
         .appScreen()
+    }
+
+    private var heroCard: some View {
+        GlassCard(accent: RhetorixColors.cyan, padding: 18) {
+            VStack(alignment: .leading, spacing: 10) {
+                Label(store.t("Today's skill"), systemImage: skill.icon)
+                    .font(.caption.bold())
+                    .foregroundStyle(RhetorixColors.cyan)
+                Text(store.t(skill.rawValue))
+                    .font(.title2.bold())
+                Text(store.t(skill.lessonSummary))
+                    .font(.subheadline)
+                    .foregroundStyle(RhetorixColors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 6) {
+                    PracticePlanChip(number: 1, title: store.t("Learn"))
+                    planArrow
+                    PracticePlanChip(number: 2, title: store.t("Debate"))
+                    planArrow
+                    PracticePlanChip(number: 3, title: store.t("Review"))
+                    Spacer(minLength: 4)
+                    Text("~\(totalMinutes) \(store.t("min"))")
+                        .font(.caption.bold())
+                        .foregroundStyle(RhetorixColors.textTertiary)
+                }
+                .padding(.top, 2)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private var planArrow: some View {
+        Image(systemName: "chevron.right")
+            .font(.system(size: 9, weight: .bold))
+            .foregroundStyle(RhetorixColors.textTertiary)
+    }
+
+    private var learnCard: some View {
+        GlassCard(accent: RhetorixColors.amber) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(store.t(skill.strategy))
+                    .font(.headline)
+                    .foregroundStyle(RhetorixColors.amber)
+                    .padding(10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(RoundedRectangle(cornerRadius: 12).fill(RhetorixColors.glassStrong))
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Label(store.t("Worked example"), systemImage: "lightbulb.fill")
+                        .font(.caption.bold())
+                        .foregroundStyle(RhetorixColors.green)
+                    Text(store.t(skill.example))
+                        .font(.subheadline)
+                        .foregroundStyle(RhetorixColors.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Divider().overlay(RhetorixColors.border)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(store.t("Before you speak, check"))
+                        .font(.caption.bold())
+                        .foregroundStyle(RhetorixColors.textTertiary)
+                    ForEach(skill.checklist, id: \.self) { item in
+                        Label(store.t(item), systemImage: "checkmark.circle")
+                            .font(.subheadline)
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var motionCard: some View {
+        if let topic {
+            GlassCard(accent: RhetorixColors.peach) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(store.t("Practice motion"))
+                        .font(.caption.bold())
+                        .foregroundStyle(RhetorixColors.peach)
+                    Text(store.topicTitle(topic))
+                        .font(.headline)
+                    Text(store.topicDetails(topic))
+                        .font(.caption)
+                        .foregroundStyle(RhetorixColors.textSecondary)
+                    HStack(spacing: 8) {
+                        PracticeSetupChip(icon: "person.wave.2.fill", text: "\(store.t("You argue")): \(store.debateSide(.support))")
+                        PracticeSetupChip(icon: "dial.medium", text: store.debateDifficulty(difficulty))
+                        PracticeSetupChip(icon: "timer", text: "\(debateMinutes) \(store.t("min"))")
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        } else {
+            GlassCard(accent: RhetorixColors.peach) {
+                Text(store.t("No practice motion available yet."))
+                    .font(.subheadline)
+                    .foregroundStyle(RhetorixColors.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+
+    private var coachCard: some View {
+        GlassCard(accent: RhetorixColors.green) {
+            VStack(alignment: .leading, spacing: 10) {
+                PracticeCoachRow(icon: "person.fill.checkmark", text: store.t("Rate yourself on today's skill"))
+                PracticeCoachRow(icon: "list.star", text: store.t("The AI coach scores the same five skills"))
+                PracticeCoachRow(icon: "arrow.counterclockwise", text: store.t("Retry one speech and compare"))
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private var startButton: some View {
+        Button {
+            startPractice()
+        } label: {
+            PrimaryActionLabel(
+                title: store.t("Start Guided Practice"),
+                detail: "\(store.t(skill.rawValue)) · \(debateMinutes) \(store.t("min"))",
+                systemImage: "mic.fill"
+            )
+        }
+        .buttonStyle(.rhetorixPrimary)
+        .disabled(topic == nil)
+        .accessibilityIdentifier("practice.start")
+        .padding(.horizontal)
+        .padding(.top, 10)
+        .padding(.bottom, 6)
+        .background(
+            LinearGradient(
+                colors: [RhetorixColors.background.opacity(0), RhetorixColors.background],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea(edges: .bottom)
+        )
     }
 
     private func startPractice() {
@@ -431,6 +524,87 @@ struct GuidedPracticeView: View {
             practiceSkill: skill
         )
         path.append(AppRoute.debate(session.id))
+    }
+}
+
+struct PracticeStepHeader: View {
+    var number: Int
+    var title: String
+    var duration: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text("\(number)")
+                .font(.caption.bold())
+                .foregroundStyle(RhetorixColors.textPrimary)
+                .frame(width: 22, height: 22)
+                .background(Circle().fill(RhetorixColors.glassStrong))
+                .overlay(Circle().stroke(RhetorixColors.cyan.opacity(0.45), lineWidth: 1))
+            Text(title)
+                .font(.subheadline.bold())
+                .foregroundStyle(RhetorixColors.textPrimary)
+            Spacer()
+            Text(duration)
+                .font(.caption2.bold())
+                .foregroundStyle(RhetorixColors.textTertiary)
+        }
+        .padding(.top, 4)
+    }
+}
+
+struct PracticePlanChip: View {
+    var number: Int
+    var title: String
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Text("\(number)")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(RhetorixColors.cyan)
+            Text(title)
+                .font(.caption2.bold())
+                .foregroundStyle(RhetorixColors.textPrimary)
+        }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 5)
+        .background(Capsule().fill(RhetorixColors.glassStrong))
+    }
+}
+
+struct PracticeSetupChip: View {
+    var icon: String
+    var text: String
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(RhetorixColors.cyan)
+            Text(text)
+                .font(.caption2.bold())
+                .foregroundStyle(RhetorixColors.textSecondary)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .background(Capsule().fill(RhetorixColors.glassStrong))
+    }
+}
+
+struct PracticeCoachRow: View {
+    var icon: String
+    var text: String
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.subheadline)
+                .foregroundStyle(RhetorixColors.green)
+                .frame(width: 22)
+            Text(text)
+                .font(.subheadline)
+                .foregroundStyle(RhetorixColors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 }
 
