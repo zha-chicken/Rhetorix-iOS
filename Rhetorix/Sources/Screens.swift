@@ -1126,7 +1126,7 @@ struct DebateBubble: View {
                         .accessibilityLabel(store.t(speechPlayer.speakingTurnID == turn.id ? "Stop AI voice" : "Read AI response"))
                     }
                 }
-                Text(turn.content).foregroundStyle(RhetorixColors.textPrimary)
+                AIMarkdownText(turn.content).foregroundStyle(RhetorixColors.textPrimary)
                 if !isUser { AIDisclaimer(color: RhetorixColors.textTertiary) }
                 HStack(spacing: 8) {
                     if let inputMode = turn.inputMode {
@@ -1295,7 +1295,7 @@ struct ResultView: View {
                         Text(store.topicTitle(session.topic)).font(.headline).multilineTextAlignment(.center)
                         Text(store.t("Winner")).font(.caption).foregroundStyle(RhetorixColors.textSecondary)
                         Text(session.result?.winner.map { store.speaker($0) } ?? store.t("N/A")).font(.largeTitle.bold()).foregroundStyle(RhetorixColors.green)
-                        Text(session.result?.summary ?? store.t("No judgment yet."))
+                        AIMarkdownText(session.result?.summary ?? store.t("No judgment yet."))
                             .multilineTextAlignment(.center)
                         AIDisclaimer()
                     }
@@ -1319,7 +1319,7 @@ struct ResultView: View {
                     ForEach(session.turns) { turn in
                         VStack(alignment: .leading, spacing: 4) {
                             Text(store.speaker(turn.role)).font(.caption.bold()).foregroundStyle(turn.role.color)
-                            Text(turn.content)
+                            AIMarkdownText(turn.content)
                             if turn.role != .user { AIDisclaimer() }
                         }
                     }
@@ -1465,7 +1465,7 @@ struct SpeechRetrySection: View {
                                     Text("\(retry.beforeScore) → \(retry.afterScore)")
                                         .font(.headline.monospacedDigit())
                                         .foregroundStyle(retry.afterScore > retry.beforeScore ? RhetorixColors.green : RhetorixColors.amber)
-                                    Text(retry.feedback)
+                                    AIMarkdownText(retry.feedback)
                                         .font(.caption2)
                                         .foregroundStyle(RhetorixColors.textSecondary)
                                         .lineLimit(2)
@@ -1561,7 +1561,7 @@ struct SpeechRetryView: View {
                                 Text("\(retry.beforeScore) → \(retry.afterScore)")
                                     .font(.title2.bold().monospacedDigit())
                             }
-                            Text(retry.feedback).foregroundStyle(RhetorixColors.textSecondary)
+                            AIMarkdownText(retry.feedback).foregroundStyle(RhetorixColors.textSecondary)
                             if retry.improvedSkills.isEmpty == false {
                                 Text(retry.improvedSkills.map { store.t($0.rawValue) }.joined(separator: " · "))
                                     .font(.caption.bold())
@@ -1601,7 +1601,7 @@ struct DeepDebateReviewSection: View {
                         Label(store.t("Why the judge decided"), systemImage: "scale.3d")
                             .font(.headline)
                             .foregroundStyle(RhetorixColors.textPrimary)
-                        Text(result.judgeRationale)
+                        AIMarkdownText(result.judgeRationale)
                             .font(.body)
                             .foregroundStyle(RhetorixColors.textSecondary)
                         AIDisclaimer()
@@ -1638,7 +1638,7 @@ struct DeepDebateReviewSection: View {
                         Label(store.t("Next practice focus"), systemImage: "arrow.forward.circle.fill")
                             .font(.headline)
                             .foregroundStyle(RhetorixColors.textPrimary)
-                        Text(result.nextPracticeFocus)
+                        AIMarkdownText(result.nextPracticeFocus)
                             .font(.body.weight(.medium))
                             .foregroundStyle(RhetorixColors.textPrimary)
                         AIDisclaimer()
@@ -1669,7 +1669,7 @@ struct ReviewPointSection: View {
                                     .font(.subheadline.bold())
                                     .foregroundStyle(accent)
                             }
-                            Text(point.detail)
+                            AIMarkdownText(point.detail)
                                 .font(.body)
                                 .foregroundStyle(RhetorixColors.textSecondary)
                         }
@@ -3400,7 +3400,7 @@ struct RebuttalTrainerView: View {
                     GlassCard(accent: RhetorixColors.amber) {
                         VStack(alignment: .leading) {
                             Text(store.t("Argument to resist")).font(.headline)
-                            Text(prompt)
+                            AIMarkdownText(prompt)
                             AIDisclaimer()
                         }
                     }
@@ -3437,7 +3437,7 @@ struct RebuttalTrainerView: View {
                     GlassCard(accent: RhetorixColors.green) {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("\(attempt.score) / 100").font(.largeTitle.bold())
-                            Text(attempt.feedback)
+                            AIMarkdownText(attempt.feedback)
                             AIDisclaimer()
                         }
                     }
