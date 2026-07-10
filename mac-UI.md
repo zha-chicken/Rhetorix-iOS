@@ -242,6 +242,10 @@ Use chips for filters, categories, modes, providers, and result filters. Selecte
 
 Text fields use glass containers with white input text and low-opacity white placeholders. API key fields should include visibility controls and clear save/test states.
 
+All single-line text fields, multi-line text editors, and secure fields share one themed input treatment: a strong-glass fill, 12pt continuous corner radius, and a thin translucent border. Never use the system `.roundedBorder` text field style — it renders as a near-black box on the dark theme and a stark white box on the light theme.
+
+Dropdown selections (topic pickers, model pickers) never appear as bare tinted menu links. They use a themed menu field row shaped like a text field: a secondary-color label on the left, the bold selected value on the right, and a small up/down chevron indicator. Tapping the row opens the standard selection menu with checkmarks.
+
 Voice-first debate input uses a centered oversized microphone control. A smaller keyboard button on the left reveals the text fallback, and a send control remains available when a drafted voice transcript or typed argument exists. AI vs AI rounds do not show human input controls.
 
 ## Primary Navigation

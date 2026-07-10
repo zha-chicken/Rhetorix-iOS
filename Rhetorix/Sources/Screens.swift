@@ -923,7 +923,8 @@ struct DebateInputBar: View {
 
             if isTextInputVisible {
                 TextField(store.t("Speak or type your argument..."), text: $input, axis: .vertical)
-                    .textFieldStyle(.roundedBorder)
+                    .textFieldStyle(.plain)
+                    .rhetorixField()
                     .disabled(!canSpeak)
                     .accessibilityIdentifier("debate.input")
             }
@@ -1101,8 +1102,9 @@ struct DebateSelfAssessmentView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(store.t("One thing I would change next time")).font(.headline)
                         TextField(store.t("Optional reflection"), text: $reflection, axis: .vertical)
-                            .textFieldStyle(.roundedBorder)
+                            .textFieldStyle(.plain)
                             .lineLimit(3...6)
+                            .rhetorixField()
                     }
                 }
 
@@ -1389,8 +1391,8 @@ struct SpeechRetryView: View {
                         TextEditor(text: $revisedText)
                             .frame(minHeight: 170)
                             .scrollContentBackground(.hidden)
-                            .padding(8)
-                            .background(RoundedRectangle(cornerRadius: 12).fill(RhetorixColors.glassStrong))
+                            .padding(4)
+                            .rhetorixField()
                             .accessibilityIdentifier("retry.input")
                     }
                 }
@@ -2180,17 +2182,13 @@ struct ProviderConfigView: View {
                             }
                             .buttonStyle(.plain)
                         }
-                        .padding(12)
-                        .background(RhetorixColors.glassStrong)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .rhetorixField()
 
-                        Picker(store.t("Model"), selection: $selectedModel) {
-                            ForEach(provider.modelChoices, id: \.self) { model in
-                                Text(model).tag(model)
-                            }
-                            Text(store.t("Other")).tag(otherModelTag)
-                        }
-                        .pickerStyle(.menu)
+                        RhetorixMenuField(
+                            title: store.t("Model"),
+                            options: provider.modelChoices.map { ($0, $0) } + [(otherModelTag, store.t("Other"))],
+                            selection: $selectedModel
+                        )
                         .onChange(of: selectedModel) { _, newValue in
                             if newValue == otherModelTag {
                                 config.modelName = customModel
@@ -2204,7 +2202,8 @@ struct ProviderConfigView: View {
                             TextField(store.t("Custom Model"), text: $customModel)
                                 .textInputAutocapitalization(.never)
                                 .autocorrectionDisabled()
-                                .textFieldStyle(.roundedBorder)
+                                .textFieldStyle(.plain)
+                                .rhetorixField()
                                 .onChange(of: customModel) { _, newValue in
                                     config.modelName = newValue
                                 }
@@ -2213,7 +2212,8 @@ struct ProviderConfigView: View {
                         TextField(store.t("Base URL"), text: $config.baseURL)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
-                            .textFieldStyle(.roundedBorder)
+                            .textFieldStyle(.plain)
+                            .rhetorixField()
                     }
                 }
 
@@ -2858,8 +2858,8 @@ struct ConstructiveAnalysisView: View {
                         TextEditor(text: $inputText)
                             .frame(minHeight: 150)
                             .scrollContentBackground(.hidden)
-                            .background(RhetorixColors.glass)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .padding(4)
+                            .rhetorixField()
                             .accessibilityIdentifier("constructive.input")
                         Button {
                             Task {
@@ -3113,8 +3113,8 @@ struct FallacyDetectorView: View {
                 TextEditor(text: $text)
                     .frame(minHeight: 160)
                     .scrollContentBackground(.hidden)
-                    .background(RhetorixColors.glass)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .padding(4)
+                    .rhetorixField()
                     .accessibilityIdentifier("fallacy.input")
                 Button(store.t("Analyze for Fallacies")) {
                     Task {
@@ -3195,10 +3195,12 @@ struct RebuttalTrainerView: View {
                         Text(store.t("Choose a topic before generating a practice argument."))
                             .font(.headline)
                             .foregroundStyle(RhetorixColors.textPrimary)
-                        Picker(store.t("Topic"), selection: $topic) {
-                            Text(store.t("Choose a Topic")).tag(Optional<DebateTopic>.none)
-                            ForEach(store.topics) { Text(store.topicTitle($0)).tag(Optional($0)) }
-                        }
+                        RhetorixMenuField(
+                            title: store.t("Topic"),
+                            options: [(Optional<DebateTopic>.none, store.t("Choose a Topic"))]
+                                + store.topics.map { (Optional($0), store.topicTitle($0)) },
+                            selection: $topic
+                        )
                         Divider().overlay(RhetorixColors.textTertiary.opacity(0.35))
                         Text(store.t("Use a custom topic"))
                             .font(.subheadline.bold())
@@ -3206,11 +3208,13 @@ struct RebuttalTrainerView: View {
                         TextField(store.t("Topic title"), text: $customTopicTitle)
                             .textInputAutocapitalization(.sentences)
                             .autocorrectionDisabled(false)
-                            .textFieldStyle(.roundedBorder)
+                            .textFieldStyle(.plain)
+                            .rhetorixField()
                         TextField(store.t("Optional details"), text: $customTopicDetails)
                             .textInputAutocapitalization(.sentences)
                             .autocorrectionDisabled(false)
-                            .textFieldStyle(.roundedBorder)
+                            .textFieldStyle(.plain)
+                            .rhetorixField()
                         Button {
                             Task { await addCustomRebuttalTopic() }
                         } label: {
@@ -3262,8 +3266,8 @@ struct RebuttalTrainerView: View {
                     TextEditor(text: $response)
                         .frame(height: 160)
                         .scrollContentBackground(.hidden)
-                        .background(RhetorixColors.glass)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .padding(4)
+                        .rhetorixField()
                     Button {
                         Task { await submitRebuttal() }
                     } label: {
