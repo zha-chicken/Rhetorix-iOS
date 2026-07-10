@@ -156,9 +156,15 @@ enum AiProvider: String, Codable, CaseIterable, Identifiable {
     case gemini = "Google Gemini"
     case deepSeek = "DeepSeek"
     case groq = "Groq"
-    case ollama = "Ollama"
 
     var id: String { rawValue }
+
+    // Local snapshots may contain removed providers (e.g. "Ollama");
+    // map unknown raw values to OpenAI so old data keeps decoding.
+    init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = AiProvider(rawValue: raw) ?? .openAI
+    }
 
     var defaultBaseURL: String {
         switch self {
@@ -167,7 +173,6 @@ enum AiProvider: String, Codable, CaseIterable, Identifiable {
         case .gemini: "https://generativelanguage.googleapis.com/"
         case .deepSeek: "https://api.deepseek.com/"
         case .groq: "https://api.groq.com/"
-        case .ollama: "http://localhost:11434/"
         }
     }
 
@@ -178,7 +183,6 @@ enum AiProvider: String, Codable, CaseIterable, Identifiable {
         case .gemini: "gemini-1.5-flash"
         case .deepSeek: "deepseek-chat"
         case .groq: "llama-3.1-8b-instant"
-        case .ollama: "llama3.1"
         }
     }
 
@@ -194,13 +198,11 @@ enum AiProvider: String, Codable, CaseIterable, Identifiable {
             ["deepseek-v4-pro", "deepseek-v4-flash", "deepseek-chat", "deepseek-reasoner"]
         case .groq:
             ["llama-3.1-8b-instant", "llama-3.3-70b-versatile", "mixtral-8x7b-32768"]
-        case .ollama:
-            ["llama3.1", "qwen2.5", "mistral"]
         }
     }
 
     var isOpenAICompatible: Bool {
-        self == .openAI || self == .deepSeek || self == .groq || self == .ollama
+        self == .openAI || self == .deepSeek || self == .groq
     }
 }
 

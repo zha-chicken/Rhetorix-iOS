@@ -88,7 +88,7 @@ final class AIService: Sendable {
     private func rawChat(systemPrompt: String, messages: [ChatMessage], config: ProviderConfig, maxTokens: Int = 900) async throws -> ChatResult {
         guard config.isEnabled, config.resolvedAPIKey.isEmpty == false else { throw RhetorixError.missingProviderKey }
         switch config.provider {
-        case .openAI, .deepSeek, .groq, .ollama:
+        case .openAI, .deepSeek, .groq:
             return try await openAICompatibleChat(systemPrompt: systemPrompt, messages: messages, config: config, maxTokens: maxTokens)
         case .anthropic:
             return try await anthropicChat(systemPrompt: systemPrompt, messages: messages, config: config, maxTokens: maxTokens)
