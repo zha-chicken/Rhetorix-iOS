@@ -133,6 +133,8 @@ Accents:
 
 The light theme should feel calm, student-friendly, and readable, not like a marketing landing page.
 
+Primary practice actions use a high-contrast rounded rectangle rather than a generic capsule. The control includes a leading circular action icon, a bold title, one short context line such as skill and duration, and a trailing chevron. It uses a subtle brand gradient, soft shadow, and pressed scale response. This treatment is shared by learning onboarding, Home's guided-practice action, and the final start action on Guided Practice.
+
 ## Language System
 
 The iPhone app supports an in-app language setting in Settings.
@@ -295,8 +297,10 @@ The Guided Practice screen contains:
 - A short strategy formula
 - A worked example
 - A three-item checklist
-- A locally selected practice motion and AI provider
+- A locally selected practice motion
 - A single start action that carries the skill focus into the live debate
+
+The active AI provider is inherited from Settings. Guided Practice does not expose a provider picker.
 
 ### Topic Selection
 
@@ -325,11 +329,11 @@ Content:
 - Debate mode: User vs AI, AI vs AI, Face to Face
 - Difficulty selection
 - User position: Support or Oppose, shown only for User vs AI
-- AI provider selection
 - Start debate button
 
 Every displayed control must affect the actual route or debate setup.
 AI vs AI and Face to Face do not show a user position selector because there is no single user side to choose.
+Debate Setup inherits the active AI provider from Settings and does not expose a provider picker.
 
 ### Live Debate
 
@@ -546,7 +550,7 @@ Current navigation:
 
 ### Settings
 
-Purpose: configure language and AI providers.
+Purpose: configure language and AI providers. Settings is the only place where a user changes provider configuration or availability.
 
 Content:
 
@@ -554,6 +558,8 @@ Content:
 - Voice settings for automatic AI reading, voice engine, and engine-specific configuration
 - Provider list with enabled/disabled state
 - Provider detail for API key, model preset picker, optional custom model, base URL, save, and test connection
+
+Guided Practice, Debate Setup, Constructive Analysis, Fallacy Detector, and Rebuttal Trainer automatically use the preferred enabled/configured provider and do not show their own provider controls.
 
 Provider detail behavior:
 

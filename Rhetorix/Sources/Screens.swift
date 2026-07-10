@@ -111,10 +111,13 @@ struct HomeView: View {
                         Button {
                             path.append(AppRoute.guidedPractice)
                         } label: {
-                            Label(store.t("Start Guided Practice"), systemImage: "target")
-                                .frame(maxWidth: .infinity)
+                            PrimaryActionLabel(
+                                title: store.t("Start Guided Practice"),
+                                detail: "\(store.t(store.dailyPracticeSkill.rawValue)) · \(store.learningProfile.practiceDuration.rawValue) \(store.t("min"))",
+                                systemImage: "target"
+                            )
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.rhetorixPrimary)
                         .accessibilityIdentifier("home.todayPractice")
                         Button {
                             path.append(AppRoute.topicSelection)
@@ -313,10 +316,13 @@ struct LearningOnboardingView: View {
                     store.completeLearningOnboarding(goal: goal, experience: experience, practiceDuration: duration)
                     dismiss()
                 } label: {
-                    Text(store.t("Build My Practice Plan"))
-                        .frame(maxWidth: .infinity)
+                    PrimaryActionLabel(
+                        title: store.t("Build My Practice Plan"),
+                        detail: "\(store.t(goal.rawValue)) · \(duration.rawValue) \(store.t("min"))",
+                        systemImage: "sparkles"
+                    )
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.rhetorixPrimary)
                 .accessibilityIdentifier("onboarding.continue")
 
                 Text(store.t("Your learning profile and debate history stay on this device."))
@@ -332,7 +338,6 @@ struct LearningOnboardingView: View {
 struct GuidedPracticeView: View {
     @EnvironmentObject private var store: AppStore
     @Binding var path: NavigationPath
-    @State private var provider: AiProvider = .openAI
 
     private var skill: DebateSkill { store.dailyPracticeSkill }
     private var topic: DebateTopic? { store.dailyPracticeTopic(for: skill) }
@@ -394,28 +399,22 @@ struct GuidedPracticeView: View {
                     }
                 }
 
-                Picker(store.t("AI Provider"), selection: $provider) {
-                    ForEach(AiProvider.allCases) { option in
-                        Text(option.rawValue).tag(option)
-                    }
-                }
-                .pickerStyle(.menu)
-
                 Button {
                     startPractice()
                 } label: {
-                    Label("\(store.t("Start")) · \(store.learningProfile.practiceDuration.rawValue) \(store.t("min"))", systemImage: "mic.circle.fill")
-                        .frame(maxWidth: .infinity)
+                    PrimaryActionLabel(
+                        title: store.t("Start Guided Practice"),
+                        detail: "\(store.t(skill.rawValue)) · \(store.learningProfile.practiceDuration.rawValue) \(store.t("min"))",
+                        systemImage: "mic.fill"
+                    )
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
+                .buttonStyle(.rhetorixPrimary)
                 .disabled(topic == nil)
                 .accessibilityIdentifier("practice.start")
             }
             .padding()
         }
         .navigationTitle(store.t("Guided Practice"))
-        .onAppear { provider = store.preferredProvider }
         .appScreen()
     }
 
@@ -428,7 +427,7 @@ struct GuidedPracticeView: View {
             format: format,
             difficulty: difficulty,
             side: .support,
-            provider: provider,
+            provider: store.preferredProvider,
             practiceSkill: skill
         )
         path.append(AppRoute.debate(session.id))
@@ -600,7 +599,6 @@ struct DebateSetupView: View {
     @State private var format: DebateFormat = .structured
     @State private var difficulty: DebateDifficulty = .medium
     @State private var side: DebateSide = .support
-    @State private var provider: AiProvider = .openAI
 
     var body: some View {
         ScrollView {
@@ -625,12 +623,8 @@ struct DebateSetupView: View {
                         ForEach(DebateSide.allCases) { Text(store.debateSide($0)).tag($0) }
                     }.pickerStyle(.segmented)
                 }
-                Picker(store.t("AI Provider"), selection: $provider) {
-                    ForEach(AiProvider.allCases) { Text($0.rawValue).tag($0) }
-                }
-                .pickerStyle(.menu)
                 Button {
-                    let session = store.createSession(topic: topic, mode: mode, format: format, difficulty: difficulty, side: side, provider: provider)
+                    let session = store.createSession(topic: topic, mode: mode, format: format, difficulty: difficulty, side: side, provider: store.preferredProvider)
                     path.append(AppRoute.debate(session.id))
                 } label: {
                     Text(store.t("Start Debate")).frame(maxWidth: .infinity)
@@ -641,9 +635,6 @@ struct DebateSetupView: View {
             .padding()
         }
         .navigationTitle(store.t("Debate Setup"))
-        .onAppear {
-            provider = store.preferredProvider
-        }
         .onChange(of: mode) { _, newMode in
             if newMode != .userVsAi {
                 side = .support
@@ -2850,7 +2841,6 @@ final class SpeechTranscriber: ObservableObject {
 struct ConstructiveAnalysisView: View {
     @EnvironmentObject private var store: AppStore
     @StateObject private var speech = SpeechTranscriber()
-    @State private var provider: AiProvider = .openAI
     @State private var inputText = ""
     @State private var issues: [ConstructiveAnalysisIssue] = []
     @State private var selectedIssueID: String?
@@ -2861,10 +2851,6 @@ struct ConstructiveAnalysisView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 14) {
-                Picker(store.t("Provider"), selection: $provider) {
-                    ForEach(AiProvider.allCases) { Text($0.rawValue).tag($0) }
-                }
-
                 GlassCard(accent: RhetorixColors.cyan) {
                     VStack(alignment: .leading, spacing: 10) {
                         Label(store.t("Paste constructive speech"), systemImage: "doc.text")
@@ -2878,7 +2864,7 @@ struct ConstructiveAnalysisView: View {
                         Button {
                             Task {
                                 isAnalyzingPaste = true
-                                issues = await store.analyzeConstructive(text: inputText, provider: provider)
+                                issues = await store.analyzeConstructive(text: inputText, provider: store.preferredProvider)
                                 selectedIssueID = issues.first?.id
                                 isAnalyzingPaste = false
                             }
@@ -2960,9 +2946,6 @@ struct ConstructiveAnalysisView: View {
             .padding()
         }
         .navigationTitle(store.t("Constructive Analysis"))
-        .onAppear {
-            provider = store.preferredProvider
-        }
         .onDisappear {
             speech.stop()
         }
@@ -2977,7 +2960,7 @@ struct ConstructiveAnalysisView: View {
         for segment in segments where analyzedLiveSegments.contains(segment) == false && pendingLiveSegments.contains(segment) == false {
             pendingLiveSegments.insert(segment)
             Task { @MainActor in
-                let newIssues = await store.analyzeConstructive(text: segment, provider: provider, setWorking: false)
+                let newIssues = await store.analyzeConstructive(text: segment, provider: store.preferredProvider, setWorking: false)
                 for issue in newIssues where issues.contains(where: { $0.claim == issue.claim && $0.explanation == issue.explanation }) == false {
                     issues.append(issue)
                 }
@@ -3120,7 +3103,6 @@ struct RebuttalPointFrame: View {
 struct FallacyDetectorView: View {
     @EnvironmentObject private var store: AppStore
     @State private var text = ""
-    @State private var provider: AiProvider = .openAI
     @State private var results: [FallacyFinding] = []
     @State private var isAnalyzing = false
     @State private var hasAnalyzed = false
@@ -3134,14 +3116,11 @@ struct FallacyDetectorView: View {
                     .background(RhetorixColors.glass)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .accessibilityIdentifier("fallacy.input")
-                Picker(store.t("Provider"), selection: $provider) {
-                    ForEach(AiProvider.allCases) { Text($0.rawValue).tag($0) }
-                }
                 Button(store.t("Analyze for Fallacies")) {
                     Task {
                         hasAnalyzed = false
                         isAnalyzing = true
-                        results = await store.generateFallacies(text: text, provider: provider)
+                        results = await store.generateFallacies(text: text, provider: store.preferredProvider)
                         isAnalyzing = false
                         hasAnalyzed = store.activeError == nil
                     }
@@ -3186,9 +3165,6 @@ struct FallacyDetectorView: View {
             .padding()
         }
         .navigationTitle(store.t("Fallacy Detector"))
-        .onAppear {
-            provider = store.preferredProvider
-        }
         .onChange(of: text) {
             hasAnalyzed = false
             results = []
@@ -3200,7 +3176,6 @@ struct FallacyDetectorView: View {
 struct RebuttalTrainerView: View {
     @EnvironmentObject private var store: AppStore
     @State private var topic: DebateTopic?
-    @State private var provider: AiProvider = .openAI
     @State private var customTopicTitle = ""
     @State private var customTopicDetails = ""
     @State private var prompt = ""
@@ -3251,9 +3226,6 @@ struct RebuttalTrainerView: View {
                         }
                         .buttonStyle(.bordered)
                         .disabled(isAddingCustomTopic || customTopicTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                        Picker(store.t("Provider"), selection: $provider) {
-                            ForEach(AiProvider.allCases) { Text($0.rawValue).tag($0) }
-                        }
                     }
                 }
 
@@ -3330,9 +3302,6 @@ struct RebuttalTrainerView: View {
         }
         .navigationTitle(store.t("Rebuttal Trainer"))
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            provider = store.preferredProvider
-        }
         .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { value in
             now = value
         }
@@ -3344,7 +3313,7 @@ struct RebuttalTrainerView: View {
         isGeneratingPrompt = true
         attempt = nil
         response = ""
-        prompt = await store.generateRebuttalPrompt(topic: topic, side: .oppose, provider: provider)
+        prompt = await store.generateRebuttalPrompt(topic: topic, side: .oppose, provider: store.preferredProvider)
         startedAt = prompt.isEmpty ? nil : Date()
         isGeneratingPrompt = false
     }
@@ -3365,7 +3334,7 @@ struct RebuttalTrainerView: View {
     private func submitRebuttal() async {
         guard let topic else { return }
         isScoring = true
-        attempt = await store.scoreRebuttal(topic: topic, prompt: prompt, response: response, provider: provider)
+        attempt = await store.scoreRebuttal(topic: topic, prompt: prompt, response: response, provider: store.preferredProvider)
         isScoring = false
     }
 }

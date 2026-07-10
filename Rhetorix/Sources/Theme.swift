@@ -54,6 +54,14 @@ enum RhetorixColors {
         light: UIColor(red: 0.92, green: 0.28, blue: 0.42, alpha: 1.0),
         dark: UIColor(red: 0.90, green: 0.45, blue: 0.42, alpha: 1.0)
     )
+    static let primaryActionEnd = adaptive(
+        light: UIColor(red: 0.86, green: 0.14, blue: 0.34, alpha: 1.0),
+        dark: UIColor(red: 0.35, green: 0.73, blue: 0.76, alpha: 1.0)
+    )
+    static let primaryActionForeground = adaptive(
+        light: UIColor.white,
+        dark: UIColor(red: 0.035, green: 0.12, blue: 0.14, alpha: 1.0)
+    )
     static func adaptive(light: UIColor, dark: UIColor) -> Color {
         Color(UIColor { trait in
             trait.userInterfaceStyle == .light ? light : dark
@@ -130,6 +138,84 @@ struct AIDisclaimer: View {
             .foregroundStyle(color)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
+}
+
+struct PrimaryActionLabel: View {
+    var title: String
+    var detail: String
+    var systemImage: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: systemImage)
+                .font(.system(size: 18, weight: .bold))
+                .frame(width: 40, height: 40)
+                .background(
+                    Circle()
+                        .fill(RhetorixColors.primaryActionForeground.opacity(0.12))
+                )
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.headline)
+                    .lineLimit(1)
+                Text(detail)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .opacity(0.72)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 8)
+
+            Image(systemName: "chevron.right")
+                .font(.caption.bold())
+                .frame(width: 30, height: 30)
+                .background(
+                    Circle()
+                        .fill(RhetorixColors.primaryActionForeground.opacity(0.10))
+                )
+        }
+        .foregroundStyle(RhetorixColors.primaryActionForeground)
+        .multilineTextAlignment(.leading)
+    }
+}
+
+struct RhetorixPrimaryButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .padding(.vertical, 10)
+            .padding(.horizontal, 12)
+            .frame(maxWidth: .infinity, minHeight: 64)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [RhetorixColors.cyan, RhetorixColors.primaryActionEnd],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(Color.white.opacity(0.22), lineWidth: 1)
+            }
+            .shadow(
+                color: RhetorixColors.cyan.opacity(configuration.isPressed ? 0.10 : 0.24),
+                radius: configuration.isPressed ? 5 : 14,
+                y: configuration.isPressed ? 2 : 7
+            )
+            .scaleEffect(configuration.isPressed ? 0.985 : 1)
+            .opacity(isEnabled ? 1 : 0.42)
+            .animation(.easeOut(duration: 0.16), value: configuration.isPressed)
+    }
+}
+
+extension ButtonStyle where Self == RhetorixPrimaryButtonStyle {
+    static var rhetorixPrimary: RhetorixPrimaryButtonStyle { RhetorixPrimaryButtonStyle() }
 }
 
 extension View {
