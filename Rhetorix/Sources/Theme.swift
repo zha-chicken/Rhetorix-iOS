@@ -119,6 +119,44 @@ struct GlassCard<Content: View>: View {
     }
 }
 
+struct AIMarkdownText: View {
+    var content: String
+
+    init(_ content: String) {
+        self.content = content
+    }
+
+    var body: some View {
+        Text(Self.attributed(from: content))
+    }
+
+    static func attributed(from raw: String) -> AttributedString {
+        let normalized = normalizeBlocks(raw)
+        if let parsed = try? AttributedString(
+            markdown: normalized,
+            options: AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+        ) {
+            return parsed
+        }
+        return AttributedString(raw)
+    }
+
+    // Inline-only markdown keeps newlines but drops block syntax, so headings
+    // and bullets are rewritten into inline equivalents before parsing.
+    private static func normalizeBlocks(_ text: String) -> String {
+        text.components(separatedBy: "\n").map { line -> String in
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if let match = trimmed.range(of: "^#{1,6}\\s+", options: .regularExpression) {
+                return "**\(trimmed[match.upperBound...])**"
+            }
+            if let match = trimmed.range(of: "^[-*+]\\s+", options: .regularExpression) {
+                return "• \(trimmed[match.upperBound...])"
+            }
+            return line
+        }.joined(separator: "\n")
+    }
+}
+
 struct SectionTitle: View {
     var text: String
     var body: some View {

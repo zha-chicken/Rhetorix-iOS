@@ -165,6 +165,7 @@ Use native iOS typography, but keep the Android hierarchy:
 - Neutral letter spacing
 - Chinese and English strings must wrap cleanly
 - Long debate content should remain readable in scrollable cards
+- AI-generated text (debate replies, judge summaries, review points, rebuttal prompts and feedback) renders inline Markdown: bold, italics, and inline code are styled, heading lines become bold lines, and list markers become bullet dots — raw `**` or `#` syntax must never be visible to the user
 
 ## Layout Principles
 
