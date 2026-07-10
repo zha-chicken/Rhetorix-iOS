@@ -218,7 +218,62 @@ extension ButtonStyle where Self == RhetorixPrimaryButtonStyle {
     static var rhetorixPrimary: RhetorixPrimaryButtonStyle { RhetorixPrimaryButtonStyle() }
 }
 
+struct RhetorixFieldStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(RhetorixColors.glassStrong)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(RhetorixColors.border, lineWidth: 1)
+            )
+    }
+}
+
+struct RhetorixMenuField<SelectionValue: Hashable>: View {
+    var title: String
+    var options: [(value: SelectionValue, label: String)]
+    @Binding var selection: SelectionValue
+
+    private var selectedLabel: String {
+        options.first { $0.value == selection }?.label ?? ""
+    }
+
+    var body: some View {
+        Menu {
+            Picker(title, selection: $selection) {
+                ForEach(Array(options.enumerated()), id: \.offset) { _, option in
+                    Text(option.label).tag(option.value)
+                }
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Text(title)
+                    .font(.subheadline)
+                    .foregroundStyle(RhetorixColors.textSecondary)
+                Spacer(minLength: 12)
+                Text(selectedLabel)
+                    .font(.subheadline.bold())
+                    .foregroundStyle(RhetorixColors.textPrimary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption2.bold())
+                    .foregroundStyle(RhetorixColors.textTertiary)
+            }
+            .rhetorixField()
+        }
+    }
+}
+
 extension View {
+    func rhetorixField() -> some View {
+        modifier(RhetorixFieldStyle())
+    }
+
     func appScreen() -> some View {
         self
             .foregroundStyle(RhetorixColors.textPrimary)
