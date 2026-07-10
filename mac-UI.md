@@ -217,6 +217,8 @@ Cards are used for:
 - Analysis results
 - Constructive analysis detail panels
 
+Cards stacked vertically in a screen's main column must all span the full column width. A card must never hug its text and float centered beside full-width siblings; card content uses a leading-aligned max-width frame so every card in a stack shares the same left and right edges.
+
 ### Buttons
 
 Primary actions:
