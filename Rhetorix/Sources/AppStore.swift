@@ -60,27 +60,33 @@ final class AppStore: ObservableObject {
     var shouldAskLearningProfile: Bool {
         learningProfile.hasCompletedOnboarding == false
     }
+    // The visible learning curriculum: speak clearly, build the case,
+    // support it, attack and defend, then weigh to win.
+    static let skillPath: [DebateSkill] = [.delivery, .argumentStructure, .evidence, .directClash, .impactWeighing]
+
+    func bestCoachScore(for skill: DebateSkill) -> Int? {
+        sessions
+            .filter { $0.mode != .aiVsAi }
+            .compactMap { $0.result?.rubric.first(where: { $0.skill == skill })?.score }
+            .max()
+    }
+
+    func isSkillMastered(_ skill: DebateSkill) -> Bool {
+        (bestCoachScore(for: skill) ?? 0) >= 4
+    }
+
     var dailyPracticeSkill: DebateSkill {
+        if let next = Self.skillPath.first(where: { isSkillMastered($0) == false }) {
+            return next
+        }
+        // Every path step is mastered: keep sharpening the weakest recent skill.
         if let weakness = userProfileMemory.weaknessSignals.first?.title.lowercased() {
             if weakness.contains("evidence") || weakness.contains("证据") { return .evidence }
             if weakness.contains("clash") || weakness.contains("rebut") || weakness.contains("交锋") || weakness.contains("反驳") { return .directClash }
             if weakness.contains("impact") || weakness.contains("weigh") || weakness.contains("影响") || weakness.contains("权衡") { return .impactWeighing }
             if weakness.contains("structure") || weakness.contains("definition") || weakness.contains("结构") || weakness.contains("定义") { return .argumentStructure }
         }
-
-        let startingSkill: DebateSkill
-        switch learningProfile.goal {
-        case .speakingConfidence, .englishSpeaking:
-            startingSkill = .delivery
-        case .debateCompetition:
-            startingSkill = .directClash
-        case .classroom, .criticalThinking:
-            startingSkill = .argumentStructure
-        }
-        guard debateCount > 0 else { return startingSkill }
-        let skills = DebateSkill.allCases
-        let start = skills.firstIndex(of: startingSkill) ?? 0
-        return skills[(start + debateCount) % skills.count]
+        return Self.skillPath[debateCount % Self.skillPath.count]
     }
     var preferredProvider: AiProvider {
         if let configured = providerConfigs.first(where: { $0.isEnabled && $0.apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false }) {

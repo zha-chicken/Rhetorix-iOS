@@ -282,7 +282,7 @@ Purpose: launch common tasks and show personal usage progress.
 Content:
 
 - Rhetorix brand title
-- Primary `Today's Practice` hero card: a compact leading-aligned layout with a small skill icon label, the skill name, a one-line coaching statement, the primary `Start Guided Practice` action, and a secondary `Start Open Debate` action
+- Primary `Today's Practice` hero card: a compact leading-aligned layout with a small skill icon label, a `Step X / 5` skill-path position indicator, the skill name, a one-line coaching statement, the primary `Start Guided Practice` action, and a secondary `Start Open Debate` action
 - Dynamic stats: debates, win rate, win streak
 - Real local memory card
 - Real topic recommendation when enough data exists
@@ -302,6 +302,7 @@ First use asks for a primary learning goal, debate experience, and a 5-, 10-, or
 The Guided Practice screen is organized as an explicit three-step learning journey so a student can tell at first glance what they will learn and how the session works:
 
 - A hero card states today's skill (one of five stable practice skills: argument structure, evidence and examples, direct clash and rebuttal, impact comparison, or delivery and clarity), a one-line learning goal, a compact `1 Learn → 2 Debate → 3 Review` plan strip, and the estimated total time.
+- A `Skill path` card directly under the hero shows the open five-step curriculum in order: delivery and clarity → argument structure → evidence and examples → direct clash and rebuttal → impact comparison. Each step is a circular icon node connected by lines; mastered steps show a green checkmark, the active step shows a cyan ring, and every node is tappable to practice that skill immediately (the path is open, never locked). The card shows `Step X / 5`, the next step's name, and the mastery rule: a coach rubric score of 4+ on that skill in any judged debate masters the step. Today's recommended skill is always the first unmastered step; after all five are mastered, recommendations shift to the user's weakest recent skill.
 - `Step 1 · Learn the move` merges the strategy formula, the worked example, and the three-item pre-speech checklist into a single card with internal mini-headers, instead of three separate equally weighted cards.
 - `Step 2 · Debate for real` shows the locally selected practice motion plus setup chips for the user's side, difficulty, and debate length.
 - `Step 3 · Get coached` previews the feedback loop: self-rating first, the AI coach scoring the same five skills, then an immediate speech retry.
