@@ -16,10 +16,12 @@ Status: `Implemented baseline`
 
 ### 2. Rich Single-Debate Review
 
-- Store structured key clashes.
-- Store strongest arguments from each side.
-- Store concrete user improvement actions.
-- Store why the judge thought the winner won.
+Status: `Implemented baseline`
+
+- Structured key clashes, strongest arguments, concrete improvement actions, and judge rationale are stored.
+- A stable five-skill rubric now includes transcript evidence, demonstrated strengths, and specific next steps.
+- Students complete a hidden self-assessment before seeing the coach scores and can retry one speech immediately.
+- Remaining work: calibrate rubric consistency against experienced human debate judges.
 
 ### 3. Stronger Debate Pressure
 
@@ -45,7 +47,10 @@ Status: `Implemented baseline`
 
 ### 6. Automated Functional Testing
 
-- Add UI automation covering Home, Settings, provider config, debate start, debate finish, history open, constructive analysis, fallacy detector, and rebuttal trainer.
+Status: `Expanded baseline`
+
+- UI automation covers learning onboarding, Today’s Practice, debate start, debate finish, self-assessment, five-skill rubric, result feedback, speech retry, constructive analysis, and fallacy detection.
+- Remaining coverage: Settings, provider configuration, history resume/open, and Rebuttal Trainer.
 - Keep build checks but do not treat build success as full functional coverage.
 
 ### 7. Real Device Verification

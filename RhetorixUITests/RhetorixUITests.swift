@@ -34,15 +34,52 @@ final class RhetorixUITests: XCTestCase {
         XCTAssertTrue(endButton.waitForExistence(timeout: 5))
         endButton.tap()
 
+        let selfAssessmentSubmit = app.buttons["selfAssessment.submit"]
+        XCTAssertTrue(selfAssessmentSubmit.waitForExistence(timeout: 5))
+        selfAssessmentSubmit.tap()
+
         XCTAssertTrue(app.staticTexts["Mock judgment: the user wins by clearer clash and better weighing."].waitForExistence(timeout: 5))
+        XCTAssertTrue(scrollToElement(app.staticTexts["Five-skill coach rubric"], in: app))
+        XCTAssertTrue(app.staticTexts["Argument structure"].waitForExistence(timeout: 5))
 
         let likeButton = app.buttons["result.feedback.like"]
-        XCTAssertTrue(likeButton.waitForExistence(timeout: 5))
+        XCTAssertTrue(scrollToElement(likeButton, in: app))
         likeButton.tap()
         let categoryButton = app.buttons["result.feedback.category"].firstMatch
         XCTAssertTrue(categoryButton.waitForExistence(timeout: 5))
         categoryButton.tap()
         XCTAssertTrue(app.staticTexts["Saved: Like · Category"].waitForExistence(timeout: 5))
+
+        let retryButton = app.buttons["result.retrySpeech"].firstMatch
+        XCTAssertTrue(scrollToElement(retryButton, in: app, maxSwipes: 12))
+        retryButton.tap()
+
+        let retryInput = firstExistingElement([app.textViews["retry.input"], app.otherElements["retry.input"]])
+        XCTAssertTrue(retryInput.waitForExistence(timeout: 5))
+        retryInput.tap()
+        retryInput.typeText(" This revision directly answers the cost claim and weighs safety as larger and harder to reverse.")
+        app.buttons["retry.submit"].tap()
+        let retryFeedback = app.staticTexts["Mock retry feedback: the revised speech answers the opposing claim more directly and explains the impact."]
+        XCTAssertTrue(scrollToElement(retryFeedback, in: app, maxSwipes: 4))
+    }
+
+    @MainActor
+    func testGuidedPracticeCarriesSkillIntoDebate() throws {
+        let app = launchApp()
+
+        let today = app.buttons["home.todayPractice"]
+        XCTAssertTrue(today.waitForExistence(timeout: 5))
+        today.tap()
+
+        XCTAssertTrue(app.staticTexts["Delivery and clarity"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Worked example"].waitForExistence(timeout: 5))
+
+        let start = app.buttons["practice.start"]
+        XCTAssertTrue(scrollToElement(start, in: app))
+        start.tap()
+
+        XCTAssertTrue(app.staticTexts["Practice focus"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Signpost → One idea per sentence → Clear conclusion"].waitForExistence(timeout: 5))
     }
 
     @MainActor
@@ -83,20 +120,32 @@ final class RhetorixUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["UITEST_MODE", "UITEST_RESET_DATA"]
         app.launch()
-        skipMBTIIfNeeded(app: app)
+        completeLearningOnboardingIfNeeded(app: app)
         return app
     }
 
     @MainActor
-    private func skipMBTIIfNeeded(app: XCUIApplication) {
-        let skipButton = app.buttons["onboarding.skipMBTI"]
-        if skipButton.waitForExistence(timeout: 3) {
-            skipButton.tap()
+    private func completeLearningOnboardingIfNeeded(app: XCUIApplication) {
+        let continueButton = app.buttons["onboarding.continue"]
+        if continueButton.waitForExistence(timeout: 3) {
+            if continueButton.isHittable == false {
+                app.swipeUp()
+            }
+            continueButton.tap()
         }
     }
 
     @MainActor
     private func firstExistingElement(_ elements: [XCUIElement]) -> XCUIElement {
         elements.first { $0.exists } ?? elements[0]
+    }
+
+    @MainActor
+    private func scrollToElement(_ element: XCUIElement, in app: XCUIApplication, maxSwipes: Int = 8) -> Bool {
+        for _ in 0..<maxSwipes {
+            if element.exists, element.isHittable { return true }
+            app.swipeUp()
+        }
+        return element.exists && element.isHittable
     }
 }

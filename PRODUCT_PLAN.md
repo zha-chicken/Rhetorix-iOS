@@ -132,7 +132,8 @@ Recommendation behavior:
 
 - The app should suggest a small number of likely-good topics.
 - Suggestions should feel like invitations to talk, not algorithmic feeds.
-- Ask only one optional onboarding question: MBTI. The user can skip it, and the app must continue normally.
+- First-use onboarding asks for a learning goal, experience level, and preferred practice length so the app can build a useful starting plan before enough history exists.
+- MBTI remains optional in Settings and only contributes a small topic-preference bias.
 - Keep all memory local unless a future cloud feature is intentionally added.
 
 ## Product Positioning
@@ -149,6 +150,15 @@ Do not position it as:
 - A paywalled debate platform
 
 ## Implementation Priority
+
+First guided-practice release:
+
+1. Goal-based learning onboarding. `Implemented`
+2. Today’s Practice lesson, worked example, checklist, and focused debate. `Implemented`
+3. Five-skill judging rubric with transcript evidence and actionable next steps. `Implemented`
+4. Student self-assessment before AI feedback. `Implemented`
+5. Immediate speech retry with before/after comparison. `Implemented`
+6. Keychain storage and legacy credential migration. `Implemented`
 
 1. Make debate visually and behaviorally dominant on Home. `Implemented baseline`
 2. Add stage timers to live debate. `Implemented baseline`
@@ -176,11 +186,11 @@ Long-term memory must be real. It is computed from local usage data only:
 - repeated words/topics from the user's own User vs AI turns
 - real stage timing, including slow rebuttal/reply pacing
 
-The app must not invent a user profile or present a recommendation before there is enough real session data. MBTI is the only user-selected profile attribute and is optional/skippable. Inferred labels must remain evidence-based, local, and conservative. If fewer than two engaged debates exist, the UI shows that memory is still learning instead of recommending a topic.
+The app must not invent a user profile or present a recommendation before there is enough real session data. Learning goal, experience level, practice length, and optional MBTI are explicit user choices; all inferred labels must remain evidence-based, local, and conservative. If fewer than two engaged debates exist, the UI shows that memory is still learning instead of presenting behavior-based recommendations.
 
 Memory 2.0 is now a local baseline:
 
-- MBTI prompt appears once on first use and can be skipped.
+- Learning-plan onboarding appears once on first use. MBTI is optional in Settings and is not an onboarding gate.
 - Home shows the strongest profile signals when evidence exists.
 - Settings shows MBTI, evidence counts, style signals, value signals, weakness signals, confidence, and sample evidence.
 - Weakness signals include judge/rebuttal feedback, recurring Constructive Analysis issue types, clearer-definition needs, and slow rebuttal pacing from actual timers.

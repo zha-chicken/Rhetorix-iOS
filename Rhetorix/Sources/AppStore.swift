@@ -312,21 +312,21 @@ final class AppStore: ObservableObject {
                 let result = try await ai.chat(
                     systemPrompt: """
                     You are a debate coach comparing a student's original speech with one immediate retry.
-                    (responseLanguageInstruction)
+                    \(responseLanguageInstruction)
                     Score the revised speech against the same 1-5 debate rubric. Reward genuine improvement, not length. Return concise JSON only.
                     """,
                     messages: [ChatMessage(role: "user", content: """
-                    Motion: (session.topic.title)
-                    Practice focus: (focusSkill.rawValue)
+                    Motion: \(session.topic.title)
+                    Practice focus: \(focusSkill.rawValue)
                     Original speech:
-                    (turn.content)
+                    \(turn.content)
 
                     Revised speech:
-                    (revised)
+                    \(revised)
 
-                    Original focus score: (beforeScore)/5
+                    Original focus score: \(beforeScore)/5
                     Return exactly:
-                    {"afterScore":4,"feedback":"what improved and the single most useful remaining correction","improvedSkills":["Argument structure|Evidence and examples|Direct clash and rebuttal|Impact comparison|Delivery and clarity"]}
+                    {"afterScore":4,"feedback":"what improved and the single most useful remaining correction","improvedSkills":["Direct clash and rebuttal"]}
                     """)],
                     config: config,
                     maxTokens: 420,
@@ -734,7 +734,7 @@ final class AppStore: ObservableObject {
             - Rubric feedback must separate one demonstrated strength from one specific next step.
             - For User vs AI, improvementActions should focus on the human user. For Face to Face, write neutral advice for both speakers. For AI vs AI, write learning notes a human observer can practice.
             Return JSON only with this exact shape:
-            {"winner":"USER|SUPPORT|OPPOSE|TIE","score":"5-3","summary":"2-3 sentence outcome explanation","judgeRationale":"why the winner won and why the loser fell short","rubric":[{"skill":"Argument structure|Evidence and examples|Direct clash and rebuttal|Impact comparison|Delivery and clarity","score":1,"evidenceQuote":"short exact transcript quote","strength":"what worked","nextStep":"one specific correction"}],"keyClashes":[{"title":"clash name","detail":"what each side argued and who won this clash"}],"strongestSupportArguments":[{"title":"argument name","detail":"why it worked"}],"strongestOpposeArguments":[{"title":"argument name","detail":"why it worked"}],"improvementActions":[{"title":"action name","detail":"specific drill or fix"}],"nextPracticeFocus":"one focused skill for the next debate"}
+            {"winner":"USER|SUPPORT|OPPOSE|TIE","score":"5-3","summary":"2-3 sentence outcome explanation","judgeRationale":"why the winner won and why the loser fell short","rubric":[{"skill":"Argument structure","score":1,"evidenceQuote":"short exact transcript quote","strength":"what worked","nextStep":"one specific correction"},{"skill":"Evidence and examples","score":1,"evidenceQuote":"short exact transcript quote","strength":"what worked","nextStep":"one specific correction"},{"skill":"Direct clash and rebuttal","score":1,"evidenceQuote":"short exact transcript quote","strength":"what worked","nextStep":"one specific correction"},{"skill":"Impact comparison","score":1,"evidenceQuote":"short exact transcript quote","strength":"what worked","nextStep":"one specific correction"},{"skill":"Delivery and clarity","score":1,"evidenceQuote":"short exact transcript quote","strength":"what worked","nextStep":"one specific correction"}],"keyClashes":[{"title":"clash name","detail":"what each side argued and who won this clash"}],"strongestSupportArguments":[{"title":"argument name","detail":"why it worked"}],"strongestOpposeArguments":[{"title":"argument name","detail":"why it worked"}],"improvementActions":[{"title":"action name","detail":"specific drill or fix"}],"nextPracticeFocus":"one focused skill for the next debate"}
             """)],
             config: config,
             safetyTexts: judgeSafetyTexts

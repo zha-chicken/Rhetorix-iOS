@@ -271,9 +271,8 @@ Purpose: launch common tasks and show personal usage progress.
 Content:
 
 - Rhetorix brand title
-- Abstract debate/reasoning hero mark
-- Primary `Start Voice Debate` action
-- Short value statement
+- Primary `Today's Practice` card showing the current skill, short coaching statement, and `Start Guided Practice` action
+- Secondary `Start Open Debate` action for users who do not want a guided session
 - Dynamic stats: debates, win rate, win streak
 - Real local memory card
 - Real topic recommendation when enough data exists
@@ -283,8 +282,21 @@ Content:
 Stats must be dynamic and start at zero for a new user.
 The home screen should not include a visible donation/support entry.
 The home screen should not include a Face-to-Face quick action, although Face-to-Face remains available from debate setup.
-Live debate should be the most prominent action on the screen.
+Guided debate practice should be the most prominent action on the screen, while open live debate remains one tap away.
 Preparation tools should use compact auxiliary controls rather than large feature cards.
+
+### Learning Onboarding And Guided Practice
+
+First use asks for a primary learning goal, debate experience, and a 5-, 10-, or 20-minute practice preference. It does not require MBTI. The resulting choices remain editable in Settings.
+
+The Guided Practice screen contains:
+
+- One of five stable practice skills: argument structure, evidence and examples, direct clash and rebuttal, impact comparison, or delivery and clarity
+- A short strategy formula
+- A worked example
+- A three-item checklist
+- A locally selected practice motion and AI provider
+- A single start action that carries the skill focus into the live debate
 
 ### Topic Selection
 
@@ -331,6 +343,7 @@ Content:
 - AI vs AI debate screens do not show the stage timer, because there is no human speaker under time pressure.
 - Score or side-balance indicator
 - Debate message cards
+- Guided sessions show a compact practice-focus card with the selected skill and strategy
 - AI thinking state
 - Voice-first user input with text fallback
 - Input mode and stage duration metadata
@@ -367,6 +380,9 @@ Content:
 - Winner label
 - Final score
 - Short outcome explanation
+- A student self-assessment completed before coach feedback is revealed
+- A side-by-side comparison of student and coach scores
+- A stable five-skill rubric. Each score uses a 1-5 scale, cites transcript evidence, identifies one strength, and gives one concrete next step.
 - Deep review cards generated from the debate transcript:
   - Judge rationale explaining why the winning side won and why the other side fell short
   - Key clashes with what each side contested and which side carried each clash
@@ -377,6 +393,7 @@ Content:
 - Key moments
 - Debate transcript
 - Post-result recommendation feedback: compact thumbs-up and thumbs-down buttons appear below the result card. Choosing either opens a native choice prompt asking what the user liked/disliked: Category or Technique.
+- Immediate speech retry: a student can select one of their speeches, apply the coaching correction, submit a revised version, and see a saved before/after score and comparison.
 - Return home action
 
 Winner handling:
@@ -408,8 +425,8 @@ Rules:
 - Memory is computed from local session history only.
 - AI vs AI sessions are excluded from recommendation preference and memory signals because they do not represent the user's own debate behavior. They may still count for recent-topic and repeat-topic penalties so users are not immediately recommended a topic they just watched.
 - The app must not invent interests, strengths, weaknesses, or topic preferences.
-- MBTI is the only self-reported profile item. It appears as a first-use sheet, can be skipped, and can be changed later in Settings.
-- The MBTI sheet is driven by actual MBTI data: if no MBTI is stored, it appears on app launch; if an MBTI is stored, it does not appear. Skipping only suppresses the sheet for the current app session.
+- Learning goal, experience level, and preferred practice length are explicit first-use choices that define the initial practice plan.
+- MBTI is optional in Settings and is not shown as a first-use gate.
 - MBTI may add only a small recommendation bias. It must never outweigh real debate history, weakness signals, or recent-repeat avoidance.
 - Recommendations require at least two engaged debates.
 - If there is not enough data, show a learning state instead of a recommendation.
