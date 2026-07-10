@@ -11,7 +11,7 @@ struct RootView: View {
     var body: some View {
         NavigationStack(path: $path) {
             TabView(selection: $selectedTab) {
-                HomeView(path: $path, selectedTab: $selectedTab)
+                HomeView(path: $path)
                     .tabItem { Label(store.t("Home"), systemImage: "house.fill") }
                     .tag(MainTab.home)
                 HistoryView(path: $path)
@@ -80,7 +80,6 @@ enum MainTab: Hashable {
 struct HomeView: View {
     @EnvironmentObject private var store: AppStore
     @Binding var path: NavigationPath
-    @Binding var selectedTab: MainTab
 
     var body: some View {
         ScrollView {
@@ -92,22 +91,17 @@ struct HomeView: View {
                 }
 
                 GlassCard(accent: RhetorixColors.cyan, padding: 20) {
-                    VStack(spacing: 12) {
-                        Image(systemName: store.dailyPracticeSkill.icon)
-                            .font(.system(size: 48))
-                            .foregroundStyle(RhetorixColors.textPrimary)
-                            .padding(24)
-                            .background(Circle().fill(RhetorixColors.glassStrong))
-                        Text(store.t("Today's Practice"))
-                            .font(.title.bold())
-                            .foregroundStyle(RhetorixColors.textPrimary)
+                    VStack(alignment: .leading, spacing: 10) {
+                        Label(store.t("Today's Practice"), systemImage: store.dailyPracticeSkill.icon)
+                            .font(.caption.bold())
+                            .foregroundStyle(RhetorixColors.cyan)
                         Text(store.t(store.dailyPracticeSkill.rawValue))
-                            .font(.headline)
-                            .foregroundStyle(RhetorixColors.amber)
+                            .font(.title2.bold())
+                            .foregroundStyle(RhetorixColors.textPrimary)
                         Text(store.t(store.dailyPracticeSkill.lessonSummary))
-                            .font(.headline)
+                            .font(.subheadline)
                             .foregroundStyle(RhetorixColors.textSecondary)
-                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
                         Button {
                             path.append(AppRoute.guidedPractice)
                         } label: {
@@ -119,6 +113,7 @@ struct HomeView: View {
                         }
                         .buttonStyle(.rhetorixPrimary)
                         .accessibilityIdentifier("home.todayPractice")
+                        .padding(.top, 4)
                         Button {
                             path.append(AppRoute.topicSelection)
                         } label: {
@@ -128,7 +123,7 @@ struct HomeView: View {
                         .buttonStyle(.bordered)
                         .accessibilityIdentifier("home.startVoiceDebate")
                     }
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
                 HStack(spacing: 10) {
@@ -138,16 +133,6 @@ struct HomeView: View {
                 }
 
                 MemoryInsightCard(path: $path)
-
-                SectionTitle(text: store.t("Quick Actions"))
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                    FeatureCard(title: store.t("New Debate"), subtitle: store.t("Start a timed debate"), icon: "message.fill", accent: RhetorixColors.cyan) {
-                        path.append(AppRoute.topicSelection)
-                    }
-                    FeatureCard(title: store.t("History"), subtitle: store.t("Review debates"), icon: "clock.fill", accent: RhetorixColors.green) {
-                        selectedTab = .history
-                    }
-                }
 
                 SectionTitle(text: store.t("Preparation Tools"))
                 HStack(spacing: 10) {
@@ -478,30 +463,6 @@ struct StatCard: View {
             }
             .frame(maxWidth: .infinity)
         }
-    }
-}
-
-struct FeatureCard: View {
-    var title: String
-    var subtitle: String
-    var icon: String
-    var accent: Color
-    var action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            GlassCard(accent: accent) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Image(systemName: icon).font(.title2).foregroundStyle(accent)
-                    Text(title).font(.headline).foregroundStyle(RhetorixColors.textPrimary)
-                    if subtitle.isEmpty == false {
-                        Text(subtitle).font(.caption).foregroundStyle(RhetorixColors.textSecondary)
-                    }
-                }
-                .frame(maxWidth: .infinity, minHeight: 76, alignment: .topLeading)
-            }
-        }
-        .buttonStyle(.plain)
     }
 }
 

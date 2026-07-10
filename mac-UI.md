@@ -273,15 +273,14 @@ Purpose: launch common tasks and show personal usage progress.
 Content:
 
 - Rhetorix brand title
-- Primary `Today's Practice` card showing the current skill, short coaching statement, and `Start Guided Practice` action
-- Secondary `Start Open Debate` action for users who do not want a guided session
+- Primary `Today's Practice` hero card: a compact leading-aligned layout with a small skill icon label, the skill name, a one-line coaching statement, the primary `Start Guided Practice` action, and a secondary `Start Open Debate` action
 - Dynamic stats: debates, win rate, win streak
 - Real local memory card
 - Real topic recommendation when enough data exists
-- Quick action cards
 - Compact preparation tools
 
 Stats must be dynamic and start at zero for a new user.
+The home screen must not contain duplicate destinations. Open debate lives only in the hero card, and History and Tools are reached through the tab bar; there is no separate quick-action card section.
 The home screen should not include a visible donation/support entry.
 The home screen should not include a Face-to-Face quick action, although Face-to-Face remains available from debate setup.
 Guided debate practice should be the most prominent action on the screen, while open live debate remains one tap away.
