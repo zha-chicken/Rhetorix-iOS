@@ -291,14 +291,14 @@ Preparation tools should use compact auxiliary controls rather than large featur
 
 First use asks for a primary learning goal, debate experience, and a 5-, 10-, or 20-minute practice preference. It does not require MBTI. The resulting choices remain editable in Settings.
 
-The Guided Practice screen contains:
+The Guided Practice screen is organized as an explicit three-step learning journey so a student can tell at first glance what they will learn and how the session works:
 
-- One of five stable practice skills: argument structure, evidence and examples, direct clash and rebuttal, impact comparison, or delivery and clarity
-- A short strategy formula
-- A worked example
-- A three-item checklist
-- A locally selected practice motion
-- A single start action that carries the skill focus into the live debate
+- A hero card states today's skill (one of five stable practice skills: argument structure, evidence and examples, direct clash and rebuttal, impact comparison, or delivery and clarity), a one-line learning goal, a compact `1 Learn → 2 Debate → 3 Review` plan strip, and the estimated total time.
+- `Step 1 · Learn the move` merges the strategy formula, the worked example, and the three-item pre-speech checklist into a single card with internal mini-headers, instead of three separate equally weighted cards.
+- `Step 2 · Debate for real` shows the locally selected practice motion plus setup chips for the user's side, difficulty, and debate length.
+- `Step 3 · Get coached` previews the feedback loop: self-rating first, the AI coach scoring the same five skills, then an immediate speech retry.
+- Each step section uses a numbered circular badge, a bold step title, and a small duration estimate on the right.
+- The single start action is pinned at the bottom of the screen above the safe area with a background fade, so it stays visible while scrolling and carries the skill focus into the live debate.
 
 The active AI provider is inherited from Settings. Guided Practice does not expose a provider picker.
 
