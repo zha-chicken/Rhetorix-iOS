@@ -743,6 +743,7 @@ struct DebateSetupView: View {
                         Text(store.topicTitle(topic)).font(.headline)
                         Text(store.topicDetails(topic)).font(.caption).foregroundStyle(RhetorixColors.textSecondary)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 Picker(store.t("Mode"), selection: $mode) {
                     ForEach(DebateMode.allCases) { Text(store.debateMode($0)).tag($0) }
@@ -922,6 +923,7 @@ struct DebatePracticeFocusCard: View {
                     .font(.subheadline)
                     .foregroundStyle(RhetorixColors.textSecondary)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }
