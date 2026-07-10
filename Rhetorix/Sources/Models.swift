@@ -35,6 +35,114 @@ enum DebateDifficulty: String, Codable, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+enum LearningGoal: String, Codable, CaseIterable, Identifiable {
+    case debateCompetition = "Debate competition"
+    case classroom = "Classroom debates"
+    case speakingConfidence = "Speaking confidence"
+    case englishSpeaking = "English speaking"
+    case criticalThinking = "Critical thinking"
+
+    var id: String { rawValue }
+}
+
+enum DebateExperience: String, Codable, CaseIterable, Identifiable {
+    case beginner = "Beginner"
+    case intermediate = "Intermediate"
+    case advanced = "Advanced"
+
+    var id: String { rawValue }
+}
+
+enum PracticeDuration: Int, Codable, CaseIterable, Identifiable {
+    case fiveMinutes = 5
+    case tenMinutes = 10
+    case twentyMinutes = 20
+
+    var id: Int { rawValue }
+}
+
+struct UserLearningProfile: Codable, Equatable {
+    var hasCompletedOnboarding = false
+    var goal: LearningGoal = .speakingConfidence
+    var experience: DebateExperience = .beginner
+    var practiceDuration: PracticeDuration = .tenMinutes
+}
+
+enum DebateSkill: String, Codable, CaseIterable, Identifiable, Hashable {
+    case argumentStructure = "Argument structure"
+    case evidence = "Evidence and examples"
+    case directClash = "Direct clash and rebuttal"
+    case impactWeighing = "Impact comparison"
+    case delivery = "Delivery and clarity"
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .argumentStructure: "square.stack.3d.up.fill"
+        case .evidence: "doc.text.magnifyingglass"
+        case .directClash: "bolt.horizontal.circle.fill"
+        case .impactWeighing: "scale.3d"
+        case .delivery: "waveform"
+        }
+    }
+
+    var lessonSummary: String {
+        switch self {
+        case .argumentStructure:
+            "Build every argument as a claim, a warrant, and an impact."
+        case .evidence:
+            "Use a concrete example, explain its relevance, and avoid unsupported certainty."
+        case .directClash:
+            "Name the opponent's claim, challenge its weakest link, and explain why that changes the debate."
+        case .impactWeighing:
+            "Compare probability, scale, timeframe, and reversibility instead of listing impacts."
+        case .delivery:
+            "Signpost your ideas, finish each sentence, and make the decisive point easy to follow."
+        }
+    }
+
+    var strategy: String {
+        switch self {
+        case .argumentStructure: "Claim → Why it is true → Why it matters"
+        case .evidence: "Example → Source or basis → Link to the claim"
+        case .directClash: "They say → But → Because → Therefore"
+        case .impactWeighing: "Even if → Our impact matters more because"
+        case .delivery: "Signpost → One idea per sentence → Clear conclusion"
+        }
+    }
+
+    var example: String {
+        switch self {
+        case .argumentStructure:
+            "Schools should teach AI literacy because students already use these systems without understanding their limits; this reduces misinformation and unsafe reliance."
+        case .evidence:
+            "A school pilot is useful only if you explain who participated, what changed, and why that result applies to this motion."
+        case .directClash:
+            "They say regulation stops innovation, but clear safety rules can increase adoption because schools and families trust accountable products."
+        case .impactWeighing:
+            "Even if compliance creates short-term cost, preventing widespread student harm is larger, harder to reverse, and affects more people."
+        case .delivery:
+            "First, I will answer their cost argument. Second, I will show why our safety impact decides the debate."
+        }
+    }
+
+    var checklist: [String] {
+        switch self {
+        case .argumentStructure:
+            ["State one clear claim", "Explain the causal link", "Finish with a concrete impact"]
+        case .evidence:
+            ["Use a specific example", "Explain why it is credible", "Connect it directly to the motion"]
+        case .directClash:
+            ["Quote or summarize their claim", "Attack its warrant or evidence", "Explain what the clash changes"]
+        case .impactWeighing:
+            ["Compare both sides", "Use at least two weighing tests", "State which impact decides the round"]
+        case .delivery:
+            ["Signpost the speech", "Keep sentences focused", "End with a clear conclusion"]
+        }
+    }
+}
+
 enum DebateSide: String, Codable, CaseIterable, Identifiable {
     case support = "Support"
     case oppose = "Oppose"
@@ -287,8 +395,38 @@ struct DebateSession: Identifiable, Codable, Equatable {
     var provider: AiProvider
     var turns: [DebateTurn] = []
     var result: DebateResult?
+    var practiceSkill: DebateSkill?
+    var selfAssessment: DebateSelfAssessment?
+    var speechRetries: [SpeechRetry]?
     var createdAt: Date = Date()
     var isCompleted: Bool = false
+}
+
+struct DebateSelfAssessment: Codable, Equatable {
+    var ratings: [DebateSkill: Int]
+    var reflection: String
+    var createdAt: Date = Date()
+}
+
+struct SpeechRetry: Identifiable, Codable, Equatable {
+    var id: String = UUID().uuidString
+    var originalTurnID: String
+    var originalText: String
+    var revisedText: String
+    var beforeScore: Int
+    var afterScore: Int
+    var feedback: String
+    var improvedSkills: [DebateSkill]
+    var createdAt: Date = Date()
+}
+
+struct DebateRubricScore: Identifiable, Codable, Equatable {
+    var id: DebateSkill { skill }
+    var skill: DebateSkill
+    var score: Int
+    var evidenceQuote: String
+    var strength: String
+    var nextStep: String
 }
 
 struct DebateResult: Identifiable, Codable, Equatable {
@@ -302,6 +440,7 @@ struct DebateResult: Identifiable, Codable, Equatable {
     var strongestOpposeArguments: [DebateReviewPoint] = []
     var improvementActions: [DebateReviewPoint] = []
     var nextPracticeFocus: String = ""
+    var rubric: [DebateRubricScore] = []
     var createdAt: Date = Date()
 
     init(
@@ -315,6 +454,7 @@ struct DebateResult: Identifiable, Codable, Equatable {
         strongestOpposeArguments: [DebateReviewPoint] = [],
         improvementActions: [DebateReviewPoint] = [],
         nextPracticeFocus: String = "",
+        rubric: [DebateRubricScore] = [],
         createdAt: Date = Date()
     ) {
         self.id = id
@@ -327,6 +467,7 @@ struct DebateResult: Identifiable, Codable, Equatable {
         self.strongestOpposeArguments = strongestOpposeArguments
         self.improvementActions = improvementActions
         self.nextPracticeFocus = nextPracticeFocus
+        self.rubric = rubric
         self.createdAt = createdAt
     }
 
@@ -341,6 +482,7 @@ struct DebateResult: Identifiable, Codable, Equatable {
         case strongestOpposeArguments
         case improvementActions
         case nextPracticeFocus
+        case rubric
         case createdAt
     }
 
@@ -356,6 +498,7 @@ struct DebateResult: Identifiable, Codable, Equatable {
         strongestOpposeArguments = try container.decodeIfPresent([DebateReviewPoint].self, forKey: .strongestOpposeArguments) ?? []
         improvementActions = try container.decodeIfPresent([DebateReviewPoint].self, forKey: .improvementActions) ?? []
         nextPracticeFocus = try container.decodeIfPresent(String.self, forKey: .nextPracticeFocus) ?? ""
+        rubric = try container.decodeIfPresent([DebateRubricScore].self, forKey: .rubric) ?? []
         createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
     }
 }
@@ -506,10 +649,13 @@ struct ChatResult {
 }
 
 enum AppRoute: Hashable {
+    case guidedPractice
     case topicSelection
     case setup(DebateTopic)
     case debate(String)
+    case selfAssessment(String)
     case result(String)
+    case retrySpeech(String, String)
     case memoryProfile
     case constructiveAnalysis
     case rebuttalTrainer

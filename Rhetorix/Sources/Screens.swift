@@ -28,14 +28,20 @@ struct RootView: View {
             .appScreen()
             .navigationDestination(for: AppRoute.self) { route in
                 switch route {
+                case .guidedPractice:
+                    GuidedPracticeView(path: $path)
                 case .topicSelection:
                     TopicSelectionView(path: $path)
                 case .setup(let topic):
                     DebateSetupView(path: $path, topic: topic)
                 case .debate(let id):
                     DebateView(path: $path, sessionID: id)
+                case .selfAssessment(let id):
+                    DebateSelfAssessmentView(path: $path, sessionID: id)
                 case .result(let id):
-                    ResultView(sessionID: id)
+                    ResultView(path: $path, sessionID: id)
+                case .retrySpeech(let sessionID, let turnID):
+                    SpeechRetryView(sessionID: sessionID, turnID: turnID)
                 case .memoryProfile:
                     MemoryProfileDetailView(path: $path)
                 case .constructiveAnalysis:
@@ -56,8 +62,8 @@ struct RootView: View {
         } message: {
             Text(store.activeError ?? "")
         }
-        .sheet(isPresented: Binding(get: { store.shouldAskMBTI }, set: { if !$0 && store.userProfileMemory.mbti == nil { store.skipMBTIForNow() } })) {
-            MBTIOnboardingView()
+        .sheet(isPresented: Binding(get: { store.shouldAskLearningProfile }, set: { _ in })) {
+            LearningOnboardingView()
                 .environmentObject(store)
                 .interactiveDismissDisabled()
         }
@@ -87,24 +93,36 @@ struct HomeView: View {
 
                 GlassCard(accent: RhetorixColors.cyan, padding: 20) {
                     VStack(spacing: 12) {
-                        Image(systemName: "bubble.left.and.bubble.right.fill")
+                        Image(systemName: store.dailyPracticeSkill.icon)
                             .font(.system(size: 48))
                             .foregroundStyle(RhetorixColors.textPrimary)
                             .padding(24)
                             .background(Circle().fill(RhetorixColors.glassStrong))
-                        Text(store.t("Live Debate"))
+                        Text(store.t("Today's Practice"))
                             .font(.title.bold())
                             .foregroundStyle(RhetorixColors.textPrimary)
-                        Text(store.t("Challenge intelligence. Extend ideas."))
+                        Text(store.t(store.dailyPracticeSkill.rawValue))
+                            .font(.headline)
+                            .foregroundStyle(RhetorixColors.amber)
+                        Text(store.t(store.dailyPracticeSkill.lessonSummary))
                             .font(.headline)
                             .foregroundStyle(RhetorixColors.textSecondary)
+                            .multilineTextAlignment(.center)
                         Button {
-                            path.append(AppRoute.topicSelection)
+                            path.append(AppRoute.guidedPractice)
                         } label: {
-                            Label(store.t("Start Voice Debate"), systemImage: "mic.circle.fill")
+                            Label(store.t("Start Guided Practice"), systemImage: "target")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.borderedProminent)
+                        .accessibilityIdentifier("home.todayPractice")
+                        Button {
+                            path.append(AppRoute.topicSelection)
+                        } label: {
+                            Label(store.t("Start Open Debate"), systemImage: "mic.circle.fill")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
                         .accessibilityIdentifier("home.startVoiceDebate")
                     }
                     .frame(maxWidth: .infinity)
@@ -242,53 +260,178 @@ struct MemoryProfilePill: View {
     }
 }
 
-struct MBTIOnboardingView: View {
+struct LearningOnboardingView: View {
     @EnvironmentObject private var store: AppStore
     @Environment(\.dismiss) private var dismiss
-
-    private let columns = [GridItem(.adaptive(minimum: 74), spacing: 8)]
+    @State private var goal: LearningGoal = .speakingConfidence
+    @State private var experience: DebateExperience = .beginner
+    @State private var duration: PracticeDuration = .tenMinutes
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                Text(store.t("Build your debate profile"))
+                Text(store.t("What do you want to improve?"))
                     .font(.title.bold())
                     .foregroundStyle(RhetorixColors.textPrimary)
-                Text(store.t("Choose your MBTI if you want Rhetorix to include it in your local profile. You can skip this."))
+                Text(store.t("Rhetorix will build a short practice plan around your goal. You can change these choices in Settings."))
                     .font(.subheadline)
                     .foregroundStyle(RhetorixColors.textSecondary)
 
-                LazyVGrid(columns: columns, spacing: 8) {
-                    ForEach(MBTIType.allCases) { type in
-                        Button {
-                            store.setMBTI(type)
-                            dismiss()
-                        } label: {
-                            Text(type.rawValue)
-                                .font(.headline)
-                                .frame(maxWidth: .infinity, minHeight: 44)
+                GlassCard(accent: RhetorixColors.cyan) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(store.t("Primary goal")).font(.headline)
+                        Picker(store.t("Primary goal"), selection: $goal) {
+                            ForEach(LearningGoal.allCases) { option in
+                                Text(store.t(option.rawValue)).tag(option)
+                            }
                         }
-                        .buttonStyle(.bordered)
+                        .pickerStyle(.inline)
+                    }
+                }
+
+                GlassCard(accent: RhetorixColors.amber) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(store.t("Experience level")).font(.headline)
+                        Picker(store.t("Experience level"), selection: $experience) {
+                            ForEach(DebateExperience.allCases) { option in
+                                Text(store.t(option.rawValue)).tag(option)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+
+                        Text(store.t("Practice length")).font(.headline)
+                        Picker(store.t("Practice length"), selection: $duration) {
+                            ForEach(PracticeDuration.allCases) { option in
+                                Text("\(option.rawValue) \(store.t("min"))").tag(option)
+                            }
+                        }
+                        .pickerStyle(.segmented)
                     }
                 }
 
                 Button {
-                    store.skipMBTIForNow()
+                    store.completeLearningOnboarding(goal: goal, experience: experience, practiceDuration: duration)
                     dismiss()
                 } label: {
-                    Text(store.t("Skip for now"))
+                    Text(store.t("Build My Practice Plan"))
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
-                .accessibilityIdentifier("onboarding.skipMBTI")
+                .accessibilityIdentifier("onboarding.continue")
 
-                Text(store.t("Rhetorix only infers traits from real local debate history. It will not invent a profile when evidence is insufficient."))
+                Text(store.t("Your learning profile and debate history stay on this device."))
                     .font(.caption)
                     .foregroundStyle(RhetorixColors.textTertiary)
             }
             .padding(24)
         }
         .appScreen()
+    }
+}
+
+struct GuidedPracticeView: View {
+    @EnvironmentObject private var store: AppStore
+    @Binding var path: NavigationPath
+    @State private var provider: AiProvider = .openAI
+
+    private var skill: DebateSkill { store.dailyPracticeSkill }
+    private var topic: DebateTopic? { store.dailyPracticeTopic(for: skill) }
+    private var difficulty: DebateDifficulty {
+        switch store.learningProfile.experience {
+        case .beginner: .easy
+        case .intermediate: .medium
+        case .advanced: .hard
+        }
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                GlassCard(accent: RhetorixColors.cyan, padding: 20) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Label(store.t("Today's skill"), systemImage: skill.icon)
+                            .font(.caption.bold())
+                            .foregroundStyle(RhetorixColors.cyan)
+                        Text(store.t(skill.rawValue))
+                            .font(.title2.bold())
+                        Text(store.t(skill.lessonSummary))
+                            .foregroundStyle(RhetorixColors.textSecondary)
+                        Text(store.t(skill.strategy))
+                            .font(.headline)
+                            .foregroundStyle(RhetorixColors.amber)
+                            .padding(10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(RoundedRectangle(cornerRadius: 12).fill(RhetorixColors.glassStrong))
+                    }
+                }
+
+                GlassCard(accent: RhetorixColors.green) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Label(store.t("Worked example"), systemImage: "lightbulb.fill")
+                            .font(.headline)
+                        Text(store.t(skill.example))
+                            .foregroundStyle(RhetorixColors.textSecondary)
+                    }
+                }
+
+                GlassCard(accent: RhetorixColors.amber) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(store.t("Use this checklist")).font(.headline)
+                        ForEach(skill.checklist, id: \.self) { item in
+                            Label(store.t(item), systemImage: "checkmark.circle")
+                                .font(.subheadline)
+                        }
+                    }
+                }
+
+                if let topic {
+                    GlassCard(accent: RhetorixColors.peach) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(store.t("Practice motion")).font(.caption.bold()).foregroundStyle(RhetorixColors.peach)
+                            Text(store.topicTitle(topic)).font(.headline)
+                            Text(store.topicDetails(topic)).font(.caption).foregroundStyle(RhetorixColors.textSecondary)
+                        }
+                    }
+                }
+
+                Picker(store.t("AI Provider"), selection: $provider) {
+                    ForEach(AiProvider.allCases) { option in
+                        Text(option.rawValue).tag(option)
+                    }
+                }
+                .pickerStyle(.menu)
+
+                Button {
+                    startPractice()
+                } label: {
+                    Label("\(store.t("Start")) · \(store.learningProfile.practiceDuration.rawValue) \(store.t("min"))", systemImage: "mic.circle.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .disabled(topic == nil)
+                .accessibilityIdentifier("practice.start")
+            }
+            .padding()
+        }
+        .navigationTitle(store.t("Guided Practice"))
+        .onAppear { provider = store.preferredProvider }
+        .appScreen()
+    }
+
+    private func startPractice() {
+        guard let topic else { return }
+        let format: DebateFormat = store.learningProfile.practiceDuration == .fiveMinutes ? .freeFlow : .structured
+        let session = store.createSession(
+            topic: topic,
+            mode: .userVsAi,
+            format: format,
+            difficulty: difficulty,
+            side: .support,
+            provider: provider,
+            practiceSkill: skill
+        )
+        path.append(AppRoute.debate(session.id))
     }
 }
 
@@ -530,6 +673,9 @@ struct DebateView: View {
                 ScrollView {
                     VStack(spacing: 12) {
                         if let session {
+                            if let skill = session.practiceSkill {
+                                DebatePracticeFocusCard(skill: skill)
+                            }
                             DebateStatus(session: session, stageStartedAt: stageStartedAt, now: now)
                             ForEach(Array(session.turns.enumerated()), id: \.element.id) { index, turn in
                                 DebateBubble(turn: turn, stage: store.stageTitle(for: session, turnIndex: index), speechPlayer: aiSpeech)
@@ -623,7 +769,28 @@ struct DebateView: View {
         isEndingDebate = true
         await store.endAndJudge(sessionID: sessionID)
         isEndingDebate = false
-        path.append(AppRoute.result(sessionID))
+        if store.sessions.first(where: { $0.id == sessionID })?.result != nil {
+            path.append(AppRoute.selfAssessment(sessionID))
+        }
+    }
+}
+
+struct DebatePracticeFocusCard: View {
+    @EnvironmentObject private var store: AppStore
+    var skill: DebateSkill
+
+    var body: some View {
+        GlassCard(accent: RhetorixColors.cyan) {
+            VStack(alignment: .leading, spacing: 8) {
+                Label(store.t("Practice focus"), systemImage: skill.icon)
+                    .font(.caption.bold())
+                    .foregroundStyle(RhetorixColors.cyan)
+                Text(store.t(skill.rawValue)).font(.headline)
+                Text(store.t(skill.strategy))
+                    .font(.subheadline)
+                    .foregroundStyle(RhetorixColors.textSecondary)
+            }
+        }
     }
 }
 
@@ -894,8 +1061,94 @@ struct DebateMemorySection: View {
     }
 }
 
+struct DebateSelfAssessmentView: View {
+    @EnvironmentObject private var store: AppStore
+    @Binding var path: NavigationPath
+    var sessionID: String
+    @State private var ratings = Dictionary(uniqueKeysWithValues: DebateSkill.allCases.map { ($0, 3) })
+    @State private var reflection = ""
+
+    private var session: DebateSession? {
+        store.sessions.first { $0.id == sessionID }
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                GlassCard(accent: RhetorixColors.amber) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label(store.t("Reflect before seeing the judge"), systemImage: "brain.head.profile")
+                            .font(.title3.bold())
+                        Text(store.t("Rate the speech you actually gave. The coach scores stay hidden until you finish this reflection."))
+                            .font(.subheadline)
+                            .foregroundStyle(RhetorixColors.textSecondary)
+                    }
+                }
+
+                ForEach(DebateSkill.allCases) { skill in
+                    GlassCard(accent: skill == session?.practiceSkill ? RhetorixColors.cyan : RhetorixColors.glassStrong) {
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack {
+                                Label(store.t(skill.rawValue), systemImage: skill.icon)
+                                    .font(.headline)
+                                Spacer()
+                                Text("\(ratings[skill] ?? 3)/5")
+                                    .font(.headline.monospacedDigit())
+                                    .foregroundStyle(RhetorixColors.amber)
+                            }
+                            Picker(store.t(skill.rawValue), selection: ratingBinding(for: skill)) {
+                                ForEach(1...5, id: \.self) { score in
+                                    Text("\(score)").tag(score)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+                        }
+                    }
+                }
+
+                GlassCard(accent: RhetorixColors.green) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(store.t("One thing I would change next time")).font(.headline)
+                        TextField(store.t("Optional reflection"), text: $reflection, axis: .vertical)
+                            .textFieldStyle(.roundedBorder)
+                            .lineLimit(3...6)
+                    }
+                }
+
+                Button {
+                    store.saveSelfAssessment(sessionID: sessionID, ratings: ratings, reflection: reflection)
+                    path.append(AppRoute.result(sessionID))
+                } label: {
+                    Label(store.t("See Coach Feedback"), systemImage: "chart.bar.doc.horizontal.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .accessibilityIdentifier("selfAssessment.submit")
+            }
+            .padding()
+        }
+        .navigationTitle(store.t("Self-Assessment"))
+        .onAppear {
+            guard let existing = session?.selfAssessment else { return }
+            ratings = existing.ratings
+            reflection = existing.reflection
+        }
+        .navigationBarBackButtonHidden()
+        .appScreen()
+    }
+
+    private func ratingBinding(for skill: DebateSkill) -> Binding<Int> {
+        Binding(
+            get: { ratings[skill] ?? 3 },
+            set: { ratings[skill] = $0 }
+        )
+    }
+}
+
 struct ResultView: View {
     @EnvironmentObject private var store: AppStore
+    @Binding var path: NavigationPath
     var sessionID: String
     var session: DebateSession? { store.sessions.first { $0.id == sessionID } }
 
@@ -915,9 +1168,17 @@ struct ResultView: View {
                 }
                 .listRowBackground(Color.clear)
                 if session.result != nil {
+                    if let selfAssessment = session.selfAssessment {
+                        SelfAssessmentComparisonSection(selfAssessment: selfAssessment, rubric: session.result?.rubric ?? [])
+                            .listRowBackground(Color.clear)
+                    }
+                    DebateRubricSection(rubric: session.result?.rubric ?? [], focusSkill: session.practiceSkill)
+                        .listRowBackground(Color.clear)
                     ResultFeedbackSection(session: session)
                         .listRowBackground(Color.clear)
                     DeepDebateReviewSection(result: session.result!)
+                        .listRowBackground(Color.clear)
+                    SpeechRetrySection(path: $path, session: session)
                         .listRowBackground(Color.clear)
                 }
                 Section(store.t("Transcript")) {
@@ -934,6 +1195,263 @@ struct ResultView: View {
         }
         .navigationTitle(store.t("Debate Result"))
         .appScreen()
+    }
+}
+
+struct SelfAssessmentComparisonSection: View {
+    @EnvironmentObject private var store: AppStore
+    var selfAssessment: DebateSelfAssessment
+    var rubric: [DebateRubricScore]
+
+    var body: some View {
+        GlassCard(accent: RhetorixColors.amber) {
+            VStack(alignment: .leading, spacing: 12) {
+                Label(store.t("Your view and the coach's view"), systemImage: "arrow.left.arrow.right.circle.fill")
+                    .font(.headline)
+                ForEach(DebateSkill.allCases) { skill in
+                    let coachScore = rubric.first(where: { $0.skill == skill })?.score
+                    HStack {
+                        Text(store.t(skill.rawValue))
+                            .font(.caption)
+                        Spacer()
+                        Text("\(store.t("You")) \(selfAssessment.ratings[skill] ?? 3)")
+                            .font(.caption.bold())
+                            .foregroundStyle(RhetorixColors.cyan)
+                        Text("·")
+                        Text("\(store.t("Coach")) \(coachScore.map(String.init) ?? "–")")
+                            .font(.caption.bold())
+                            .foregroundStyle(RhetorixColors.amber)
+                    }
+                }
+                if selfAssessment.reflection.isEmpty == false {
+                    Text("“\(selfAssessment.reflection)”")
+                        .font(.caption)
+                        .foregroundStyle(RhetorixColors.textSecondary)
+                }
+            }
+        }
+    }
+}
+
+struct DebateRubricSection: View {
+    @EnvironmentObject private var store: AppStore
+    var rubric: [DebateRubricScore]
+    var focusSkill: DebateSkill?
+
+    var body: some View {
+        if rubric.isEmpty == false {
+            GlassCard(accent: RhetorixColors.cyan) {
+                VStack(alignment: .leading, spacing: 14) {
+                    Label(store.t("Five-skill coach rubric"), systemImage: "chart.bar.fill")
+                        .font(.headline)
+                    ForEach(rubric) { item in
+                        VStack(alignment: .leading, spacing: 7) {
+                            HStack {
+                                Label(store.t(item.skill.rawValue), systemImage: item.skill.icon)
+                                    .font(.subheadline.bold())
+                                if item.skill == focusSkill {
+                                    Text(store.t("Practice focus"))
+                                        .font(.caption2.bold())
+                                        .foregroundStyle(RhetorixColors.cyan)
+                                }
+                                Spacer()
+                                RubricScoreDots(score: item.score)
+                            }
+                            if item.evidenceQuote.isEmpty == false {
+                                Text("“\(item.evidenceQuote)”")
+                                    .font(.caption)
+                                    .foregroundStyle(RhetorixColors.textTertiary)
+                            }
+                            if item.strength.isEmpty == false {
+                                Label(item.strength, systemImage: "checkmark.circle.fill")
+                                    .font(.caption)
+                                    .foregroundStyle(RhetorixColors.green)
+                            }
+                            if item.nextStep.isEmpty == false {
+                                Label(item.nextStep, systemImage: "arrow.up.right.circle.fill")
+                                    .font(.caption)
+                                    .foregroundStyle(RhetorixColors.textSecondary)
+                            }
+                        }
+                        .padding(12)
+                        .background(RoundedRectangle(cornerRadius: 14).fill(RhetorixColors.glassStrong))
+                    }
+                    AIDisclaimer()
+                }
+            }
+        }
+    }
+}
+
+struct RubricScoreDots: View {
+    var score: Int
+
+    var body: some View {
+        HStack(spacing: 3) {
+            ForEach(1...5, id: \.self) { value in
+                Circle()
+                    .fill(value <= score ? RhetorixColors.amber : RhetorixColors.border)
+                    .frame(width: 8, height: 8)
+            }
+        }
+        .accessibilityLabel("\(score) out of 5")
+    }
+}
+
+struct SpeechRetrySection: View {
+    @EnvironmentObject private var store: AppStore
+    @Binding var path: NavigationPath
+    var session: DebateSession
+
+    private var studentTurns: [DebateTurn] {
+        session.turns.filter { $0.role == .user }
+    }
+
+    var body: some View {
+        if studentTurns.isEmpty == false {
+            GlassCard(accent: RhetorixColors.green) {
+                VStack(alignment: .leading, spacing: 12) {
+                    Label(store.t("Improve one speech now"), systemImage: "arrow.clockwise.circle.fill")
+                        .font(.headline)
+                    Text(store.t("Choose a speech, apply the feedback, and compare the retry with your first attempt."))
+                        .font(.caption)
+                        .foregroundStyle(RhetorixColors.textSecondary)
+                    ForEach(studentTurns) { turn in
+                        let turnIndex = session.turns.firstIndex(where: { $0.id == turn.id }) ?? 0
+                        let retry = session.speechRetries?.last(where: { $0.originalTurnID == turn.id })
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(store.stageTitle(for: session, turnIndex: turnIndex))
+                                .font(.caption.bold())
+                                .foregroundStyle(RhetorixColors.cyan)
+                            Text(turn.content)
+                                .font(.caption)
+                                .lineLimit(3)
+                            if let retry {
+                                HStack {
+                                    Text("\(retry.beforeScore) → \(retry.afterScore)")
+                                        .font(.headline.monospacedDigit())
+                                        .foregroundStyle(retry.afterScore > retry.beforeScore ? RhetorixColors.green : RhetorixColors.amber)
+                                    Text(retry.feedback)
+                                        .font(.caption2)
+                                        .foregroundStyle(RhetorixColors.textSecondary)
+                                        .lineLimit(2)
+                                }
+                            }
+                            Button {
+                                path.append(AppRoute.retrySpeech(session.id, turn.id))
+                            } label: {
+                                Label(store.t(retry == nil ? "Retry this speech" : "Retry again"), systemImage: "mic.badge.plus")
+                            }
+                            .buttonStyle(.bordered)
+                            .accessibilityIdentifier("result.retrySpeech")
+                        }
+                        .padding(10)
+                        .background(RoundedRectangle(cornerRadius: 12).fill(RhetorixColors.glassStrong))
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct SpeechRetryView: View {
+    @EnvironmentObject private var store: AppStore
+    var sessionID: String
+    var turnID: String
+    @State private var revisedText = ""
+    @State private var isSubmitting = false
+
+    private var session: DebateSession? { store.sessions.first { $0.id == sessionID } }
+    private var turn: DebateTurn? { session?.turns.first { $0.id == turnID } }
+    private var latestRetry: SpeechRetry? { store.speechRetry(sessionID: sessionID, turnID: turnID) }
+    private var coachingStep: String? {
+        guard let session else { return nil }
+        let focus = session.practiceSkill
+        return session.result?.rubric.first(where: { $0.skill == focus })?.nextStep
+            ?? session.result?.rubric.min(by: { $0.score < $1.score })?.nextStep
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                if let turn {
+                    GlassCard(accent: RhetorixColors.salmon) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(store.t("Original speech")).font(.headline)
+                            Text(turn.content).foregroundStyle(RhetorixColors.textSecondary)
+                        }
+                    }
+                }
+
+                if let coachingStep, coachingStep.isEmpty == false {
+                    GlassCard(accent: RhetorixColors.amber) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(store.t("Apply this correction")).font(.caption.bold()).foregroundStyle(RhetorixColors.amber)
+                            Text(coachingStep).font(.headline)
+                        }
+                    }
+                }
+
+                GlassCard(accent: RhetorixColors.cyan) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(store.t("Your revised speech")).font(.headline)
+                        TextEditor(text: $revisedText)
+                            .frame(minHeight: 170)
+                            .scrollContentBackground(.hidden)
+                            .padding(8)
+                            .background(RoundedRectangle(cornerRadius: 12).fill(RhetorixColors.glassStrong))
+                            .accessibilityIdentifier("retry.input")
+                    }
+                }
+
+                Button {
+                    Task { await submitRetry() }
+                } label: {
+                    HStack {
+                        if isSubmitting { ProgressView() }
+                        Label(store.t("Compare My Retry"), systemImage: "arrow.left.arrow.right")
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .disabled(isSubmitting || revisedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .accessibilityIdentifier("retry.submit")
+
+                if let retry = latestRetry {
+                    GlassCard(accent: retry.afterScore > retry.beforeScore ? RhetorixColors.green : RhetorixColors.amber) {
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack {
+                                Text(store.t("Retry comparison")).font(.headline)
+                                Spacer()
+                                Text("\(retry.beforeScore) → \(retry.afterScore)")
+                                    .font(.title2.bold().monospacedDigit())
+                            }
+                            Text(retry.feedback).foregroundStyle(RhetorixColors.textSecondary)
+                            if retry.improvedSkills.isEmpty == false {
+                                Text(retry.improvedSkills.map { store.t($0.rawValue) }.joined(separator: " · "))
+                                    .font(.caption.bold())
+                                    .foregroundStyle(RhetorixColors.green)
+                            }
+                            AIDisclaimer()
+                        }
+                    }
+                    .accessibilityIdentifier("retry.result")
+                }
+            }
+            .padding()
+        }
+        .navigationTitle(store.t("Retry Speech"))
+        .onAppear {
+            if revisedText.isEmpty { revisedText = latestRetry?.revisedText ?? turn?.content ?? "" }
+        }
+        .appScreen()
+    }
+
+    private func submitRetry() async {
+        isSubmitting = true
+        _ = await store.retrySpeech(sessionID: sessionID, turnID: turnID, revisedText: revisedText)
+        isSubmitting = false
     }
 }
 
@@ -1238,6 +1756,33 @@ struct SettingsView: View {
                 )) {
                     ForEach(AppTheme.allCases) { theme in
                         Text(store.themeName(theme)).tag(theme)
+                    }
+                }
+            }
+            .listRowBackground(RhetorixColors.glass)
+            Section(store.t("Learning Plan")) {
+                Picker(store.t("Primary goal"), selection: Binding(
+                    get: { store.learningProfile.goal },
+                    set: { store.setLearningGoal($0) }
+                )) {
+                    ForEach(LearningGoal.allCases) { goal in
+                        Text(store.t(goal.rawValue)).tag(goal)
+                    }
+                }
+                Picker(store.t("Experience level"), selection: Binding(
+                    get: { store.learningProfile.experience },
+                    set: { store.setDebateExperience($0) }
+                )) {
+                    ForEach(DebateExperience.allCases) { experience in
+                        Text(store.t(experience.rawValue)).tag(experience)
+                    }
+                }
+                Picker(store.t("Practice length"), selection: Binding(
+                    get: { store.learningProfile.practiceDuration },
+                    set: { store.setPracticeDuration($0) }
+                )) {
+                    ForEach(PracticeDuration.allCases) { duration in
+                        Text("\(duration.rawValue) \(store.t("min"))").tag(duration)
                     }
                 }
             }

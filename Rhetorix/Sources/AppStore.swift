@@ -9,6 +9,7 @@ final class AppStore: ObservableObject {
     @Published var constructiveAnalysisHistory: [ConstructiveAnalysisIssue] = []
     @Published var providerConfigs: [ProviderConfig] = []
     @Published var userProfileMemory = UserProfileMemory()
+    @Published var learningProfile = UserLearningProfile()
     @Published var selectedLanguage = "English"
     @Published var appTheme: AppTheme = .dark
     @Published var autoSpeakAI = true
@@ -53,6 +54,31 @@ final class AppStore: ObservableObject {
     }
     var shouldAskMBTI: Bool {
         userProfileMemory.mbti == nil && dismissedMBTIPromptForSession == false
+    }
+    var shouldAskLearningProfile: Bool {
+        learningProfile.hasCompletedOnboarding == false
+    }
+    var dailyPracticeSkill: DebateSkill {
+        if let weakness = userProfileMemory.weaknessSignals.first?.title.lowercased() {
+            if weakness.contains("evidence") || weakness.contains("证据") { return .evidence }
+            if weakness.contains("clash") || weakness.contains("rebut") || weakness.contains("交锋") || weakness.contains("反驳") { return .directClash }
+            if weakness.contains("impact") || weakness.contains("weigh") || weakness.contains("影响") || weakness.contains("权衡") { return .impactWeighing }
+            if weakness.contains("structure") || weakness.contains("definition") || weakness.contains("结构") || weakness.contains("定义") { return .argumentStructure }
+        }
+
+        let startingSkill: DebateSkill
+        switch learningProfile.goal {
+        case .speakingConfidence, .englishSpeaking:
+            startingSkill = .delivery
+        case .debateCompetition:
+            startingSkill = .directClash
+        case .classroom, .criticalThinking:
+            startingSkill = .argumentStructure
+        }
+        guard debateCount > 0 else { return startingSkill }
+        let skills = DebateSkill.allCases
+        let start = skills.firstIndex(of: startingSkill) ?? 0
+        return skills[(start + debateCount) % skills.count]
     }
     var preferredProvider: AiProvider {
         if let configured = providerConfigs.first(where: { $0.isEnabled && $0.apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false }) {
@@ -150,6 +176,34 @@ final class AppStore: ObservableObject {
         save()
     }
 
+    func completeLearningOnboarding(goal: LearningGoal, experience: DebateExperience, practiceDuration: PracticeDuration) {
+        learningProfile = UserLearningProfile(
+            hasCompletedOnboarding: true,
+            goal: goal,
+            experience: experience,
+            practiceDuration: practiceDuration
+        )
+        save()
+    }
+
+    func setLearningGoal(_ goal: LearningGoal) {
+        learningProfile.goal = goal
+        learningProfile.hasCompletedOnboarding = true
+        save()
+    }
+
+    func setDebateExperience(_ experience: DebateExperience) {
+        learningProfile.experience = experience
+        learningProfile.hasCompletedOnboarding = true
+        save()
+    }
+
+    func setPracticeDuration(_ duration: PracticeDuration) {
+        learningProfile.practiceDuration = duration
+        learningProfile.hasCompletedOnboarding = true
+        save()
+    }
+
     func skipMBTIForNow() {
         userProfileMemory.didAskMBTI = false
         dismissedMBTIPromptForSession = true
@@ -184,6 +238,104 @@ final class AppStore: ObservableObject {
         userProfileMemory.recommendationFeedback = feedback
         userProfileMemory.updatedAt = Date()
         save()
+    }
+
+    func saveSelfAssessment(sessionID: String, ratings: [DebateSkill: Int], reflection: String) {
+        guard let index = sessions.firstIndex(where: { $0.id == sessionID }) else { return }
+        let normalizedRatings = Dictionary(uniqueKeysWithValues: DebateSkill.allCases.map { skill in
+            (skill, min(5, max(1, ratings[skill] ?? 3)))
+        })
+        sessions[index].selfAssessment = DebateSelfAssessment(
+            ratings: normalizedRatings,
+            reflection: reflection.trimmingCharacters(in: .whitespacesAndNewlines)
+        )
+        save()
+    }
+
+    func speechRetry(sessionID: String, turnID: String) -> SpeechRetry? {
+        sessions.first(where: { $0.id == sessionID })?
+            .speechRetries?
+            .last(where: { $0.originalTurnID == turnID })
+    }
+
+    @discardableResult
+    func retrySpeech(sessionID: String, turnID: String, revisedText: String) async -> SpeechRetry? {
+        guard isWorking == false else { return nil }
+        guard let sessionIndex = sessions.firstIndex(where: { $0.id == sessionID }) else { return nil }
+        let session = sessions[sessionIndex]
+        guard let turn = session.turns.first(where: { $0.id == turnID }) else { return nil }
+        let revised = revisedText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard revised.isEmpty == false else { return nil }
+
+        let focusSkill = session.practiceSkill ?? lowestRubricSkill(in: session.result) ?? .directClash
+        let beforeScore = session.result?.rubric.first(where: { $0.skill == focusSkill })?.score
+            ?? averageRubricScore(session.result?.rubric ?? [])
+        isWorking = true
+        defer { isWorking = false }
+
+        do {
+            let retry: SpeechRetry
+            if isUITestMode {
+                retry = SpeechRetry(
+                    originalTurnID: turnID,
+                    originalText: turn.content,
+                    revisedText: revised,
+                    beforeScore: beforeScore,
+                    afterScore: min(5, beforeScore + 1),
+                    feedback: "Mock retry feedback: the revised speech answers the opposing claim more directly and explains the impact.",
+                    improvedSkills: [focusSkill]
+                )
+            } else {
+                guard let config = config(for: session.provider) else {
+                    activeError = RhetorixError.missingProviderKey.localizedDescription
+                    return nil
+                }
+                let result = try await ai.chat(
+                    systemPrompt: """
+                    You are a debate coach comparing a student's original speech with one immediate retry.
+                    (responseLanguageInstruction)
+                    Score the revised speech against the same 1-5 debate rubric. Reward genuine improvement, not length. Return concise JSON only.
+                    """,
+                    messages: [ChatMessage(role: "user", content: """
+                    Motion: (session.topic.title)
+                    Practice focus: (focusSkill.rawValue)
+                    Original speech:
+                    (turn.content)
+
+                    Revised speech:
+                    (revised)
+
+                    Original focus score: (beforeScore)/5
+                    Return exactly:
+                    {"afterScore":4,"feedback":"what improved and the single most useful remaining correction","improvedSkills":["Argument structure|Evidence and examples|Direct clash and rebuttal|Impact comparison|Delivery and clarity"]}
+                    """)],
+                    config: config,
+                    maxTokens: 420,
+                    safetyTexts: [session.topic.title, turn.content, revised]
+                )
+                let json = parseJSONObject(result.content)
+                let afterScore = min(5, max(1, intValue(json?["afterScore"]) ?? beforeScore))
+                let improvedSkills = stringArray(from: json?["improvedSkills"]).compactMap(debateSkill(from:))
+                retry = SpeechRetry(
+                    originalTurnID: turnID,
+                    originalText: turn.content,
+                    revisedText: revised,
+                    beforeScore: beforeScore,
+                    afterScore: afterScore,
+                    feedback: stringValue(json?["feedback"]) ?? t("The retry was saved. Review the two versions and try to make the next improvement more explicit."),
+                    improvedSkills: improvedSkills.isEmpty ? [focusSkill] : improvedSkills
+                )
+            }
+
+            var retries = sessions[sessionIndex].speechRetries ?? []
+            retries.append(retry)
+            sessions[sessionIndex].speechRetries = retries
+            save()
+            return retry
+        } catch {
+            activeError = error.localizedDescription
+            return nil
+        }
     }
 
     func debateCount(for topic: DebateTopic) -> Int {
@@ -267,11 +419,45 @@ final class AppStore: ObservableObject {
         return parts.joined(separator: " · ")
     }
 
-    func createSession(topic: DebateTopic, mode: DebateMode, format: DebateFormat, difficulty: DebateDifficulty, side: DebateSide, provider: AiProvider) -> DebateSession {
-        let session = DebateSession(topic: topic, mode: mode, format: format, difficulty: difficulty, userSide: side, provider: provider)
+    func createSession(topic: DebateTopic, mode: DebateMode, format: DebateFormat, difficulty: DebateDifficulty, side: DebateSide, provider: AiProvider, practiceSkill: DebateSkill? = nil) -> DebateSession {
+        let session = DebateSession(
+            topic: topic,
+            mode: mode,
+            format: format,
+            difficulty: difficulty,
+            userSide: side,
+            provider: provider,
+            practiceSkill: practiceSkill
+        )
         sessions.insert(session, at: 0)
         save()
         return session
+    }
+
+    func dailyPracticeTopic(for skill: DebateSkill) -> DebateTopic? {
+        if let recommended = topicRecommendations(limit: 8).first(where: { topicSupportsPracticeSkill($0.topic, skill: skill) }) {
+            return recommended.topic
+        }
+        let unused = topics.filter { debateCount(for: $0) == 0 }
+        return unused.first(where: { topicSupportsPracticeSkill($0, skill: skill) })
+            ?? topics.first(where: { topicSupportsPracticeSkill($0, skill: skill) })
+            ?? topics.first
+    }
+
+    private func topicSupportsPracticeSkill(_ topic: DebateTopic, skill: DebateSkill) -> Bool {
+        let tags = Set(topic.trainingTags)
+        switch skill {
+        case .argumentStructure:
+            return tags.contains(.structureBurden) || tags.contains(.definitionHeavy) || tags.contains(.policyMechanism)
+        case .evidence:
+            return tags.contains(.evidenceHeavy) || tags.contains(.causalReasoning) || tags.contains(.feasibility)
+        case .directClash:
+            return tags.contains(.directClash) || tags.contains(.valueClash) || tags.contains(.comparativeWeighing)
+        case .impactWeighing:
+            return tags.contains(.impactWeighing) || tags.contains(.comparativeWeighing) || tags.contains(.stakeholderAnalysis)
+        case .delivery:
+            return tags.contains(.structureBurden) || tags.contains(.directClash)
+        }
     }
 
     func stageTitle(for session: DebateSession, turnIndex: Int? = nil) -> String {
@@ -487,7 +673,14 @@ final class AppStore: ObservableObject {
                     DebateReviewPoint(title: "Add one sourced example", detail: "Use one concrete source or case study before the final weighing step."),
                     DebateReviewPoint(title: "Signpost rebuttals", detail: "Label rebuttals as definition, evidence, mechanism, or impact so the judge can track clash faster.")
                 ],
-                nextPracticeFocus: "Practice turning rebuttals into explicit impact comparisons within one sentence."
+                nextPracticeFocus: "Practice turning rebuttals into explicit impact comparisons within one sentence.",
+                rubric: [
+                    DebateRubricScore(skill: .argumentStructure, score: 4, evidenceQuote: "Regulation protects public safety", strength: "The speech opens with a clear policy claim.", nextStep: "Explain the causal mechanism before moving to the impact."),
+                    DebateRubricScore(skill: .evidence, score: 3, evidenceQuote: "creates accountability", strength: "The example is relevant to the motion.", nextStep: "Add one concrete source or real case."),
+                    DebateRubricScore(skill: .directClash, score: 4, evidenceQuote: "direct clash", strength: "The response engages the opposing position.", nextStep: "Name the exact warrant being challenged."),
+                    DebateRubricScore(skill: .impactWeighing, score: 4, evidenceQuote: "better weighing", strength: "The speech explains why its impact matters more.", nextStep: "Compare probability as well as scale."),
+                    DebateRubricScore(skill: .delivery, score: 3, evidenceQuote: "clearer clash", strength: "The central idea is easy to follow.", nextStep: "Use explicit signposting between rebuttal and weighing.")
+                ]
             )
             sessions[index].isCompleted = true
             refreshUserProfileMemory()
@@ -518,9 +711,11 @@ final class AppStore: ObservableObject {
             - Key clashes must identify what both sides actually contested.
             - Strongest arguments should explain why an argument was effective, not just repeat it.
             - Improvement actions must be concrete next steps a debater can apply in the next round.
+            - Score all five rubric dimensions from 1 to 5. Every dimension must cite a short exact quote from the student's transcript when a human student spoke. If no human student spoke, quote the most relevant observed speech.
+            - Rubric feedback must separate one demonstrated strength from one specific next step.
             - For User vs AI, improvementActions should focus on the human user. For Face to Face, write neutral advice for both speakers. For AI vs AI, write learning notes a human observer can practice.
             Return JSON only with this exact shape:
-            {"winner":"USER|SUPPORT|OPPOSE|TIE","score":"5-3","summary":"2-3 sentence outcome explanation","judgeRationale":"why the winner won and why the loser fell short","keyClashes":[{"title":"clash name","detail":"what each side argued and who won this clash"}],"strongestSupportArguments":[{"title":"argument name","detail":"why it worked"}],"strongestOpposeArguments":[{"title":"argument name","detail":"why it worked"}],"improvementActions":[{"title":"action name","detail":"specific drill or fix"}],"nextPracticeFocus":"one focused skill for the next debate"}
+            {"winner":"USER|SUPPORT|OPPOSE|TIE","score":"5-3","summary":"2-3 sentence outcome explanation","judgeRationale":"why the winner won and why the loser fell short","rubric":[{"skill":"Argument structure|Evidence and examples|Direct clash and rebuttal|Impact comparison|Delivery and clarity","score":1,"evidenceQuote":"short exact transcript quote","strength":"what worked","nextStep":"one specific correction"}],"keyClashes":[{"title":"clash name","detail":"what each side argued and who won this clash"}],"strongestSupportArguments":[{"title":"argument name","detail":"why it worked"}],"strongestOpposeArguments":[{"title":"argument name","detail":"why it worked"}],"improvementActions":[{"title":"action name","detail":"specific drill or fix"}],"nextPracticeFocus":"one focused skill for the next debate"}
             """)],
             config: config,
             safetyTexts: judgeSafetyTexts
@@ -720,8 +915,72 @@ final class AppStore: ObservableObject {
             strongestSupportArguments: reviewPoints(from: json["strongestSupportArguments"] ?? json["supportArguments"]),
             strongestOpposeArguments: reviewPoints(from: json["strongestOpposeArguments"] ?? json["opposeArguments"]),
             improvementActions: reviewPoints(from: json["improvementActions"] ?? json["improvements"]),
-            nextPracticeFocus: stringValue(json["nextPracticeFocus"]) ?? ""
+            nextPracticeFocus: stringValue(json["nextPracticeFocus"]) ?? "",
+            rubric: rubricScores(from: json["rubric"])
         )
+    }
+
+    private func rubricScores(from value: Any?) -> [DebateRubricScore] {
+        guard let items = value as? [[String: Any]] else { return [] }
+        var scores: [DebateRubricScore] = []
+        for item in items {
+            guard let rawSkill = stringValue(item["skill"] ?? item["dimension"]),
+                  let skill = debateSkill(from: rawSkill) else { continue }
+            let score = min(5, max(1, intValue(item["score"]) ?? 1))
+            let rubricScore = DebateRubricScore(
+                skill: skill,
+                score: score,
+                evidenceQuote: stringValue(item["evidenceQuote"] ?? item["quote"]) ?? "",
+                strength: stringValue(item["strength"] ?? item["whatWorked"]) ?? "",
+                nextStep: stringValue(item["nextStep"] ?? item["improvement"]) ?? ""
+            )
+            if let index = scores.firstIndex(where: { $0.skill == skill }) {
+                scores[index] = rubricScore
+            } else {
+                scores.append(rubricScore)
+            }
+        }
+        return DebateSkill.allCases.compactMap { skill in scores.first(where: { $0.skill == skill }) }
+    }
+
+    private func debateSkill(from value: String) -> DebateSkill? {
+        if let exact = DebateSkill(rawValue: value.trimmingCharacters(in: .whitespacesAndNewlines)) { return exact }
+        let lower = value.lowercased()
+        if lower.contains("structure") || lower.contains("claim") { return .argumentStructure }
+        if lower.contains("evidence") || lower.contains("example") { return .evidence }
+        if lower.contains("clash") || lower.contains("rebut") { return .directClash }
+        if lower.contains("impact") || lower.contains("weigh") { return .impactWeighing }
+        if lower.contains("delivery") || lower.contains("clarity") || lower.contains("speech") { return .delivery }
+        return nil
+    }
+
+    private func intValue(_ value: Any?) -> Int? {
+        if let number = value as? NSNumber { return number.intValue }
+        if let string = value as? String { return Int(string.trimmingCharacters(in: .whitespacesAndNewlines)) }
+        return nil
+    }
+
+    private func stringArray(from value: Any?) -> [String] {
+        if let values = value as? [String] { return values }
+        return (value as? [Any])?.compactMap { stringValue($0) } ?? []
+    }
+
+    private func parseJSONObject(_ raw: String) -> [String: Any]? {
+        for candidate in jsonCandidates(from: cleanJSON(raw)).map(repairJSON) {
+            guard let data = candidate.data(using: .utf8),
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { continue }
+            return json
+        }
+        return nil
+    }
+
+    private func averageRubricScore(_ rubric: [DebateRubricScore]) -> Int {
+        guard rubric.isEmpty == false else { return 3 }
+        return Int((Double(rubric.map(\.score).reduce(0, +)) / Double(rubric.count)).rounded())
+    }
+
+    private func lowestRubricSkill(in result: DebateResult?) -> DebateSkill? {
+        result?.rubric.min(by: { $0.score < $1.score })?.skill
     }
 
     private func stringValue(_ value: Any?) -> String? {
@@ -1467,6 +1726,7 @@ final class AppStore: ObservableObject {
             constructiveAnalysisHistory: constructiveAnalysisHistory,
             providerConfigs: providerConfigs,
             userProfileMemory: userProfileMemory,
+            learningProfile: learningProfile,
             selectedLanguage: selectedLanguage,
             appTheme: appTheme,
             autoSpeakAI: autoSpeakAI,
@@ -1490,6 +1750,7 @@ final class AppStore: ObservableObject {
         constructiveAnalysisHistory = snapshot.constructiveAnalysisHistory ?? []
         providerConfigs = snapshot.providerConfigs
         userProfileMemory = snapshot.userProfileMemory ?? UserProfileMemory()
+        learningProfile = snapshot.learningProfile ?? UserLearningProfile()
         selectedLanguage = snapshot.selectedLanguage
         appTheme = snapshot.appTheme ?? .dark
         autoSpeakAI = snapshot.autoSpeakAI ?? true
@@ -1505,6 +1766,7 @@ final class AppStore: ObservableObject {
         var constructiveAnalysisHistory: [ConstructiveAnalysisIssue]?
         var providerConfigs: [ProviderConfig]
         var userProfileMemory: UserProfileMemory?
+        var learningProfile: UserLearningProfile?
         var selectedLanguage: String
         var appTheme: AppTheme?
         var autoSpeakAI: Bool?
