@@ -97,7 +97,7 @@ struct HomeView: View {
                                 .font(.caption.bold())
                                 .foregroundStyle(RhetorixColors.cyan)
                             Spacer()
-                            Text("\(store.t("Step")) \((AppStore.skillPath.firstIndex(of: store.dailyPracticeSkill) ?? 0) + 1) / \(AppStore.skillPath.count)")
+                            Text(store.isSkillPathComplete ? store.t("Path complete") : "\(store.t("Step")) \(store.currentPathStepNumber) / \(AppStore.skillPath.count)")
                                 .font(.caption.bold())
                                 .foregroundStyle(RhetorixColors.textTertiary)
                         }
@@ -406,7 +406,7 @@ struct GuidedPracticeView: View {
                         .font(.caption.bold())
                         .foregroundStyle(RhetorixColors.green)
                     Spacer()
-                    Text("\(store.t("Step")) \(currentStepNumber) / \(AppStore.skillPath.count)")
+                    Text(pathPositionText)
                         .font(.caption.bold())
                         .foregroundStyle(RhetorixColors.textTertiary)
                 }
@@ -422,15 +422,17 @@ struct GuidedPracticeView: View {
                             skill: pathSkill,
                             isMastered: store.isSkillMastered(pathSkill),
                             isActive: pathSkill == skill,
-                            label: store.t(pathSkill.rawValue)
+                            label: store.t(pathSkill.rawValue),
+                            masteredValueLabel: store.t("Mastered")
                         ) {
                             selectedSkill = pathSkill
                         }
                     }
                 }
-                Text(nextUpText)
+                Text(pathStatusText)
                     .font(.caption.bold())
                     .foregroundStyle(RhetorixColors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(store.t("Reach a coach score of 4+ in any judged debate to master a skill. Tap any step to practice it."))
                     .font(.caption2)
                     .foregroundStyle(RhetorixColors.textTertiary)
@@ -440,16 +442,28 @@ struct GuidedPracticeView: View {
         }
     }
 
-    private var currentStepNumber: Int {
-        (AppStore.skillPath.firstIndex(of: skill) ?? 0) + 1
+    // Progress reflects actual mastery only; tapping a node to practice a
+    // different skill never moves the step counter.
+    private var pathPositionText: String {
+        if store.isSkillPathComplete {
+            return store.t("Path complete")
+        }
+        return "\(store.t("Step")) \(store.currentPathStepNumber) / \(AppStore.skillPath.count)"
     }
 
-    private var nextUpText: String {
-        let path = AppStore.skillPath
-        if let index = path.firstIndex(of: skill), index + 1 < path.count {
-            return "\(store.t("Next")): \(store.t(path[index + 1].rawValue))"
+    private var pathStatusText: String {
+        if store.isSkillPathComplete {
+            return "\(store.t("Path complete")) · \(store.t("Reviewing")): \(store.t(skill.rawValue))"
         }
-        return store.t("Final step of the path")
+        guard let current = store.currentPathStep else { return "" }
+        if skill == current {
+            let path = AppStore.skillPath
+            if let index = path.firstIndex(of: current), index + 1 < path.count {
+                return "\(store.t("Next")): \(store.t(path[index + 1].rawValue))"
+            }
+            return store.t("Final step of the path")
+        }
+        return "\(store.t("Practicing")): \(store.t(skill.rawValue)) · \(store.t("Current step")): \(store.t(current.rawValue))"
     }
 
     private var learnCard: some View {
@@ -576,6 +590,7 @@ struct SkillPathNode: View {
     var isMastered: Bool
     var isActive: Bool
     var label: String
+    var masteredValueLabel: String
     var action: () -> Void
 
     var body: some View {
@@ -590,7 +605,7 @@ struct SkillPathNode: View {
                             lineWidth: isActive ? 1.8 : 1
                         )
                     )
-                if isMastered && isActive == false {
+                if isMastered {
                     Image(systemName: "checkmark")
                         .font(.system(size: 15, weight: .bold))
                         .foregroundStyle(RhetorixColors.green)
@@ -603,6 +618,7 @@ struct SkillPathNode: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)
+        .accessibilityValue(isMastered ? masteredValueLabel : "")
         .accessibilityAddTraits(isActive ? .isSelected : [])
     }
 }

@@ -75,18 +75,34 @@ final class AppStore: ObservableObject {
         (bestCoachScore(for: skill) ?? 0) >= 4
     }
 
+    // The actual curriculum position: the first unmastered step. This never
+    // moves because the user taps a different node to practice it.
+    var currentPathStep: DebateSkill? {
+        Self.skillPath.first { isSkillMastered($0) == false }
+    }
+
+    var isSkillPathComplete: Bool {
+        currentPathStep == nil
+    }
+
+    var currentPathStepNumber: Int {
+        Self.skillPath.firstIndex { isSkillMastered($0) == false }.map { $0 + 1 } ?? Self.skillPath.count
+    }
+
     var dailyPracticeSkill: DebateSkill {
-        if let next = Self.skillPath.first(where: { isSkillMastered($0) == false }) {
+        if let next = currentPathStep {
             return next
         }
-        // Every path step is mastered: keep sharpening the weakest recent skill.
+        // Path complete: review the weakest recent skill.
         if let weakness = userProfileMemory.weaknessSignals.first?.title.lowercased() {
             if weakness.contains("evidence") || weakness.contains("证据") { return .evidence }
             if weakness.contains("clash") || weakness.contains("rebut") || weakness.contains("交锋") || weakness.contains("反驳") { return .directClash }
             if weakness.contains("impact") || weakness.contains("weigh") || weakness.contains("影响") || weakness.contains("权衡") { return .impactWeighing }
             if weakness.contains("structure") || weakness.contains("definition") || weakness.contains("结构") || weakness.contains("定义") { return .argumentStructure }
         }
-        return Self.skillPath[debateCount % Self.skillPath.count]
+        // No weakness evidence: rotate reviews starting from the goal's home skill.
+        let start = Self.skillPath.firstIndex(of: learningProfile.goal.homeSkill) ?? 0
+        return Self.skillPath[(start + debateCount) % Self.skillPath.count]
     }
     var preferredProvider: AiProvider {
         if let configured = providerConfigs.first(where: { $0.isEnabled && $0.apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false }) {
@@ -119,9 +135,47 @@ final class AppStore: ObservableObject {
                 return config
             }
             autoSpeakAI = false
+            if ProcessInfo.processInfo.arguments.contains("UITEST_SEED_MASTERED") {
+                seedJudgedSessionForUITests(uniformScore: 5)
+            } else if ProcessInfo.processInfo.arguments.contains("UITEST_SEED_JUDGED") {
+                seedJudgedSessionForUITests(uniformScore: nil)
+            }
         }
         refreshUserProfileMemory()
         save()
+    }
+
+    // UI-test-only fixture: one judged session so tests can exercise skill-path
+    // mastery states. uniformScore nil uses the mixed mock rubric (4/3/4/4/3).
+    private func seedJudgedSessionForUITests(uniformScore: Int?) {
+        guard let topic = topics.first else { return }
+        let mixedScores: [DebateSkill: Int] = [
+            .argumentStructure: 4, .evidence: 3, .directClash: 4, .impactWeighing: 4, .delivery: 3
+        ]
+        var session = DebateSession(
+            topic: topic,
+            mode: .userVsAi,
+            format: .freeFlow,
+            difficulty: .easy,
+            userSide: .support,
+            provider: .openAI
+        )
+        session.isCompleted = true
+        session.result = DebateResult(
+            winner: .user,
+            score: "3-2",
+            summary: "Seeded judged session for UI tests.",
+            rubric: DebateSkill.allCases.map { skill in
+                DebateRubricScore(
+                    skill: skill,
+                    score: uniformScore ?? mixedScores[skill] ?? 3,
+                    evidenceQuote: "seeded quote",
+                    strength: "seeded strength",
+                    nextStep: "seeded next move"
+                )
+            }
+        )
+        sessions.insert(session, at: 0)
     }
 
     func config(for provider: AiProvider) -> ProviderConfig? {
@@ -319,6 +373,7 @@ final class AppStore: ObservableObject {
                     systemPrompt: """
                     You are a debate coach comparing a student's original speech with one immediate retry.
                     \(responseLanguageInstruction)
+                    \(learningGoalInstruction)
                     Score the revised speech against the same 1-5 debate rubric. Reward genuine improvement, not length. Return concise JSON only.
                     """,
                     messages: [ChatMessage(role: "user", content: """
@@ -720,6 +775,7 @@ final class AppStore: ObservableObject {
             systemPrompt: """
             You are an impartial debate judge using international school debate standards: matter, method, manner, direct clash, weighing, and reply-speech discipline.
             \(responseLanguageInstruction)
+            \(learningGoalInstruction)
             Return concise JSON only.
             """,
             messages: [ChatMessage(role: "user", content: """
@@ -876,7 +932,7 @@ final class AppStore: ObservableObject {
         defer { isWorking = false }
         do {
             let result = try await ai.chat(
-                systemPrompt: "Score a rebuttal from 0-100. \(responseLanguageInstruction) Return JSON only.",
+                systemPrompt: "Score a rebuttal from 0-100. \(responseLanguageInstruction) \(learningGoalInstruction) Return JSON only.",
                 messages: [ChatMessage(role: "user", content: "Topic: \(topic.title)\nArgument to resist:\n\(prompt)\nStudent rebuttal:\n\(response)\nReturn {\"score\":87,\"feedback\":\"specific feedback\"}")],
                 config: config
             )
@@ -910,6 +966,10 @@ final class AppStore: ObservableObject {
 
     private var responseLanguageInstruction: String {
         usesChinese ? "Use Simplified Chinese for all user-visible text." : "Use English for all user-visible text."
+    }
+
+    private var learningGoalInstruction: String {
+        "The student's stated learning goal is \(learningProfile.goal.coachingContext); tailor improvement advice, next steps, and practice focus to that goal."
     }
 
     private func parseJudge(_ raw: String, session: DebateSession) -> DebateResult {

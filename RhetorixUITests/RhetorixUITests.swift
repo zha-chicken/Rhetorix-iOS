@@ -115,10 +115,70 @@ final class RhetorixUITests: XCTestCase {
     }
 
     @MainActor
-    private func launchApp() -> XCUIApplication {
+    func testSkillPathSelectionDoesNotChangeCurriculumPosition() throws {
+        let app = launchApp()
+
+        let today = app.buttons["home.todayPractice"]
+        XCTAssertTrue(today.waitForExistence(timeout: 5))
+        today.tap()
+
+        XCTAssertTrue(app.staticTexts["Step 1 / 5"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Next: Argument structure"].waitForExistence(timeout: 5))
+
+        let impactNode = app.buttons["Impact comparison"]
+        XCTAssertTrue(impactNode.waitForExistence(timeout: 5))
+        impactNode.tap()
+
+        XCTAssertTrue(app.staticTexts["Impact comparison"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Practicing: Impact comparison · Current step: Delivery and clarity"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Step 1 / 5"].exists)
+        XCTAssertFalse(app.staticTexts["Step 5 / 5"].exists)
+    }
+
+    @MainActor
+    func testSkillPathShowsMasteryFromJudgedDebates() throws {
+        let app = launchApp(extraArguments: ["UITEST_SEED_JUDGED"])
+
+        let today = app.buttons["home.todayPractice"]
+        XCTAssertTrue(today.waitForExistence(timeout: 5))
+        today.tap()
+
+        XCTAssertTrue(app.staticTexts["Step 1 / 5"].waitForExistence(timeout: 5))
+
+        let structureNode = app.buttons["Argument structure"]
+        XCTAssertTrue(structureNode.waitForExistence(timeout: 5))
+        XCTAssertEqual(structureNode.value as? String, "Mastered")
+
+        let evidenceNode = app.buttons["Evidence and examples"]
+        XCTAssertTrue(evidenceNode.waitForExistence(timeout: 5))
+        XCTAssertNotEqual(evidenceNode.value as? String, "Mastered")
+    }
+
+    @MainActor
+    func testSkillPathCompleteShowsReviewState() throws {
+        let app = launchApp(extraArguments: ["UITEST_SEED_MASTERED"])
+
+        let today = app.buttons["home.todayPractice"]
+        XCTAssertTrue(today.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Path complete"].waitForExistence(timeout: 5))
+        today.tap()
+
+        let reviewLine = app.staticTexts.matching(
+            NSPredicate(format: "label BEGINSWITH %@", "Path complete · Reviewing:")
+        ).firstMatch
+        XCTAssertTrue(reviewLine.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Next: Argument structure"].exists)
+
+        let deliveryNode = app.buttons["Delivery and clarity"]
+        XCTAssertTrue(deliveryNode.waitForExistence(timeout: 5))
+        XCTAssertEqual(deliveryNode.value as? String, "Mastered")
+    }
+
+    @MainActor
+    private func launchApp(extraArguments: [String] = []) -> XCUIApplication {
         continueAfterFailure = false
         let app = XCUIApplication()
-        app.launchArguments = ["UITEST_MODE", "UITEST_RESET_DATA"]
+        app.launchArguments = ["UITEST_MODE", "UITEST_RESET_DATA"] + extraArguments
         app.launch()
         completeLearningOnboardingIfNeeded(app: app)
         return app
