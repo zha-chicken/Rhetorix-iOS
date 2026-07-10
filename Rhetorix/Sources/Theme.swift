@@ -282,6 +282,7 @@ struct RhetorixChoiceChip: View {
                 )
         }
         .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
         .animation(.easeOut(duration: 0.15), value: isSelected)
     }
 }
@@ -343,6 +344,7 @@ struct RhetorixChoiceList<SelectionValue: Hashable>: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .accessibilityAddTraits(isSelected ? .isSelected : [])
                 .animation(.easeOut(duration: 0.15), value: isSelected)
             }
         }
