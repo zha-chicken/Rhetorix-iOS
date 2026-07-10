@@ -362,7 +362,8 @@ Rhetorix 不内置统一后端账号系统。用户需要在本地配置自己�
 - Google Gemini
 - DeepSeek
 - Groq
-- Ollama / OpenAI-compatible endpoint
+
+Ollama 已从 Provider 列表移除：iPhone App 无法访问 `localhost` 上的本地模型服务，保留它只会误导用户。旧本地数据中的 Ollama 配置和历史记录会在读取时安全回退，不会导致数据丢失。
 
 每个 Provider 支持配置：
 

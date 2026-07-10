@@ -1829,7 +1829,10 @@ final class AppStore: ObservableObject {
         sessions = snapshot.sessions
         rebuttalAttempts = snapshot.rebuttalAttempts
         constructiveAnalysisHistory = snapshot.constructiveAnalysisHistory ?? []
-        providerConfigs = snapshot.providerConfigs
+        // Removed providers decode to a fallback case, which can produce
+        // duplicate rows; keep only the first config per provider.
+        var seenProviders = Set<AiProvider>()
+        providerConfigs = snapshot.providerConfigs.filter { seenProviders.insert($0.provider).inserted }
         userProfileMemory = snapshot.userProfileMemory ?? UserProfileMemory()
         learningProfile = snapshot.learningProfile ?? UserLearningProfile()
         selectedLanguage = snapshot.selectedLanguage
