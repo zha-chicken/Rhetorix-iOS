@@ -256,6 +256,99 @@ extension ButtonStyle where Self == RhetorixPrimaryButtonStyle {
     static var rhetorixPrimary: RhetorixPrimaryButtonStyle { RhetorixPrimaryButtonStyle() }
 }
 
+struct RhetorixChoiceChip: View {
+    var label: String
+    var isSelected: Bool
+    var action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(label)
+                .font(.subheadline.weight(isSelected ? .bold : .medium))
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+                .foregroundStyle(isSelected ? RhetorixColors.textPrimary : RhetorixColors.textSecondary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .padding(.horizontal, 6)
+                .background(
+                    Capsule().fill(isSelected ? RhetorixColors.glassStrong : RhetorixColors.glass)
+                )
+                .overlay(
+                    Capsule().stroke(
+                        isSelected ? RhetorixColors.cyan.opacity(0.55) : RhetorixColors.border,
+                        lineWidth: isSelected ? 1.5 : 1
+                    )
+                )
+        }
+        .buttonStyle(.plain)
+        .animation(.easeOut(duration: 0.15), value: isSelected)
+    }
+}
+
+struct RhetorixChoiceChips<SelectionValue: Hashable>: View {
+    var title: String?
+    var options: [(value: SelectionValue, label: String)]
+    @Binding var selection: SelectionValue
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let title {
+                Text(title)
+                    .font(.caption.bold())
+                    .foregroundStyle(RhetorixColors.textTertiary)
+            }
+            HStack(spacing: 8) {
+                ForEach(Array(options.enumerated()), id: \.offset) { _, option in
+                    RhetorixChoiceChip(label: option.label, isSelected: option.value == selection) {
+                        selection = option.value
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+struct RhetorixChoiceList<SelectionValue: Hashable>: View {
+    var options: [(value: SelectionValue, label: String)]
+    @Binding var selection: SelectionValue
+
+    var body: some View {
+        VStack(spacing: 8) {
+            ForEach(Array(options.enumerated()), id: \.offset) { _, option in
+                let isSelected = option.value == selection
+                Button {
+                    selection = option.value
+                } label: {
+                    HStack {
+                        Text(option.label)
+                            .font(.subheadline.weight(isSelected ? .bold : .medium))
+                            .foregroundStyle(isSelected ? RhetorixColors.textPrimary : RhetorixColors.textSecondary)
+                        Spacer()
+                        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                            .foregroundStyle(isSelected ? RhetorixColors.cyan : RhetorixColors.textTertiary)
+                    }
+                    .padding(12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(isSelected ? RhetorixColors.glassStrong : RhetorixColors.glass)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .stroke(
+                                isSelected ? RhetorixColors.cyan.opacity(0.55) : RhetorixColors.border,
+                                lineWidth: isSelected ? 1.5 : 1
+                            )
+                    )
+                }
+                .buttonStyle(.plain)
+                .animation(.easeOut(duration: 0.15), value: isSelected)
+            }
+        }
+    }
+}
+
 struct RhetorixFieldStyle: ViewModifier {
     func body(content: Content) -> some View {
         content

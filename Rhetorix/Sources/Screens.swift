@@ -268,32 +268,28 @@ struct LearningOnboardingView: View {
                 GlassCard(accent: RhetorixColors.cyan) {
                     VStack(alignment: .leading, spacing: 12) {
                         Text(store.t("Primary goal")).font(.headline)
-                        Picker(store.t("Primary goal"), selection: $goal) {
-                            ForEach(LearningGoal.allCases) { option in
-                                Text(store.t(option.rawValue)).tag(option)
-                            }
-                        }
-                        .pickerStyle(.inline)
+                        RhetorixChoiceList(
+                            options: LearningGoal.allCases.map { ($0, store.t($0.rawValue)) },
+                            selection: $goal
+                        )
                     }
                 }
 
                 GlassCard(accent: RhetorixColors.amber) {
                     VStack(alignment: .leading, spacing: 12) {
                         Text(store.t("Experience level")).font(.headline)
-                        Picker(store.t("Experience level"), selection: $experience) {
-                            ForEach(DebateExperience.allCases) { option in
-                                Text(store.t(option.rawValue)).tag(option)
-                            }
-                        }
-                        .pickerStyle(.segmented)
+                        RhetorixChoiceChips(
+                            title: nil,
+                            options: DebateExperience.allCases.map { ($0, store.t($0.rawValue)) },
+                            selection: $experience
+                        )
 
                         Text(store.t("Practice length")).font(.headline)
-                        Picker(store.t("Practice length"), selection: $duration) {
-                            ForEach(PracticeDuration.allCases) { option in
-                                Text("\(option.rawValue) \(store.t("min"))").tag(option)
-                            }
-                        }
-                        .pickerStyle(.segmented)
+                        RhetorixChoiceChips(
+                            title: nil,
+                            options: PracticeDuration.allCases.map { ($0, "\($0.rawValue) \(store.t("min"))") },
+                            selection: $duration
+                        )
                     }
                 }
 
@@ -745,28 +741,41 @@ struct DebateSetupView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                Picker(store.t("Mode"), selection: $mode) {
-                    ForEach(DebateMode.allCases) { Text(store.debateMode($0)).tag($0) }
-                }.pickerStyle(.segmented)
-                Picker(store.t("Format"), selection: $format) {
-                    ForEach(DebateFormat.allCases) { Text(store.debateFormat($0)).tag($0) }
-                }.pickerStyle(.segmented)
-                Picker(store.t("Difficulty"), selection: $difficulty) {
-                    ForEach(DebateDifficulty.allCases) { Text(store.debateDifficulty($0)).tag($0) }
-                }.pickerStyle(.segmented)
+                RhetorixChoiceChips(
+                    title: store.t("Mode"),
+                    options: DebateMode.allCases.map { ($0, store.debateMode($0)) },
+                    selection: $mode
+                )
+                RhetorixChoiceChips(
+                    title: store.t("Format"),
+                    options: DebateFormat.allCases.map { ($0, store.debateFormat($0)) },
+                    selection: $format
+                )
+                RhetorixChoiceChips(
+                    title: store.t("Difficulty"),
+                    options: DebateDifficulty.allCases.map { ($0, store.debateDifficulty($0)) },
+                    selection: $difficulty
+                )
                 if mode == .userVsAi {
-                    Picker(store.t("Your Position"), selection: $side) {
-                        ForEach(DebateSide.allCases) { Text(store.debateSide($0)).tag($0) }
-                    }.pickerStyle(.segmented)
+                    RhetorixChoiceChips(
+                        title: store.t("Your Position"),
+                        options: DebateSide.allCases.map { ($0, store.debateSide($0)) },
+                        selection: $side
+                    )
                 }
                 Button {
                     let session = store.createSession(topic: topic, mode: mode, format: format, difficulty: difficulty, side: side, provider: store.preferredProvider)
                     path.append(AppRoute.debate(session.id))
                 } label: {
-                    Text(store.t("Start Debate")).frame(maxWidth: .infinity)
+                    PrimaryActionLabel(
+                        title: store.t("Start Debate"),
+                        detail: "\(store.debateMode(mode)) · \(store.debateDifficulty(difficulty))",
+                        systemImage: "mic.fill"
+                    )
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.rhetorixPrimary)
                 .accessibilityIdentifier("setup.startDebate")
+                .padding(.top, 4)
             }
             .padding()
         }
@@ -1231,12 +1240,11 @@ struct DebateSelfAssessmentView: View {
                                     .font(.headline.monospacedDigit())
                                     .foregroundStyle(RhetorixColors.amber)
                             }
-                            Picker(store.t(skill.rawValue), selection: ratingBinding(for: skill)) {
-                                ForEach(1...5, id: \.self) { score in
-                                    Text("\(score)").tag(score)
-                                }
-                            }
-                            .pickerStyle(.segmented)
+                            RhetorixChoiceChips(
+                                title: nil,
+                                options: (1...5).map { ($0, "\($0)") },
+                                selection: ratingBinding(for: skill)
+                            )
                         }
                     }
                 }
