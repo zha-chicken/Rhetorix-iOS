@@ -64,5 +64,9 @@ Detailed checklist: [REAL_DEVICE_VERIFICATION.md](REAL_DEVICE_VERIFICATION.md)
 
 ### 8. Distribution Readiness
 
-- Prepare a non-debug iOS archive flow.
-- Prepare TestFlight/App Store notes if the project moves toward public iOS testing.
+Status: `Repo side prepared`
+
+- Archive/export flow exists: `Scripts/archive.sh` (needs a paid Apple Developer team ID).
+- Submission kit exists: [APP_STORE.md](APP_STORE.md) — metadata (EN/zh), privacy answers, age rating, screenshots, review notes.
+- Privacy manifest, export-compliance key, and bilingual permission strings are in the app bundle; privacy policy at [PRIVACY.md](PRIVACY.md) (publish via GitHub Pages before submission).
+- Remaining work is operator-side: enroll in the Apple Developer Program, complete `REAL_DEVICE_VERIFICATION.md` on a physical iPhone, upload to TestFlight, then submit.

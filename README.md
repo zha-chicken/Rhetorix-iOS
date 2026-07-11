@@ -598,6 +598,15 @@ xcodebuild \
 /Users/benjamin/Desktop/Rhetorix-iOS/build/DerivedData/Build/Products/Debug-iphonesimulator/Rhetorix.app
 ```
 
+## 发布到 App Store
+
+发布材料与流程见 [APP_STORE.md](APP_STORE.md)（元数据、隐私问卷、截图、审核备注、上架顺序）。要点：
+
+- 需要 Apple Developer Program 会员（个人，99 美元/年）。
+- 签名归档：`TEAM_ID=XXXXXXXXXX ./Scripts/archive.sh`，产出可上传 TestFlight 的 archive/IPA。
+- 隐私政策见 [PRIVACY.md](PRIVACY.md)，提交前需通过 GitHub Pages 等方式发布为可访问链接。
+- 上架前请在真机上完成 [REAL_DEVICE_VERIFICATION.md](REAL_DEVICE_VERIFICATION.md) 清单。
+
 ## 当前实现边界
 
 当前 iOS 版本是一个本地优先的 MVP / 原型级实现。
