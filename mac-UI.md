@@ -44,11 +44,11 @@ The icon should feel serious, academic, and debate-focused. It keeps its own nav
 
 ## Visual Direction
 
-The iPhone version uses the same dark glassmorphism direction as Android:
+The iPhone version uses a restrained, dark-first direction:
 
-- Deep blue-green graphite background
-- Frosted glass cards and panels
-- Thin translucent borders
+- Neutral near-black background; elevation comes from surface lightness, not tinted glass
+- Solid elevated card panels in dark; translucent paper cards in light
+- Hairline borders
 - Mostly white text
 - One teal-cyan brand accent plus quiet semantic colors (success, warning, danger)
 - Compact portrait-first layouts
@@ -83,20 +83,20 @@ Restraint rules:
 - The ambient backdrop glow appears only on the Live Debate screen; every other screen uses the flat vertical gradient.
 - A typical screen should show the brand accent plus at most one semantic color carrying meaning.
 
-### Dark Graphite Theme
+### Dark Neutral Theme
 
-The dark SwiftUI baseline should mirror the Android palette.
+The dark baseline is a neutral near-black, not a tinted color field. Elevation comes from surface lightness: cards are solid, slightly lighter panels with hairline borders, in the manner of mature productivity apps.
 
 Background:
 
-- Deep graphite teal, close to `#13242B`
-- Deeper analysis backdrop, close to `#0E1A20`
-- A single brand glow appears only behind the Live Debate screen
+- Neutral near-black with a faint cool cast, close to `#0E1013`
+- Slightly deeper backdrop, close to `#0B0D10`, so the page reads effectively flat
+- A single teal brand glow appears only behind the Live Debate screen
 
-Glass surfaces:
+Surfaces:
 
-- Normal cards use translucent dark teal-gray with a neutral border
-- Raised cards use stronger opacity and brighter borders
+- Normal cards are solid elevated panels, close to `#191B20`, with hairline neutral borders
+- Raised panels step one level lighter, close to `#222530`
 - Muted panels group low-emphasis controls
 - Selected controls use stronger fill plus brand border
 
@@ -109,7 +109,7 @@ Text:
 
 Accents:
 
-- Brand cyan, close to `#61CCD6`: primary actions, selection, AI identity
+- Brand teal-cyan, close to `#54C2CF`: primary actions, selection, AI identity
 - Warning amber: stage-time pressure, debate tension
 - Success green: wins, completion, support-side signals
 - Danger red: errors, refutations, opposition signals, blocked content

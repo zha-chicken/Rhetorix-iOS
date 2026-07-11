@@ -2,27 +2,28 @@ import SwiftUI
 import UIKit
 
 enum RhetorixColors {
-    // Chrome. Dark stays graphite teal; light is a cool paper-white that
-    // shares the brand hue instead of being a separate pink product.
+    // Chrome. Dark is a neutral near-black where cards read as elevated
+    // surfaces (lighter fills, hairline borders) rather than tinted glass;
+    // light is a cool paper-white sharing the same teal identity.
     static let background = adaptive(
         light: UIColor(red: 0.972, green: 0.980, blue: 0.984, alpha: 1.0),
-        dark: UIColor(red: 0.075, green: 0.141, blue: 0.169, alpha: 1.0)
+        dark: UIColor(red: 0.055, green: 0.063, blue: 0.075, alpha: 1.0)
     )
     static let backgroundDeep = adaptive(
         light: UIColor(red: 0.988, green: 0.992, blue: 0.994, alpha: 1.0),
-        dark: UIColor(red: 0.055, green: 0.102, blue: 0.125, alpha: 1.0)
+        dark: UIColor(red: 0.043, green: 0.051, blue: 0.063, alpha: 1.0)
     )
     static let glass = adaptive(
         light: UIColor(red: 0.955, green: 0.972, blue: 0.978, alpha: 0.72),
-        dark: UIColor(white: 1.0, alpha: 0.085)
+        dark: UIColor(red: 0.098, green: 0.106, blue: 0.125, alpha: 1.0)
     )
     static let glassStrong = adaptive(
         light: UIColor(red: 0.920, green: 0.950, blue: 0.960, alpha: 0.85),
-        dark: UIColor(white: 1.0, alpha: 0.145)
+        dark: UIColor(red: 0.133, green: 0.145, blue: 0.169, alpha: 1.0)
     )
     static let border = adaptive(
         light: UIColor(red: 0.16, green: 0.34, blue: 0.38, alpha: 0.16),
-        dark: UIColor(white: 1.0, alpha: 0.14)
+        dark: UIColor(white: 1.0, alpha: 0.08)
     )
     static let textPrimary = adaptive(
         light: UIColor(red: 0.10, green: 0.14, blue: 0.16, alpha: 0.96),
@@ -41,7 +42,7 @@ enum RhetorixColors {
     // resolve each role to the same hue so the product has one identity.
     static let brand = adaptive(
         light: UIColor(red: 0.03, green: 0.49, blue: 0.55, alpha: 1.0),
-        dark: UIColor(red: 0.38, green: 0.80, blue: 0.84, alpha: 1.0)
+        dark: UIColor(red: 0.33, green: 0.76, blue: 0.81, alpha: 1.0)
     )
     static let success = adaptive(
         light: UIColor(red: 0.12, green: 0.58, blue: 0.42, alpha: 1.0),
@@ -66,11 +67,11 @@ enum RhetorixColors {
 
     static let primaryActionEnd = adaptive(
         light: UIColor(red: 0.02, green: 0.38, blue: 0.44, alpha: 1.0),
-        dark: UIColor(red: 0.24, green: 0.62, blue: 0.66, alpha: 1.0)
+        dark: UIColor(red: 0.20, green: 0.58, blue: 0.63, alpha: 1.0)
     )
     static let primaryActionForeground = adaptive(
         light: UIColor.white,
-        dark: UIColor(red: 0.035, green: 0.12, blue: 0.14, alpha: 1.0)
+        dark: UIColor(red: 0.03, green: 0.10, blue: 0.11, alpha: 1.0)
     )
     static func adaptive(light: UIColor, dark: UIColor) -> Color {
         Color(UIColor { trait in
