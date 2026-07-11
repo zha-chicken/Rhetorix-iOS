@@ -97,7 +97,7 @@ struct HomeView: View {
                         HStack {
                             Label(store.t("Today's Practice"), systemImage: store.dailyPracticeSkill.icon)
                                 .font(.caption.bold())
-                                .foregroundStyle(RhetorixColors.cyan)
+                                .foregroundStyle(RhetorixColors.textSecondary)
                             Spacer()
                             Text(store.isSkillPathComplete ? store.t("Path complete") : "\(store.t("Step")) \(store.currentPathStepNumber) / \(AppStore.skillPath.count)")
                                 .font(.caption.bold())
@@ -129,28 +129,29 @@ struct HomeView: View {
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.bordered)
+                        .tint(RhetorixColors.textSecondary)
                         .accessibilityIdentifier("home.startVoiceDebate")
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
                 HStack(spacing: 10) {
-                    StatCard(value: "\(store.debateCount)", label: store.t("Debates"), icon: "trophy")
-                    StatCard(value: "\(store.winRate)%", label: store.t("Win Rate"), icon: "gearshape")
-                    StatCard(value: "\(store.winStreak)", label: store.t("Win Streak"), icon: "flame.fill")
+                    StatCard(value: "\(store.debateCount)", label: store.t("Debates"))
+                    StatCard(value: "\(store.winRate)%", label: store.t("Win Rate"))
+                    StatCard(value: "\(store.winStreak)", label: store.t("Win Streak"))
                 }
 
                 MemoryInsightCard(path: $path)
 
                 SectionTitle(text: store.t("Preparation Tools"))
                 HStack(spacing: 10) {
-                    CompactToolButton(title: store.t("Constructive Analysis"), icon: "magnifyingglass.circle.fill", accent: RhetorixColors.cyan) {
+                    CompactToolButton(title: store.t("Constructive Analysis"), icon: "magnifyingglass.circle.fill") {
                         path.append(AppRoute.constructiveAnalysis)
                     }
-                    CompactToolButton(title: store.t("Rebuttal"), icon: "timer", accent: RhetorixColors.amber) {
+                    CompactToolButton(title: store.t("Rebuttal"), icon: "timer") {
                         path.append(AppRoute.rebuttalTrainer)
                     }
-                    CompactToolButton(title: store.t("Fallacy"), icon: "magnifyingglass", accent: RhetorixColors.green) {
+                    CompactToolButton(title: store.t("Fallacy"), icon: "magnifyingglass") {
                         path.append(AppRoute.fallacyDetector)
                     }
                 }
@@ -180,9 +181,6 @@ struct MemoryInsightCard: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("home.memoryDetails")
-                    Text(store.memoryProfile.hasEnoughData ? store.t("Real local memory") : store.t("Learning"))
-                        .font(.caption.bold())
-                        .foregroundStyle(RhetorixColors.textSecondary)
                 }
                 Text(store.memorySummaryText())
                     .font(.caption)
@@ -211,7 +209,7 @@ struct MemoryInsightCard: View {
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(store.t("Recommended topic"))
                                     .font(.caption.bold())
-                                    .foregroundStyle(RhetorixColors.amber)
+                                    .foregroundStyle(RhetorixColors.textSecondary)
                                 Text(store.topicTitle(recommendation.topic))
                                     .font(.subheadline.bold())
                                     .foregroundStyle(RhetorixColors.textPrimary)
@@ -220,7 +218,7 @@ struct MemoryInsightCard: View {
                                     .foregroundStyle(RhetorixColors.textTertiary)
                                 Text("\(store.t("Focus")): \(recommendation.focus)")
                                     .font(.caption2.bold())
-                                    .foregroundStyle(RhetorixColors.cyan)
+                                    .foregroundStyle(RhetorixColors.textTertiary)
                             }
                             Spacer()
                             Image(systemName: "chevron.right")
@@ -371,7 +369,7 @@ struct GuidedPracticeView: View {
             VStack(alignment: .leading, spacing: 10) {
                 Label(store.t("Today's skill"), systemImage: skill.icon)
                     .font(.caption.bold())
-                    .foregroundStyle(RhetorixColors.cyan)
+                    .foregroundStyle(RhetorixColors.textSecondary)
                 Text(store.t(skill.rawValue))
                     .font(.title2.bold())
                 Text(store.t(skill.lessonSummary))
@@ -407,7 +405,7 @@ struct GuidedPracticeView: View {
                 HStack {
                     Label(store.t("Skill path"), systemImage: "point.topleft.down.to.point.bottomright.curvepath.fill")
                         .font(.caption.bold())
-                        .foregroundStyle(RhetorixColors.green)
+                        .foregroundStyle(RhetorixColors.textSecondary)
                     Spacer()
                     Text(pathPositionText)
                         .font(.caption.bold())
@@ -479,7 +477,7 @@ struct GuidedPracticeView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text(store.t(skill.strategy))
                     .font(.headline)
-                    .foregroundStyle(RhetorixColors.amber)
+                    .foregroundStyle(RhetorixColors.textPrimary)
                     .padding(10)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(RoundedRectangle(cornerRadius: 12).fill(RhetorixColors.glassStrong))
@@ -487,7 +485,7 @@ struct GuidedPracticeView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Label(store.t("Worked example"), systemImage: "lightbulb.fill")
                         .font(.caption.bold())
-                        .foregroundStyle(RhetorixColors.green)
+                        .foregroundStyle(RhetorixColors.textSecondary)
                     Text(store.t(skill.example))
                         .font(.subheadline)
                         .foregroundStyle(RhetorixColors.textSecondary)
@@ -516,7 +514,7 @@ struct GuidedPracticeView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Text(store.t("Practice motion"))
                         .font(.caption.bold())
-                        .foregroundStyle(RhetorixColors.peach)
+                        .foregroundStyle(RhetorixColors.textSecondary)
                     Text(store.topicTitle(topic))
                         .font(.headline)
                     Text(store.topicDetails(topic))
@@ -715,7 +713,6 @@ struct PracticeCoachRow: View {
 struct CompactToolButton: View {
     var title: String
     var icon: String
-    var accent: Color
     var action: () -> Void
 
     var body: some View {
@@ -723,7 +720,7 @@ struct CompactToolButton: View {
             VStack(spacing: 6) {
                 Image(systemName: icon)
                     .font(.headline)
-                    .foregroundStyle(accent)
+                    .foregroundStyle(RhetorixColors.textPrimary)
                 Text(title)
                     .font(.caption2.bold())
                     .foregroundStyle(RhetorixColors.textSecondary)
@@ -736,7 +733,7 @@ struct CompactToolButton: View {
             .background(RoundedRectangle(cornerRadius: 14).fill(RhetorixColors.glass))
             .overlay(
                 RoundedRectangle(cornerRadius: 14)
-                    .stroke(accent.opacity(0.22), lineWidth: 1)
+                    .stroke(RhetorixColors.border, lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
@@ -746,11 +743,9 @@ struct CompactToolButton: View {
 struct StatCard: View {
     var value: String
     var label: String
-    var icon: String
     var body: some View {
-        GlassCard(accent: RhetorixColors.cyan, padding: 12) {
+        GlassCard(padding: 12) {
             VStack(spacing: 4) {
-                Image(systemName: icon).foregroundStyle(RhetorixColors.textSecondary)
                 Text(value).font(.title2.bold())
                 Text(label).font(.caption2).foregroundStyle(RhetorixColors.textSecondary)
             }
@@ -1049,7 +1044,7 @@ struct DebatePracticeFocusCard: View {
             VStack(alignment: .leading, spacing: 8) {
                 Label(store.t("Practice focus"), systemImage: skill.icon)
                     .font(.caption.bold())
-                    .foregroundStyle(RhetorixColors.cyan)
+                    .foregroundStyle(RhetorixColors.textSecondary)
                 Text(store.t(skill.rawValue)).font(.headline)
                 Text(store.t(skill.strategy))
                     .font(.subheadline)
@@ -1070,8 +1065,10 @@ struct DebateStatus: View {
         GlassCard(accent: RhetorixColors.amber, emphasized: true) {
             VStack(spacing: 12) {
                 HStack {
-                    Text("\(session.turns.filter { $0.role == .support || ($0.role == .user && session.userSide == .support) }.count)").font(.title.bold()).foregroundStyle(RhetorixColors.green)
+                    Circle().fill(RhetorixColors.success).frame(width: 7, height: 7)
+                    Text("\(session.turns.filter { $0.role == .support || ($0.role == .user && session.userSide == .support) }.count)").font(.title2.bold())
                     Text(store.t("Support"))
+                        .foregroundStyle(RhetorixColors.textSecondary)
                     Spacer()
                     VStack(spacing: 2) {
                         Text("\(store.t("Turn")) \(session.turns.count) / \(session.format == .structured ? store.structuredTurnLimit : 12)")
@@ -1082,7 +1079,9 @@ struct DebateStatus: View {
                     .foregroundStyle(RhetorixColors.textSecondary)
                     Spacer()
                     Text(store.t("Oppose"))
-                    Text("\(session.turns.filter { $0.role == .oppose || ($0.role == .user && session.userSide == .oppose) }.count)").font(.title.bold()).foregroundStyle(RhetorixColors.salmon)
+                        .foregroundStyle(RhetorixColors.textSecondary)
+                    Text("\(session.turns.filter { $0.role == .oppose || ($0.role == .user && session.userSide == .oppose) }.count)").font(.title2.bold())
+                    Circle().fill(RhetorixColors.danger).frame(width: 7, height: 7)
                 }
                 if session.mode != .aiVsAi {
                     StageTimerView(limit: store.stageTimeLimit(for: session), startedAt: stageStartedAt, now: now)
@@ -2028,14 +2027,14 @@ struct ToolsView: View {
                     .font(.caption)
                     .foregroundStyle(RhetorixColors.textSecondary)
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                    CompactToolButton(title: store.t("Constructive Analysis"), icon: "magnifyingglass.circle.fill", accent: RhetorixColors.cyan) {
+                    CompactToolButton(title: store.t("Constructive Analysis"), icon: "magnifyingglass.circle.fill") {
                         path.append(AppRoute.constructiveAnalysis)
                     }
                     .accessibilityIdentifier("tools.constructiveAnalysis")
-                    CompactToolButton(title: store.t("Rebuttal Trainer"), icon: "timer", accent: RhetorixColors.amber) {
+                    CompactToolButton(title: store.t("Rebuttal Trainer"), icon: "timer") {
                         path.append(AppRoute.rebuttalTrainer)
                     }
-                    CompactToolButton(title: store.t("Logic Fallacy Detector"), icon: "magnifyingglass", accent: RhetorixColors.green) {
+                    CompactToolButton(title: store.t("Logic Fallacy Detector"), icon: "magnifyingglass") {
                         path.append(AppRoute.fallacyDetector)
                     }
                     .accessibilityIdentifier("tools.fallacyDetector")
@@ -2085,7 +2084,7 @@ struct SettingsView: View {
                             Spacer()
                             Text(store.config(for: provider)?.isEnabled == true ? store.t("Enabled") : store.t("Disabled"))
                                 .font(.caption)
-                                .foregroundStyle(store.config(for: provider)?.isEnabled == true ? RhetorixColors.green : RhetorixColors.salmon)
+                                .foregroundStyle(store.config(for: provider)?.isEnabled == true ? RhetorixColors.green : RhetorixColors.textTertiary)
                         }
                     }
                 }
@@ -2108,6 +2107,7 @@ struct SettingsView: View {
                     }
                 }
             }
+            .tint(RhetorixColors.textSecondary)
             .listRowBackground(RhetorixColors.glass)
             Section(store.t("Learning Plan")) {
                 Picker(store.t("Primary goal"), selection: Binding(
@@ -2135,6 +2135,7 @@ struct SettingsView: View {
                     }
                 }
             }
+            .tint(RhetorixColors.textSecondary)
             .listRowBackground(RhetorixColors.glass)
             Section(store.t("Voice")) {
                 Toggle(store.t("Auto-read AI responses"), isOn: Binding(
@@ -2176,6 +2177,7 @@ struct SettingsView: View {
                         Text(type.rawValue).tag(Optional(type))
                     }
                 }
+                .tint(RhetorixColors.textSecondary)
             }
             .listRowBackground(RhetorixColors.glass)
         }
@@ -2198,6 +2200,7 @@ struct VoiceSettingsView: View {
                         Text(store.t(engine.rawValue)).tag(engine)
                     }
                 }
+                .tint(RhetorixColors.textSecondary)
                 Text(store.t("Online voice engines read AI responses when configured. System voice remains the fallback if online speech is unavailable."))
                     .font(.caption)
                     .foregroundStyle(RhetorixColors.textSecondary)
@@ -2287,6 +2290,7 @@ struct VoiceSettingsView: View {
                             Text(engine).tag(engine)
                         }
                     }
+                    .tint(RhetorixColors.textSecondary)
                     Picker(store.t("Voicebox Model Size"), selection: Binding(
                         get: { store.voiceboxTTSConfig.modelSize },
                         set: {
@@ -2299,6 +2303,7 @@ struct VoiceSettingsView: View {
                             Text(size).tag(size)
                         }
                     }
+                    .tint(RhetorixColors.textSecondary)
                     Text(store.t("Use a LAN or remote Voicebox server URL on a real iPhone. 127.0.0.1 only works when the server runs on the same device or simulator host."))
                         .font(.caption)
                         .foregroundStyle(RhetorixColors.textSecondary)
