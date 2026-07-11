@@ -40,17 +40,17 @@ The iOS app icon uses a classical rhetoric/debate identity:
 - Subtle laurel and column motifs to signal rhetoric, civic debate, and academic tradition
 - `Rhetorix` wordmark in gold
 
-The icon should feel serious, academic, and debate-focused. It should not use the pink-white UI theme as the icon identity, because the icon needs stronger contrast on the iOS home screen.
+The icon should feel serious, academic, and debate-focused. The in-app theme now shares this navy-and-gold identity, so icon and UI read as one product.
 
 ## Visual Direction
 
 The iPhone version uses the same dark glassmorphism direction as Android:
 
-- Deep blue-green graphite background
+- Deep navy background aligned with the classical app icon
 - Frosted glass cards and panels
 - Thin translucent borders
 - Mostly white text
-- Muted cyan, amber, peach, green, and salmon accents
+- One warm gold brand accent plus quiet semantic colors (success, warning, danger)
 - Compact portrait-first layouts
 - Functional controls with visible state changes
 
@@ -67,22 +67,35 @@ Avoid:
 
 The app supports two real visual themes. The user can switch themes from Settings, and the choice is persisted locally.
 
-### Dark Graphite Theme
+Color follows a role system, not a hue collection: one brand accent plus three quiet semantic colors, and both themes resolve each role to the same hue so the product keeps a single identity. Legacy hue names in code (cyan, amber, peach, green, salmon) are aliases onto the role tokens so no surface can drift off-palette.
 
-The dark SwiftUI baseline should mirror the Android palette.
+- Brand (gold): primary actions, selection, focus states, AI identity — the same warm gold as the app icon
+- Success (green): wins, completion, support-side signals
+- Warning (terracotta): stage-time pressure, debate tension — pushed toward orange to keep clear distance from the gold brand
+- Danger (red): errors, refutations, opposition signals, blocked content
+
+Restraint rules:
+
+- Cards use a neutral border by default. The tinted accent border is an emphasis state reserved for surfaces that carry live round pressure (the debate status card and the practice-focus card), never a default decoration.
+- The ambient backdrop glow appears only on the Live Debate screen; every other screen uses the flat vertical gradient.
+- A typical screen should show the brand accent plus at most one semantic color carrying meaning.
+
+### Dark Navy Theme
+
+The dark baseline shares the app icon's classical navy-and-gold identity.
 
 Background:
 
-- Deep graphite teal, close to `#13242B`
-- Deeper analysis backdrop, close to `#0E1A20`
-- Soft cyan and amber radial glow accents
+- Deep navy, close to `#131B28`
+- Deeper analysis backdrop, close to `#0D131E`
+- A single gold brand glow appears only behind the Live Debate screen
 
 Glass surfaces:
 
-- Normal cards use translucent dark teal-gray
+- Normal cards use translucent dark navy-gray with a neutral border
 - Raised cards use stronger opacity and brighter borders
 - Muted panels group low-emphasis controls
-- Selected controls use stronger fill plus accent border
+- Selected controls use stronger fill plus brand border
 
 Text:
 
@@ -93,43 +106,41 @@ Text:
 
 Accents:
 
-- Cyan: AI, reasoning analysis, technical signals
-- Amber: debate tension, neutral highlights, relationship labels
-- Peach: donation and support
-- Green: success, support, completion
-- Salmon: errors, refutations, blocked content
+- Brand gold, close to `#E6BF70`: primary actions, selection, AI identity
+- Warning terracotta: stage-time pressure, debate tension
+- Success green: wins, completion, support-side signals
+- Danger red: errors, refutations, opposition signals, blocked content
 
 Color should clarify state and relationships, not act as decoration only.
 
-### Pink White Light Theme
+### Warm Paper Light Theme
 
-The light theme is a pink-white Rhetorix variant for users who prefer a bright interface.
+The light theme is a warm paper-white variant of the same identity, not a separate pink product.
 
 Background:
 
-- Warm white and very pale rose surfaces
-- Soft pink and peach radial glow accents
+- Warm near-white paper surfaces with a subtle parchment cast
+- No radial glow accents outside the Live Debate screen
 - No pure flat white page that feels empty or clinical
 
 Surfaces:
 
-- Cards use translucent blush-white fill
-- Borders use pale rose with low opacity
-- Selected controls use stronger pink fill or pink border
+- Cards use translucent warm-white fill with a neutral warm-gray border
+- Selected controls use stronger fill plus a bronze brand border
 - Shadows, if used, should stay soft and low contrast
 
 Text:
 
-- Primary text is dark charcoal, not black
+- Primary text is warm charcoal, not black
 - Secondary text is warm gray-brown
-- Text on saturated pink/coral controls remains white
+- Text on saturated brand controls remains white
 
 Accents:
 
-- Pink: primary actions, selected state, app identity
-- Peach/orange: debate tension, warning, relationship labels
-- Mint/teal: success and support-side signals
-- Rose/salmon: opposition, refutation, blocked/error states
+- Brand bronze, close to `#946B1F`: primary actions, selected state, app identity
+- Warning terracotta: debate tension, stage-time pressure
+- Success green: wins, completion, support-side signals
+- Danger red: opposition, refutation, blocked/error states
 
 The light theme should feel calm, student-friendly, and readable, not like a marketing landing page.
 
