@@ -3,7 +3,15 @@ import SwiftUI
 
 enum AppTheme: String, Codable, CaseIterable, Identifiable {
     case dark = "Dark"
-    case light = "Pink White"
+    case light = "Light"
+
+    // Older builds persisted the light theme as "Pink White". The snapshot
+    // decodes with try?, so an unrecognized raw value here would silently
+    // wipe all local data — map legacy/unknown values instead of throwing.
+    init(from decoder: Decoder) throws {
+        let raw = (try? decoder.singleValueContainer().decode(String.self)) ?? AppTheme.dark.rawValue
+        self = AppTheme(rawValue: raw) ?? (raw == "Pink White" ? .light : .dark)
+    }
 
     var id: String { rawValue }
 

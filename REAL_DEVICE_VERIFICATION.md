@@ -8,7 +8,7 @@ This file tracks everything that must be verified on a physical iPhone. Simulato
 - Test with app language set to English.
 - Test with app language set to Chinese.
 - Test in dark mode.
-- Test in pink-white light mode.
+- Test in the light theme.
 - Test with no saved local data after a fresh install.
 - Test with existing local data after upgrading from a previous build.
 
