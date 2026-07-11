@@ -44,6 +44,8 @@ struct RootView: View {
                     SpeechRetryView(sessionID: sessionID, turnID: turnID)
                 case .memoryProfile:
                     MemoryProfileDetailView(path: $path)
+                case .voiceSettings:
+                    VoiceSettingsView()
                 case .constructiveAnalysis:
                     ConstructiveAnalysisView()
                 case .rebuttalTrainer:
@@ -2076,6 +2078,20 @@ struct SettingsView: View {
     @Binding var path: NavigationPath
     var body: some View {
         List {
+            Section(store.t("AI Providers")) {
+                ForEach(AiProvider.allCases) { provider in
+                    Button { path.append(AppRoute.provider(provider)) } label: {
+                        HStack {
+                            Text(provider.rawValue)
+                            Spacer()
+                            Text(store.config(for: provider)?.isEnabled == true ? store.t("Enabled") : store.t("Disabled"))
+                                .font(.caption)
+                                .foregroundStyle(store.config(for: provider)?.isEnabled == true ? RhetorixColors.green : RhetorixColors.salmon)
+                        }
+                    }
+                }
+            }
+            .listRowBackground(RhetorixColors.glass)
             Section(store.t("Appearance")) {
                 Picker(store.t("Language"), selection: Binding(
                     get: { store.selectedLanguage },
@@ -2126,6 +2142,55 @@ struct SettingsView: View {
                     get: { store.autoSpeakAI },
                     set: { store.setAutoSpeakAI($0) }
                 ))
+                Button {
+                    path.append(AppRoute.voiceSettings)
+                } label: {
+                    HStack {
+                        Label(store.t("Voice Engine"), systemImage: "speaker.wave.2.fill")
+                        Spacer()
+                        Text(store.t(store.voiceOutputEngine.rawValue))
+                            .font(.caption)
+                            .foregroundStyle(RhetorixColors.textSecondary)
+                    }
+                }
+                .accessibilityIdentifier("settings.voiceEngine")
+            }
+            .listRowBackground(RhetorixColors.glass)
+            Section(store.t("Memory Profile")) {
+                Button {
+                    path.append(AppRoute.memoryProfile)
+                } label: {
+                    HStack {
+                        Label(store.t("Open Memory Detail"), systemImage: "brain.head.profile")
+                        Spacer()
+                        Text("\(store.userProfileMemory.evidenceSessionCount) \(store.t("debates"))")
+                            .font(.caption)
+                            .foregroundStyle(RhetorixColors.textSecondary)
+                    }
+                }
+                Picker(store.t("MBTI"), selection: Binding<MBTIType?>(
+                    get: { store.userProfileMemory.mbti },
+                    set: { store.setMBTI($0) }
+                )) {
+                    Text(store.t("Not set")).tag(Optional<MBTIType>.none)
+                    ForEach(MBTIType.allCases) { type in
+                        Text(type.rawValue).tag(Optional(type))
+                    }
+                }
+            }
+            .listRowBackground(RhetorixColors.glass)
+        }
+        .navigationTitle(store.t("Settings"))
+        .appScreen()
+    }
+}
+
+struct VoiceSettingsView: View {
+    @EnvironmentObject private var store: AppStore
+
+    var body: some View {
+        List {
+            Section(store.t("Voice Engine")) {
                 Picker(store.t("Voice Engine"), selection: Binding(
                     get: { store.voiceOutputEngine },
                     set: { store.setVoiceOutputEngine($0) }
@@ -2134,7 +2199,13 @@ struct SettingsView: View {
                         Text(store.t(engine.rawValue)).tag(engine)
                     }
                 }
-                if store.voiceOutputEngine == .volcengine {
+                Text(store.t("Online voice engines read AI responses when configured. System voice remains the fallback if online speech is unavailable."))
+                    .font(.caption)
+                    .foregroundStyle(RhetorixColors.textSecondary)
+            }
+            .listRowBackground(RhetorixColors.glass)
+            if store.voiceOutputEngine == .volcengine {
+                Section(store.t("Volcengine")) {
                     TextField(store.t("Volcengine App ID"), text: Binding(
                         get: { store.volcengineTTSConfig.appID },
                         set: {
@@ -2181,7 +2252,10 @@ struct SettingsView: View {
                         ), in: 0.7...1.3, step: 0.1)
                     }
                 }
-                if store.voiceOutputEngine == .voicebox {
+                .listRowBackground(RhetorixColors.glass)
+            }
+            if store.voiceOutputEngine == .voicebox {
+                Section(store.t("Voicebox")) {
                     TextField(store.t("Voicebox Server URL"), text: Binding(
                         get: { store.voiceboxTTSConfig.baseURL },
                         set: {
@@ -2229,64 +2303,11 @@ struct SettingsView: View {
                         .font(.caption)
                         .foregroundStyle(RhetorixColors.textSecondary)
                 }
-                Text(store.t("Online voice engines read AI responses when configured. System voice remains the fallback if online speech is unavailable."))
-                    .font(.caption)
-                    .foregroundStyle(RhetorixColors.textSecondary)
+                .listRowBackground(RhetorixColors.glass)
             }
-            .listRowBackground(RhetorixColors.glass)
-            Section(store.t("Memory Profile")) {
-                Button {
-                    path.append(AppRoute.memoryProfile)
-                } label: {
-                    Label(store.t("Open Memory Detail"), systemImage: "brain.head.profile")
-                }
-                Picker(store.t("MBTI"), selection: Binding<MBTIType?>(
-                    get: { store.userProfileMemory.mbti },
-                    set: { store.setMBTI($0) }
-                )) {
-                    Text(store.t("Not set")).tag(Optional<MBTIType>.none)
-                    ForEach(MBTIType.allCases) { type in
-                        Text(type.rawValue).tag(Optional(type))
-                    }
-                }
-                HStack {
-                    Text(store.t("Evidence"))
-                    Spacer()
-                    Text("\(store.userProfileMemory.evidenceSessionCount) \(store.t("debates")) · \(store.userProfileMemory.evidenceTurnCount) \(store.t("turns"))")
-                        .foregroundStyle(RhetorixColors.textSecondary)
-                }
-                if store.userProfileMemory.hasInferenceEvidence == false {
-                    Text(store.t("Complete more debates to unlock reliable inferred profile signals."))
-                        .font(.caption)
-                        .foregroundStyle(RhetorixColors.textSecondary)
-                }
-                ForEach(store.userProfileMemory.styleSignals) { signal in
-                    MemorySignalRow(label: store.t("Style"), signal: signal)
-                }
-                ForEach(store.userProfileMemory.valueSignals) { signal in
-                    MemorySignalRow(label: store.t("Values"), signal: signal)
-                }
-                ForEach(store.userProfileMemory.weaknessSignals) { signal in
-                    MemorySignalRow(label: store.t("Focus"), signal: signal)
-                }
-            }
-            .listRowBackground(RhetorixColors.glass)
-            Section(store.t("AI Providers")) {
-                ForEach(AiProvider.allCases) { provider in
-                    Button { path.append(AppRoute.provider(provider)) } label: {
-                        HStack {
-                            Text(provider.rawValue)
-                            Spacer()
-                            Text(store.config(for: provider)?.isEnabled == true ? store.t("Enabled") : store.t("Disabled"))
-                                .font(.caption)
-                                .foregroundStyle(store.config(for: provider)?.isEnabled == true ? RhetorixColors.green : RhetorixColors.salmon)
-                        }
-                    }
-                }
-            }
-            .listRowBackground(RhetorixColors.glass)
         }
-        .navigationTitle(store.t("Settings"))
+        .navigationTitle(store.t("Voice"))
+        .navigationBarTitleDisplayMode(.inline)
         .appScreen()
     }
 }

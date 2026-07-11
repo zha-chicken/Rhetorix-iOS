@@ -253,6 +253,20 @@ final class RhetorixUITests: XCTestCase {
     }
 
     @MainActor
+    func testSettingsHubOpensVoiceEnginePage() throws {
+        let app = launchApp()
+        app.tabBars.buttons["Settings"].tap()
+
+        XCTAssertTrue(app.staticTexts["AI Providers"].waitForExistence(timeout: 5))
+
+        let voiceRow = app.buttons["settings.voiceEngine"]
+        XCTAssertTrue(scrollToElement(voiceRow, in: app))
+        voiceRow.tap()
+
+        XCTAssertTrue(app.staticTexts["Online voice engines read AI responses when configured. System voice remains the fallback if online speech is unavailable."].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
     private func launchApp(extraArguments: [String] = []) -> XCUIApplication {
         continueAfterFailure = false
         let app = XCUIApplication()
