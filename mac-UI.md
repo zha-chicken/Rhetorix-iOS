@@ -40,7 +40,7 @@ The iOS app icon uses a classical rhetoric/debate identity:
 - Subtle laurel and column motifs to signal rhetoric, civic debate, and academic tradition
 - `Rhetorix` wordmark in gold
 
-The icon should feel serious, academic, and debate-focused. It should not use the pink-white UI theme as the icon identity, because the icon needs stronger contrast on the iOS home screen.
+The icon should feel serious, academic, and debate-focused. It keeps its own navy-and-gold contrast for the iOS home screen and does not need to mirror the in-app theme.
 
 ## Visual Direction
 
