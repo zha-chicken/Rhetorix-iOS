@@ -163,10 +163,9 @@ final class RhetorixUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Path complete"].waitForExistence(timeout: 5))
         today.tap()
 
-        let reviewLine = app.staticTexts.matching(
-            NSPredicate(format: "label BEGINSWITH %@", "Path complete · Reviewing:")
-        ).firstMatch
-        XCTAssertTrue(reviewLine.waitForExistence(timeout: 5))
+        // With one seeded mastery debate and the default goal (speaking
+        // confidence), the first review must be the goal's home skill.
+        XCTAssertTrue(app.staticTexts["Path complete · Reviewing: Delivery and clarity"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.staticTexts["Next: Argument structure"].exists)
 
         let deliveryNode = app.buttons["Delivery and clarity"]

@@ -101,8 +101,34 @@ final class AppStore: ObservableObject {
             if weakness.contains("structure") || weakness.contains("definition") || weakness.contains("结构") || weakness.contains("定义") { return .argumentStructure }
         }
         // No weakness evidence: rotate reviews starting from the goal's home skill.
+        // Only debates completed after the path was mastered advance the
+        // rotation, so the first review is exactly the goal's home skill.
         let start = Self.skillPath.firstIndex(of: learningProfile.goal.homeSkill) ?? 0
-        return Self.skillPath[(start + debateCount) % Self.skillPath.count]
+        return Self.skillPath[(start + reviewDebateCount) % Self.skillPath.count]
+    }
+
+    private var reviewDebateCount: Int {
+        var unmastered = Set(Self.skillPath)
+        var pathMastered = false
+        var completedAfterMastery = 0
+        // Sessions are stored newest-first; walk oldest-first to find the
+        // debate that completed mastery, then count debates after it.
+        for session in sessions.reversed() {
+            if pathMastered {
+                if session.isCompleted, session.mode != .aiVsAi {
+                    completedAfterMastery += 1
+                }
+                continue
+            }
+            guard session.mode != .aiVsAi, let rubric = session.result?.rubric else { continue }
+            for entry in rubric where entry.score >= 4 {
+                unmastered.remove(entry.skill)
+            }
+            if unmastered.isEmpty {
+                pathMastered = true
+            }
+        }
+        return completedAfterMastery
     }
     var preferredProvider: AiProvider {
         if let configured = providerConfigs.first(where: { $0.isEnabled && $0.apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false }) {
