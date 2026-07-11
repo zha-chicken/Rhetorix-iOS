@@ -414,7 +414,7 @@ Content:
 - Immediate speech retry: a student can select one of their speeches, apply the coaching correction, submit a revised version, and see a saved before/after score and comparison.
 - Return home action
 
-Layout: the page must not read as one endless scroll. Always visible, in order: the outcome hero, the five-skill rubric, the recommendation feedback controls, and the speech-retry section. Everything long-form is collapsed by default behind tappable glass section headers with a rotating chevron (and an expanded/collapsed accessibility value): the self-assessment comparison, the full judge review (rationale, key clashes, strongest arguments, improvement actions, next focus), the transcript, and the round memory. Collapsed headers keep the actionable parts of the page reachable within a couple of swipes.
+Layout: the page must not read as one endless scroll. Always visible, in order: the outcome hero, the five-skill rubric, the recommendation feedback controls, and the speech-retry section. Everything long-form is collapsed by default behind tappable glass section headers with a rotating chevron (and an expanded/collapsed accessibility value): the self-assessment comparison, the full judge review (rationale, key clashes, strongest arguments, improvement actions, next focus), the transcript, and the round memory. Collapsed headers keep the actionable parts of the page reachable within a couple of swipes. The collapsible header owns the section title; expanded content must not repeat it.
 
 Winner handling:
 
@@ -458,6 +458,7 @@ Rules:
   - practice focus: evidence, direct clash, structure, or impact weighing based on judge/rebuttal feedback
   - constructive-analysis focus: repeated issue types from saved Constructive Analysis results
   - pacing focus: slow rebuttal or reply turns derived from recorded stage timers
+- Inferred signal sections unlock only once real inference evidence exists (two completed debates, or four recorded user turns). Below that bar, every surface — Home and the Memory Profile detail page alike — shows the same locked explainer instead of signals, so no page reveals signals another page calls locked.
 - Settings should expose evidence counts and short evidence snippets so the profile feels inspectable, not mystical.
 - Recommended topics should be chosen by Recommendation 2.0: prioritize the strongest current weakness signal, use completed-debate categories as a lighter hint, add only a small MBTI preference bias when available, apply explicit category like/dislike feedback, avoid very recent repeats, and diversify categories within the same recommendation batch when possible.
 - The Memory Profile detail page shows local evidence counts, profile metrics, top signals with evidence snippets, and up to three recommended topics with their training focus.

@@ -177,6 +177,7 @@ struct MemoryInsightCard: View {
                             .font(.caption.bold())
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("home.memoryDetails")
                     Text(store.memoryProfile.hasEnoughData ? store.t("Real local memory") : store.t("Learning"))
                         .font(.caption.bold())
                         .foregroundStyle(RhetorixColors.textSecondary)
@@ -1540,8 +1541,6 @@ struct SelfAssessmentComparisonSection: View {
     var body: some View {
         GlassCard(accent: RhetorixColors.amber) {
             VStack(alignment: .leading, spacing: 12) {
-                Label(store.t("Your view and the coach's view"), systemImage: "arrow.left.arrow.right.circle.fill")
-                    .font(.headline)
                 ForEach(DebateSkill.allCases) { skill in
                     let coachScore = rubric.first(where: { $0.skill == skill })?.score
                     HStack {
@@ -2347,9 +2346,17 @@ struct MemoryProfileDetailView: View {
                     }
                 }
 
-                MemorySignalSection(title: store.t("Debate style"), label: store.t("Style"), signals: store.userProfileMemory.styleSignals)
-                MemorySignalSection(title: store.t("Value signal"), label: store.t("Values"), signals: store.userProfileMemory.valueSignals)
-                MemorySignalSection(title: store.t("Practice focus"), label: store.t("Focus"), signals: store.userProfileMemory.weaknessSignals)
+                if store.userProfileMemory.hasInferenceEvidence {
+                    MemorySignalSection(title: store.t("Debate style"), label: store.t("Style"), signals: store.userProfileMemory.styleSignals)
+                    MemorySignalSection(title: store.t("Value signal"), label: store.t("Values"), signals: store.userProfileMemory.valueSignals)
+                    MemorySignalSection(title: store.t("Practice focus"), label: store.t("Focus"), signals: store.userProfileMemory.weaknessSignals)
+                } else {
+                    GlassCard(accent: RhetorixColors.amber) {
+                        Text(store.t("Complete more debates to unlock reliable inferred profile signals."))
+                            .font(.subheadline)
+                            .foregroundStyle(RhetorixColors.textSecondary)
+                    }
+                }
             }
             .padding()
         }

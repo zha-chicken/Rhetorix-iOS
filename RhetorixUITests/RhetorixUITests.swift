@@ -39,6 +39,18 @@ final class RhetorixUITests: XCTestCase {
         selfAssessmentSubmit.tap()
 
         XCTAssertTrue(app.staticTexts["Mock judgment: the user wins by clearer clash and better weighing."].waitForExistence(timeout: 5))
+
+        // The self-assessment comparison is collapsed by default; when
+        // expanded, its heading must appear exactly once — the collapsible
+        // header already carries the title, so the content must not repeat it.
+        let selfAssessmentSection = app.buttons["Your view and the coach's view"]
+        XCTAssertTrue(scrollToElement(selfAssessmentSection, in: app))
+        selfAssessmentSection.tap()
+        XCTAssertTrue(app.staticTexts["You 3"].firstMatch.waitForExistence(timeout: 5))
+        XCTAssertLessThan(app.staticTexts.matching(identifier: "Your view and the coach's view").count, 2)
+        selfAssessmentSection.tap()
+        XCTAssertTrue(app.staticTexts["You 3"].firstMatch.waitForNonExistence(timeout: 5))
+
         XCTAssertTrue(scrollToElement(app.staticTexts["Five-skill coach rubric"], in: app))
         XCTAssertTrue(app.staticTexts["Argument structure"].waitForExistence(timeout: 5))
 
@@ -240,6 +252,59 @@ final class RhetorixUITests: XCTestCase {
         let clashNode = app.buttons["Direct clash and rebuttal"]
         XCTAssertTrue(clashNode.waitForExistence(timeout: 5))
         XCTAssertNotEqual(clashNode.value as? String, "Mastered")
+    }
+
+    @MainActor
+    func testNavigationExposesBackButtonAndHidesPreviousScreens() throws {
+        // Pushed screens must fully replace the previous screen in the
+        // accessibility tree, and every pushed screen must expose a real
+        // back button — VoiceOver users should never reach hidden controls.
+        let app = launchApp()
+        app.buttons["home.startVoiceDebate"].tap()
+
+        XCTAssertTrue(app.buttons["topic.row.0"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["home.startVoiceDebate"].exists)
+        let backButton = app.navigationBars.buttons["BackButton"]
+        XCTAssertTrue(backButton.exists)
+        XCTAssertTrue(backButton.isHittable)
+
+        app.buttons["topic.row.0"].tap()
+        XCTAssertTrue(app.buttons["setup.startDebate"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["topic.row.0"].exists)
+        XCTAssertFalse(app.buttons["home.startVoiceDebate"].exists)
+        XCTAssertFalse(app.tabBars.firstMatch.exists)
+        XCTAssertTrue(app.navigationBars.buttons["BackButton"].exists)
+    }
+
+    @MainActor
+    func testMemoryDetailLocksSignalsWithoutInferenceEvidence() throws {
+        // One judged debate is below the inference-evidence bar: Memory
+        // Detail must show the locked explainer instead of inferred signal
+        // sections, matching the locked state Home already shows.
+        let app = launchApp(extraArguments: ["UITEST_SEED_JUDGED_ONCE"])
+
+        let details = app.buttons["home.memoryDetails"]
+        XCTAssertTrue(scrollToElement(details, in: app))
+        details.tap()
+
+        XCTAssertTrue(app.staticTexts["Complete more debates to unlock reliable inferred profile signals."].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Debate style"].exists)
+        XCTAssertFalse(app.staticTexts["Practice focus"].exists)
+    }
+
+    @MainActor
+    func testMemoryDetailShowsSignalsWithInferenceEvidence() throws {
+        // Two judged debates cross the inference-evidence bar: the inferred
+        // weakness signal must appear on Memory Detail and the locked
+        // explainer must not.
+        let app = launchApp(extraArguments: ["UITEST_SEED_WEAK_DELIVERY"])
+
+        let details = app.buttons["home.memoryDetails"]
+        XCTAssertTrue(scrollToElement(details, in: app))
+        details.tap()
+
+        XCTAssertTrue(app.staticTexts["Needs clearer delivery"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Complete more debates to unlock reliable inferred profile signals."].exists)
     }
 
     @MainActor
