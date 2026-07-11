@@ -433,7 +433,12 @@ struct GuidedPracticeView: View {
                     .font(.caption.bold())
                     .foregroundStyle(RhetorixColors.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(store.t("Reach a coach score of 4+ in any judged debate to master a skill. Tap any step to practice it."))
+                if store.isSkillMastered(skill) == false, store.strongScoreCount(for: skill) > 0 {
+                    Text("\(store.t("Strong scores")): \(store.strongScoreCount(for: skill)) / \(AppStore.masteryConfirmations)")
+                        .font(.caption2.bold())
+                        .foregroundStyle(RhetorixColors.amber)
+                }
+                Text(store.t("Master a skill with a 4+ coach score in two judged debates, or in one guided practice focused on it. Tap any step to practice it."))
                     .font(.caption2)
                     .foregroundStyle(RhetorixColors.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
