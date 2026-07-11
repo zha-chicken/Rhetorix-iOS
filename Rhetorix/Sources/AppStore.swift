@@ -176,14 +176,20 @@ final class AppStore: ObservableObject {
     }
 
     // UI-test-only fixtures so tests can exercise skill-path mastery states.
-    // uniformScore nil uses the mixed mock rubric (4/3/4/4/3).
-    private func seededJudgedSession(uniformScore: Int?, createdAt: Date, judgedAt: Date) -> DebateSession? {
-        guard let topic = topics.first else { return nil }
+    // uniformScore nil uses the mixed mock rubric (4/3/4/4/3). The fixture
+    // uses an unmistakable topic title so leftover data on a shared simulator
+    // is never confused with a real debate.
+    private func seededJudgedSession(uniformScore: Int?, createdAt: Date, judgedAt: Date) -> DebateSession {
+        let fixtureTopic = DebateTopic(
+            title: "UI test fixture — ignore",
+            category: "Test",
+            details: "Seeded by automated UI tests; not a real debate."
+        )
         let mixedScores: [DebateSkill: Int] = [
             .argumentStructure: 4, .evidence: 3, .directClash: 4, .impactWeighing: 4, .delivery: 3
         ]
         var session = DebateSession(
-            topic: topic,
+            topic: fixtureTopic,
             mode: .userVsAi,
             format: .freeFlow,
             difficulty: .easy,
@@ -212,8 +218,7 @@ final class AppStore: ObservableObject {
 
     private func seedJudgedSessionForUITests(uniformScore: Int?) {
         let past = Date().addingTimeInterval(-3600)
-        guard let session = seededJudgedSession(uniformScore: uniformScore, createdAt: past, judgedAt: past) else { return }
-        sessions.insert(session, at: 0)
+        sessions.insert(seededJudgedSession(uniformScore: uniformScore, createdAt: past, judgedAt: past), at: 0)
     }
 
     // Reproduces a resumed debate: the mastery-completing session is created
@@ -222,10 +227,8 @@ final class AppStore: ObservableObject {
     // review skill here is the second path step, not the goal's home skill.
     private func seedResumedMasterySequenceForUITests() {
         let now = Date()
-        guard
-            let resumed = seededJudgedSession(uniformScore: 3, createdAt: now.addingTimeInterval(-7200), judgedAt: now),
-            let mastery = seededJudgedSession(uniformScore: 5, createdAt: now.addingTimeInterval(-3600), judgedAt: now.addingTimeInterval(-1800))
-        else { return }
+        let resumed = seededJudgedSession(uniformScore: 3, createdAt: now.addingTimeInterval(-7200), judgedAt: now)
+        let mastery = seededJudgedSession(uniformScore: 5, createdAt: now.addingTimeInterval(-3600), judgedAt: now.addingTimeInterval(-1800))
         sessions.insert(resumed, at: 0)
         sessions.insert(mastery, at: 0)
     }
