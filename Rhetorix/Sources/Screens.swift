@@ -24,7 +24,6 @@ struct RootView: View {
                     .tabItem { Label(store.t("Settings"), systemImage: "gearshape") }
                     .tag(MainTab.settings)
             }
-            .tint(RhetorixColors.cyan)
             .appScreen()
             .navigationDestination(for: AppRoute.self) { route in
                 switch route {
@@ -59,6 +58,7 @@ struct RootView: View {
                 }
             }
         }
+        .tint(RhetorixColors.brand)
         .alert("Rhetorix", isPresented: Binding(get: { store.activeError != nil }, set: { if !$0 { store.activeError = nil } })) {
             Button(store.t("OK"), role: .cancel) { store.activeError = nil }
         } message: {
@@ -1392,6 +1392,7 @@ struct DebateSelfAssessmentView: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
+                .foregroundStyle(RhetorixColors.primaryActionForeground)
                 .controlSize(.large)
                 .accessibilityIdentifier("selfAssessment.submit")
             }
@@ -1748,6 +1749,7 @@ struct SpeechRetryView: View {
                     .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
+                .foregroundStyle(RhetorixColors.primaryActionForeground)
                 .controlSize(.large)
                 .disabled(isSubmitting || revisedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 .accessibilityIdentifier("retry.submit")
@@ -2643,6 +2645,7 @@ struct ProviderConfigView: View {
                     .padding(.vertical, 6)
             }
             .buttonStyle(.borderedProminent)
+            .foregroundStyle(RhetorixColors.primaryActionForeground)
             .controlSize(.large)
             .padding(.horizontal)
             .padding(.vertical, 10)
@@ -3252,6 +3255,7 @@ struct ConstructiveAnalysisView: View {
                             }
                         }
                         .buttonStyle(.borderedProminent)
+                        .foregroundStyle(RhetorixColors.primaryActionForeground)
                         .disabled(isAnalyzingPaste || inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         .accessibilityIdentifier("constructive.analyze")
                     }
@@ -3501,6 +3505,7 @@ struct FallacyDetectorView: View {
                     }
                 }
                 .buttonStyle(.borderedProminent)
+                .foregroundStyle(RhetorixColors.primaryActionForeground)
                 .disabled(isAnalyzing || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 .accessibilityIdentifier("fallacy.analyze")
                 if isAnalyzing {
@@ -3623,6 +3628,7 @@ struct RebuttalTrainerView: View {
                     .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
+                .foregroundStyle(RhetorixColors.primaryActionForeground)
                 .disabled(topic == nil || isGeneratingPrompt)
 
                 if prompt.isEmpty == false {
@@ -3658,6 +3664,7 @@ struct RebuttalTrainerView: View {
                         .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
+                    .foregroundStyle(RhetorixColors.primaryActionForeground)
                     .disabled(isScoring || response.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 } else if topic != nil {
                     GlassCard(accent: RhetorixColors.amber) {

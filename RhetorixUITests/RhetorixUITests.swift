@@ -347,8 +347,9 @@ final class RhetorixUITests: XCTestCase {
             try? png.write(to: URL(fileURLWithPath: "\(dir)/\(name).png"))
         }
 
+        let themeArguments = ProcessInfo.processInfo.environment["SHOT_THEME"] == "light" ? ["UITEST_THEME_LIGHT"] : []
         let app = XCUIApplication()
-        app.launchArguments = ["UITEST_MODE", "UITEST_RESET_DATA", "UITEST_SEED_JUDGED"]
+        app.launchArguments = ["UITEST_MODE", "UITEST_RESET_DATA", "UITEST_SEED_JUDGED"] + themeArguments
         app.launch()
 
         let continueButton = app.buttons["onboarding.continue"]
@@ -374,7 +375,7 @@ final class RhetorixUITests: XCTestCase {
         snap("05-live-debate")
 
         app.terminate()
-        app.launchArguments = ["UITEST_MODE", "UITEST_SEED_JUDGED"]
+        app.launchArguments = ["UITEST_MODE", "UITEST_SEED_JUDGED"] + themeArguments
         app.launch()
         XCTAssertTrue(app.buttons["home.startVoiceDebate"].waitForExistence(timeout: 5))
         app.buttons["home.startVoiceDebate"].tap()
@@ -392,6 +393,9 @@ final class RhetorixUITests: XCTestCase {
         snap("09-tools")
         app.tabBars.buttons.element(boundBy: 3).tap()
         snap("10-settings")
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'OpenAI'")).firstMatch.tap()
+        XCTAssertTrue(app.buttons["Save Configuration"].firstMatch.waitForExistence(timeout: 5))
+        snap("11-provider")
     }
 
     @MainActor

@@ -183,6 +183,9 @@ final class AppStore: ObservableObject {
             }
             autoSpeakAI = false
             let testArguments = ProcessInfo.processInfo.arguments
+            if testArguments.contains("UITEST_THEME_LIGHT") {
+                appTheme = .light
+            }
             if testArguments.contains("UITEST_SEED_WEAK_DELIVERY") {
                 seedWeakDeliveryForUITests()
             } else if testArguments.contains("UITEST_SEED_MASTERED_RESUMED") {
