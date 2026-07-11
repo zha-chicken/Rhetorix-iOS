@@ -47,7 +47,13 @@ final class RhetorixUITests: XCTestCase {
         XCTAssertTrue(scrollToElement(selfAssessmentSection, in: app))
         selfAssessmentSection.tap()
         XCTAssertTrue(app.staticTexts["You 3"].firstMatch.waitForExistence(timeout: 5))
-        XCTAssertLessThan(app.staticTexts.matching(identifier: "Your view and the coach's view").count, 2)
+        let headerButtons = app.buttons.matching(identifier: "Your view and the coach's view")
+        XCTAssertEqual(headerButtons.count, 1)
+        // The header button exposes its own title as a static-text child, so
+        // "no duplicated heading" means: every matching static text on the
+        // page lives inside the header button, none in the expanded content.
+        let headingTextsInsideHeader = headerButtons.firstMatch.staticTexts.matching(identifier: "Your view and the coach's view").count
+        XCTAssertEqual(app.staticTexts.matching(identifier: "Your view and the coach's view").count, headingTextsInsideHeader)
         selfAssessmentSection.tap()
         XCTAssertTrue(app.staticTexts["You 3"].firstMatch.waitForNonExistence(timeout: 5))
 
