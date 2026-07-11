@@ -282,7 +282,7 @@ Purpose: launch common tasks and show personal usage progress.
 Content:
 
 - Rhetorix brand title
-- Primary `Today's Practice` hero card: a compact leading-aligned layout with a small skill icon label, the skill name, a one-line coaching statement, the primary `Start Guided Practice` action, and a secondary `Start Open Debate` action
+- Primary `Today's Practice` hero card: a compact leading-aligned layout with a small skill icon label, a `Step X / 5` skill-path position indicator, the skill name, a one-line coaching statement, the primary `Start Guided Practice` action, and a secondary `Start Open Debate` action
 - Dynamic stats: debates, win rate, win streak
 - Real local memory card
 - Real topic recommendation when enough data exists
@@ -302,6 +302,10 @@ First use asks for a primary learning goal, debate experience, and a 5-, 10-, or
 The Guided Practice screen is organized as an explicit three-step learning journey so a student can tell at first glance what they will learn and how the session works:
 
 - A hero card states today's skill (one of five stable practice skills: argument structure, evidence and examples, direct clash and rebuttal, impact comparison, or delivery and clarity), a one-line learning goal, a compact `1 Learn → 2 Debate → 3 Review` plan strip, and the estimated total time.
+- A `Skill path` card directly under the hero shows the open five-step curriculum in order: delivery and clarity → argument structure → evidence and examples → direct clash and rebuttal → impact comparison. Each step is a circular icon node connected by lines; mastered steps always show a green checkmark (including while being practiced), the actively practiced step shows a cyan ring, and every node is tappable to practice that skill immediately (the path is open, never locked). The mastery rule is shown on the card: a coach rubric score of 4+ on that skill in any judged debate masters the step.
+- The `Step X / 5` position reflects actual mastery only — it is always the first unmastered step and never moves when the user taps a different node to practice it. When the practiced skill differs from the current step, the status line reads `Practicing: <skill> · Current step: <skill>`; when they match, it reads `Next: <skill>` or `Final step of the path`.
+- When all five steps are mastered, the card and the Home hero show a `Path complete` state instead of a step counter, the status line reads `Path complete · Reviewing: <skill>`, and all five nodes keep their mastered checkmarks. The review skill targets the user's weakest recent skill, falling back to a rotation that starts from the learning goal's home skill.
+- Today's recommended skill is always the first unmastered step. The learning goal also shapes AI coaching: the judge, retry coach, and rebuttal scorer are told the student's goal so improvement advice and next practice focus serve it.
 - `Step 1 · Learn the move` merges the strategy formula, the worked example, and the three-item pre-speech checklist into a single card with internal mini-headers, instead of three separate equally weighted cards.
 - `Step 2 · Debate for real` shows the locally selected practice motion plus setup chips for the user's side, difficulty, and debate length.
 - `Step 3 · Get coached` previews the feedback loop: self-rating first, the AI coach scoring the same five skills, then an immediate speech retry.

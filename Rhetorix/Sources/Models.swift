@@ -43,6 +43,26 @@ enum LearningGoal: String, Codable, CaseIterable, Identifiable {
     case criticalThinking = "Critical thinking"
 
     var id: String { rawValue }
+
+    // The skill this goal cares most about; used as the starting point of
+    // review rotation after the skill path is complete.
+    var homeSkill: DebateSkill {
+        switch self {
+        case .speakingConfidence, .englishSpeaking: .delivery
+        case .debateCompetition: .directClash
+        case .classroom, .criticalThinking: .argumentStructure
+        }
+    }
+
+    var coachingContext: String {
+        switch self {
+        case .debateCompetition: "competitive tournament debate"
+        case .classroom: "classroom debate assignments"
+        case .speakingConfidence: "building overall speaking confidence"
+        case .englishSpeaking: "practicing spoken English through debate"
+        case .criticalThinking: "sharpening critical thinking"
+        }
+    }
 }
 
 enum DebateExperience: String, Codable, CaseIterable, Identifiable {

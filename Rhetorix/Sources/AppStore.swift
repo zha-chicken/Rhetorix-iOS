@@ -60,27 +60,77 @@ final class AppStore: ObservableObject {
     var shouldAskLearningProfile: Bool {
         learningProfile.hasCompletedOnboarding == false
     }
+    // The visible learning curriculum: speak clearly, build the case,
+    // support it, attack and defend, then weigh to win.
+    static let skillPath: [DebateSkill] = [.delivery, .argumentStructure, .evidence, .directClash, .impactWeighing]
+
+    func bestCoachScore(for skill: DebateSkill) -> Int? {
+        sessions
+            .filter { $0.mode != .aiVsAi }
+            .compactMap { $0.result?.rubric.first(where: { $0.skill == skill })?.score }
+            .max()
+    }
+
+    func isSkillMastered(_ skill: DebateSkill) -> Bool {
+        (bestCoachScore(for: skill) ?? 0) >= 4
+    }
+
+    // The actual curriculum position: the first unmastered step. This never
+    // moves because the user taps a different node to practice it.
+    var currentPathStep: DebateSkill? {
+        Self.skillPath.first { isSkillMastered($0) == false }
+    }
+
+    var isSkillPathComplete: Bool {
+        currentPathStep == nil
+    }
+
+    var currentPathStepNumber: Int {
+        Self.skillPath.firstIndex { isSkillMastered($0) == false }.map { $0 + 1 } ?? Self.skillPath.count
+    }
+
     var dailyPracticeSkill: DebateSkill {
+        if let next = currentPathStep {
+            return next
+        }
+        // Path complete: review the weakest recent skill.
         if let weakness = userProfileMemory.weaknessSignals.first?.title.lowercased() {
             if weakness.contains("evidence") || weakness.contains("证据") { return .evidence }
             if weakness.contains("clash") || weakness.contains("rebut") || weakness.contains("交锋") || weakness.contains("反驳") { return .directClash }
             if weakness.contains("impact") || weakness.contains("weigh") || weakness.contains("影响") || weakness.contains("权衡") { return .impactWeighing }
             if weakness.contains("structure") || weakness.contains("definition") || weakness.contains("结构") || weakness.contains("定义") { return .argumentStructure }
         }
+        // No weakness evidence: rotate reviews starting from the goal's home skill.
+        // Only debates completed after the path was mastered advance the
+        // rotation, so the first review is exactly the goal's home skill.
+        let start = Self.skillPath.firstIndex(of: learningProfile.goal.homeSkill) ?? 0
+        return Self.skillPath[(start + reviewDebateCount) % Self.skillPath.count]
+    }
 
-        let startingSkill: DebateSkill
-        switch learningProfile.goal {
-        case .speakingConfidence, .englishSpeaking:
-            startingSkill = .delivery
-        case .debateCompetition:
-            startingSkill = .directClash
-        case .classroom, .criticalThinking:
-            startingSkill = .argumentStructure
+    private var reviewDebateCount: Int {
+        // Users can resume an older unfinished debate from History and finish
+        // it after newer ones, so mastery-completion and post-mastery counting
+        // must follow judging time (result.createdAt), not creation order.
+        let judged = sessions
+            .filter { $0.mode != .aiVsAi && $0.result != nil }
+            .sorted { ($0.result?.createdAt ?? $0.createdAt) < ($1.result?.createdAt ?? $1.createdAt) }
+        var unmastered = Set(Self.skillPath)
+        var pathMastered = false
+        var judgedAfterMastery = 0
+        for session in judged {
+            if pathMastered {
+                judgedAfterMastery += 1
+                continue
+            }
+            guard let rubric = session.result?.rubric else { continue }
+            for entry in rubric where entry.score >= 4 {
+                unmastered.remove(entry.skill)
+            }
+            if unmastered.isEmpty {
+                pathMastered = true
+            }
         }
-        guard debateCount > 0 else { return startingSkill }
-        let skills = DebateSkill.allCases
-        let start = skills.firstIndex(of: startingSkill) ?? 0
-        return skills[(start + debateCount) % skills.count]
+        return judgedAfterMastery
     }
     var preferredProvider: AiProvider {
         if let configured = providerConfigs.first(where: { $0.isEnabled && $0.apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false }) {
@@ -113,9 +163,74 @@ final class AppStore: ObservableObject {
                 return config
             }
             autoSpeakAI = false
+            if ProcessInfo.processInfo.arguments.contains("UITEST_SEED_MASTERED_RESUMED") {
+                seedResumedMasterySequenceForUITests()
+            } else if ProcessInfo.processInfo.arguments.contains("UITEST_SEED_MASTERED") {
+                seedJudgedSessionForUITests(uniformScore: 5)
+            } else if ProcessInfo.processInfo.arguments.contains("UITEST_SEED_JUDGED") {
+                seedJudgedSessionForUITests(uniformScore: nil)
+            }
         }
         refreshUserProfileMemory()
         save()
+    }
+
+    // UI-test-only fixtures so tests can exercise skill-path mastery states.
+    // uniformScore nil uses the mixed mock rubric (4/3/4/4/3). The fixture
+    // uses an unmistakable topic title so leftover data on a shared simulator
+    // is never confused with a real debate.
+    private func seededJudgedSession(uniformScore: Int?, createdAt: Date, judgedAt: Date) -> DebateSession {
+        let fixtureTopic = DebateTopic(
+            title: "UI test fixture — ignore",
+            category: "Test",
+            details: "Seeded by automated UI tests; not a real debate."
+        )
+        let mixedScores: [DebateSkill: Int] = [
+            .argumentStructure: 4, .evidence: 3, .directClash: 4, .impactWeighing: 4, .delivery: 3
+        ]
+        var session = DebateSession(
+            topic: fixtureTopic,
+            mode: .userVsAi,
+            format: .freeFlow,
+            difficulty: .easy,
+            userSide: .support,
+            provider: .openAI
+        )
+        session.createdAt = createdAt
+        session.isCompleted = true
+        session.result = DebateResult(
+            winner: .user,
+            score: "3-2",
+            summary: "Seeded judged session for UI tests.",
+            rubric: DebateSkill.allCases.map { skill in
+                DebateRubricScore(
+                    skill: skill,
+                    score: uniformScore ?? mixedScores[skill] ?? 3,
+                    evidenceQuote: "seeded quote",
+                    strength: "seeded strength",
+                    nextStep: "seeded next move"
+                )
+            },
+            createdAt: judgedAt
+        )
+        return session
+    }
+
+    private func seedJudgedSessionForUITests(uniformScore: Int?) {
+        let past = Date().addingTimeInterval(-3600)
+        sessions.insert(seededJudgedSession(uniformScore: uniformScore, createdAt: past, judgedAt: past), at: 0)
+    }
+
+    // Reproduces a resumed debate: the mastery-completing session is created
+    // later but judged first, while an older-created session is judged after
+    // mastery. Review rotation must count by judging order, so the correct
+    // review skill here is the second path step, not the goal's home skill.
+    private func seedResumedMasterySequenceForUITests() {
+        let now = Date()
+        let resumed = seededJudgedSession(uniformScore: 3, createdAt: now.addingTimeInterval(-7200), judgedAt: now)
+        let mastery = seededJudgedSession(uniformScore: 5, createdAt: now.addingTimeInterval(-3600), judgedAt: now.addingTimeInterval(-1800))
+        sessions.insert(resumed, at: 0)
+        sessions.insert(mastery, at: 0)
     }
 
     func config(for provider: AiProvider) -> ProviderConfig? {
@@ -313,6 +428,7 @@ final class AppStore: ObservableObject {
                     systemPrompt: """
                     You are a debate coach comparing a student's original speech with one immediate retry.
                     \(responseLanguageInstruction)
+                    \(learningGoalInstruction)
                     Score the revised speech against the same 1-5 debate rubric. Reward genuine improvement, not length. Return concise JSON only.
                     """,
                     messages: [ChatMessage(role: "user", content: """
@@ -714,6 +830,7 @@ final class AppStore: ObservableObject {
             systemPrompt: """
             You are an impartial debate judge using international school debate standards: matter, method, manner, direct clash, weighing, and reply-speech discipline.
             \(responseLanguageInstruction)
+            \(learningGoalInstruction)
             Return concise JSON only.
             """,
             messages: [ChatMessage(role: "user", content: """
@@ -870,7 +987,7 @@ final class AppStore: ObservableObject {
         defer { isWorking = false }
         do {
             let result = try await ai.chat(
-                systemPrompt: "Score a rebuttal from 0-100. \(responseLanguageInstruction) Return JSON only.",
+                systemPrompt: "Score a rebuttal from 0-100. \(responseLanguageInstruction) \(learningGoalInstruction) Return JSON only.",
                 messages: [ChatMessage(role: "user", content: "Topic: \(topic.title)\nArgument to resist:\n\(prompt)\nStudent rebuttal:\n\(response)\nReturn {\"score\":87,\"feedback\":\"specific feedback\"}")],
                 config: config
             )
@@ -904,6 +1021,10 @@ final class AppStore: ObservableObject {
 
     private var responseLanguageInstruction: String {
         usesChinese ? "Use Simplified Chinese for all user-visible text." : "Use English for all user-visible text."
+    }
+
+    private var learningGoalInstruction: String {
+        "The student's stated learning goal is \(learningProfile.goal.coachingContext); tailor improvement advice, next steps, and practice focus to that goal."
     }
 
     private func parseJudge(_ raw: String, session: DebateSession) -> DebateResult {

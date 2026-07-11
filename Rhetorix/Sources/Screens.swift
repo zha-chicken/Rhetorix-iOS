@@ -92,9 +92,15 @@ struct HomeView: View {
 
                 GlassCard(accent: RhetorixColors.cyan, padding: 20) {
                     VStack(alignment: .leading, spacing: 10) {
-                        Label(store.t("Today's Practice"), systemImage: store.dailyPracticeSkill.icon)
-                            .font(.caption.bold())
-                            .foregroundStyle(RhetorixColors.cyan)
+                        HStack {
+                            Label(store.t("Today's Practice"), systemImage: store.dailyPracticeSkill.icon)
+                                .font(.caption.bold())
+                                .foregroundStyle(RhetorixColors.cyan)
+                            Spacer()
+                            Text(store.isSkillPathComplete ? store.t("Path complete") : "\(store.t("Step")) \(store.currentPathStepNumber) / \(AppStore.skillPath.count)")
+                                .font(.caption.bold())
+                                .foregroundStyle(RhetorixColors.textTertiary)
+                        }
                         Text(store.t(store.dailyPracticeSkill.rawValue))
                             .font(.title2.bold())
                             .foregroundStyle(RhetorixColors.textPrimary)
@@ -319,8 +325,9 @@ struct LearningOnboardingView: View {
 struct GuidedPracticeView: View {
     @EnvironmentObject private var store: AppStore
     @Binding var path: NavigationPath
+    @State private var selectedSkill: DebateSkill?
 
-    private var skill: DebateSkill { store.dailyPracticeSkill }
+    private var skill: DebateSkill { selectedSkill ?? store.dailyPracticeSkill }
     private var topic: DebateTopic? { store.dailyPracticeTopic(for: skill) }
     private var difficulty: DebateDifficulty {
         switch store.learningProfile.experience {
@@ -337,6 +344,8 @@ struct GuidedPracticeView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 heroCard
+
+                skillPathCard
 
                 PracticeStepHeader(number: 1, title: store.t("Learn the move"), duration: "~2 \(store.t("min"))")
                 learnCard
@@ -387,6 +396,74 @@ struct GuidedPracticeView: View {
         Image(systemName: "chevron.right")
             .font(.system(size: 9, weight: .bold))
             .foregroundStyle(RhetorixColors.textTertiary)
+    }
+
+    private var skillPathCard: some View {
+        GlassCard(accent: RhetorixColors.green) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Label(store.t("Skill path"), systemImage: "point.topleft.down.to.point.bottomright.curvepath.fill")
+                        .font(.caption.bold())
+                        .foregroundStyle(RhetorixColors.green)
+                    Spacer()
+                    Text(pathPositionText)
+                        .font(.caption.bold())
+                        .foregroundStyle(RhetorixColors.textTertiary)
+                }
+                HStack(spacing: 0) {
+                    ForEach(Array(AppStore.skillPath.enumerated()), id: \.offset) { index, pathSkill in
+                        if index > 0 {
+                            Rectangle()
+                                .fill(store.isSkillMastered(pathSkill) ? RhetorixColors.green.opacity(0.5) : RhetorixColors.border)
+                                .frame(height: 1.5)
+                                .frame(maxWidth: .infinity)
+                        }
+                        SkillPathNode(
+                            skill: pathSkill,
+                            isMastered: store.isSkillMastered(pathSkill),
+                            isActive: pathSkill == skill,
+                            label: store.t(pathSkill.rawValue),
+                            masteredValueLabel: store.t("Mastered")
+                        ) {
+                            selectedSkill = pathSkill
+                        }
+                    }
+                }
+                Text(pathStatusText)
+                    .font(.caption.bold())
+                    .foregroundStyle(RhetorixColors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(store.t("Reach a coach score of 4+ in any judged debate to master a skill. Tap any step to practice it."))
+                    .font(.caption2)
+                    .foregroundStyle(RhetorixColors.textTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    // Progress reflects actual mastery only; tapping a node to practice a
+    // different skill never moves the step counter.
+    private var pathPositionText: String {
+        if store.isSkillPathComplete {
+            return store.t("Path complete")
+        }
+        return "\(store.t("Step")) \(store.currentPathStepNumber) / \(AppStore.skillPath.count)"
+    }
+
+    private var pathStatusText: String {
+        if store.isSkillPathComplete {
+            return "\(store.t("Path complete")) · \(store.t("Reviewing")): \(store.t(skill.rawValue))"
+        }
+        guard let current = store.currentPathStep else { return "" }
+        if skill == current {
+            let path = AppStore.skillPath
+            if let index = path.firstIndex(of: current), index + 1 < path.count {
+                return "\(store.t("Next")): \(store.t(path[index + 1].rawValue))"
+            }
+            return store.t("Final step of the path")
+        }
+        return "\(store.t("Practicing")): \(store.t(skill.rawValue)) · \(store.t("Current step")): \(store.t(current.rawValue))"
     }
 
     private var learnCard: some View {
@@ -505,6 +582,44 @@ struct GuidedPracticeView: View {
             practiceSkill: skill
         )
         path.append(AppRoute.debate(session.id))
+    }
+}
+
+struct SkillPathNode: View {
+    var skill: DebateSkill
+    var isMastered: Bool
+    var isActive: Bool
+    var label: String
+    var masteredValueLabel: String
+    var action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            ZStack {
+                Circle()
+                    .fill(isActive ? RhetorixColors.glassStrong : RhetorixColors.glass)
+                    .frame(width: 42, height: 42)
+                    .overlay(
+                        Circle().stroke(
+                            isActive ? RhetorixColors.cyan : (isMastered ? RhetorixColors.green.opacity(0.6) : RhetorixColors.border),
+                            lineWidth: isActive ? 1.8 : 1
+                        )
+                    )
+                if isMastered {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(RhetorixColors.green)
+                } else {
+                    Image(systemName: skill.icon)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(isActive ? RhetorixColors.cyan : RhetorixColors.textSecondary)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
+        .accessibilityValue(isMastered ? masteredValueLabel : "")
+        .accessibilityAddTraits(isActive ? .isSelected : [])
     }
 }
 
