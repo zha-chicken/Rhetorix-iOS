@@ -569,12 +569,15 @@ Current navigation:
 
 Purpose: configure language and AI providers. Settings is the only place where a user changes provider configuration or availability.
 
-Content:
+Settings is a compact hub, not one long mixed list. Root sections, in order:
 
-- Language segmented control
-- Voice settings for automatic AI reading, voice engine, and engine-specific configuration
-- Provider list with enabled/disabled state
-- Provider detail for API key, model preset picker, optional custom model, base URL, save, and test connection
+- AI Providers: provider rows with enabled/disabled state (first, because it is the most common destination)
+- Appearance: language and theme pickers
+- Learning Plan: goal, experience, and practice-length pickers
+- Voice: the auto-read toggle plus a single `Voice Engine` link row showing the current engine; the engine picker and all engine-specific configuration (Volcengine, Voicebox) live on a dedicated Voice subpage. The Volcengine voice-speed slider exposes its current value to assistive technologies in the same `1.0x` format shown in its label.
+- Memory Profile: one link row to the memory detail page (showing the evidence count as its value) plus the MBTI picker — inferred signal rows are shown only on the detail page, never duplicated in Settings. Debate counts pluralize correctly (`1 debate`, `2 debates`) everywhere they appear, including the Memory Detail evidence pill.
+
+Provider detail remains a subpage for API key, model preset picker, optional custom model, base URL, save, and test connection.
 
 Guided Practice, Debate Setup, Constructive Analysis, Fallacy Detector, and Rebuttal Trainer automatically use the preferred enabled/configured provider and do not show their own provider controls.
 

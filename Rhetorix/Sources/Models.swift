@@ -679,6 +679,7 @@ enum AppRoute: Hashable {
     case result(String)
     case retrySpeech(String, String)
     case memoryProfile
+    case voiceSettings
     case constructiveAnalysis
     case rebuttalTrainer
     case fallacyDetector
