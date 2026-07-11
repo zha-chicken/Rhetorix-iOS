@@ -50,6 +50,16 @@ final class RhetorixUITests: XCTestCase {
         categoryButton.tap()
         XCTAssertTrue(app.staticTexts["Saved: Like · Category"].waitForExistence(timeout: 5))
 
+        // Deep review is collapsed by default; expanding reveals it, and
+        // collapsing again keeps the rest of the page short.
+        let judgeReview = app.buttons["Full judge review"]
+        XCTAssertTrue(scrollToElement(judgeReview, in: app))
+        XCTAssertFalse(app.staticTexts["Why the judge decided"].exists)
+        judgeReview.tap()
+        XCTAssertTrue(app.staticTexts["Why the judge decided"].waitForExistence(timeout: 5))
+        judgeReview.tap()
+        XCTAssertTrue(app.staticTexts["Why the judge decided"].waitForNonExistence(timeout: 5))
+
         let retryButton = app.buttons["result.retrySpeech"].firstMatch
         XCTAssertTrue(scrollToElement(retryButton, in: app, maxSwipes: 12))
         retryButton.tap()
