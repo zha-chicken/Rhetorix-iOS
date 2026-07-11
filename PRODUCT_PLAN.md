@@ -193,5 +193,5 @@ Memory 2.0 is now a local baseline:
 - Learning-plan onboarding appears once on first use. MBTI is optional in Settings and is not an onboarding gate.
 - Home shows the strongest profile signals when evidence exists.
 - Settings shows MBTI, evidence counts, style signals, value signals, weakness signals, confidence, and sample evidence.
-- Weakness signals include judge/rebuttal feedback, recurring Constructive Analysis issue types, clearer-definition needs, and slow rebuttal pacing from actual timers.
+- Weakness signals include judge/rebuttal feedback, recurring Constructive Analysis issue types, clearer-definition needs, slow rebuttal pacing from actual timers, and low coach-rubric scores on the delivery-and-clarity axis (rubric-based, since delivery has no reliable keyword footprint in judge prose).
 - Profile refresh runs after completed judging and rebuttal scoring, without blocking the debate flow.

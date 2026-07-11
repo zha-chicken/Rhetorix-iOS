@@ -109,6 +109,7 @@ final class AppStore: ObservableObject {
         }
         // Path complete: review the weakest recent skill.
         if let weakness = userProfileMemory.weaknessSignals.first?.title.lowercased() {
+            if weakness.contains("delivery") || weakness.contains("signpost") || weakness.contains("表达") { return .delivery }
             if weakness.contains("evidence") || weakness.contains("证据") { return .evidence }
             if weakness.contains("clash") || weakness.contains("rebut") || weakness.contains("交锋") || weakness.contains("反驳") { return .directClash }
             if weakness.contains("impact") || weakness.contains("weigh") || weakness.contains("影响") || weakness.contains("权衡") { return .impactWeighing }
@@ -182,7 +183,9 @@ final class AppStore: ObservableObject {
             }
             autoSpeakAI = false
             let testArguments = ProcessInfo.processInfo.arguments
-            if testArguments.contains("UITEST_SEED_MASTERED_RESUMED") {
+            if testArguments.contains("UITEST_SEED_WEAK_DELIVERY") {
+                seedWeakDeliveryForUITests()
+            } else if testArguments.contains("UITEST_SEED_MASTERED_RESUMED") {
                 seedResumedMasterySequenceForUITests()
             } else if testArguments.contains("UITEST_SEED_MASTERED") {
                 seedJudgedSessionsForUITests(uniformScore: 5, count: Self.masteryConfirmations)
@@ -257,6 +260,45 @@ final class AppStore: ObservableObject {
             seededJudgedSession(uniformScore: 4, createdAt: past, judgedAt: past, practiceSkill: Self.skillPath.first),
             at: 0
         )
+    }
+
+    // Two judged sessions whose coach rubric is weak only on delivery, so the
+    // rubric-based delivery weakness signal fires.
+    private func seedWeakDeliveryForUITests() {
+        let fixtureTopic = DebateTopic(
+            title: "UI test fixture — ignore",
+            category: "Test",
+            details: "Seeded by automated UI tests; not a real debate."
+        )
+        let now = Date()
+        for offset in 0..<2 {
+            var session = DebateSession(
+                topic: fixtureTopic,
+                mode: .userVsAi,
+                format: .freeFlow,
+                difficulty: .easy,
+                userSide: .support,
+                provider: .openAI
+            )
+            session.createdAt = now.addingTimeInterval(TimeInterval(-3600 + offset * 600))
+            session.isCompleted = true
+            session.result = DebateResult(
+                winner: .user,
+                score: "3-2",
+                summary: "Seeded judged session for UI tests.",
+                rubric: DebateSkill.allCases.map { skill in
+                    DebateRubricScore(
+                        skill: skill,
+                        score: skill == .delivery ? 2 : 4,
+                        evidenceQuote: "seeded quote",
+                        strength: "seeded strength",
+                        nextStep: "seeded next move"
+                    )
+                },
+                createdAt: session.createdAt
+            )
+            sessions.insert(session, at: 0)
+        }
     }
 
     // Reproduces a resumed debate: the two mastery-completing sessions are
@@ -1563,6 +1605,9 @@ final class AppStore: ObservableObject {
                 ))
             }
         }
+        if let deliverySignal = buildDeliveryRubricSignal() {
+            weaknessSignals.append(deliverySignal)
+        }
         if let slowRebuttalSignal = buildSlowRebuttalSignal() {
             weaknessSignals.append(slowRebuttalSignal)
         }
@@ -1578,6 +1623,26 @@ final class AppStore: ObservableObject {
             evidenceSessionCount: completedSessions.count,
             evidenceTurnCount: userTurns.count,
             updatedAt: Date()
+        )
+    }
+
+    // Delivery has no reliable keyword footprint in judge prose, so its
+    // weakness signal comes straight from the coach rubric scores on that axis.
+    private func buildDeliveryRubricSignal() -> MemorySignal? {
+        let entries = recommendationEligibleSessions.compactMap { session in
+            session.result?.rubric.first(where: { $0.skill == .delivery })
+        }
+        guard entries.count >= 2 else { return nil }
+        let average = Double(entries.reduce(0) { $0 + $1.score }) / Double(entries.count)
+        guard average < 3.0 else { return nil }
+        let lowEntries = entries.filter { $0.score <= 3 }
+        let evidence = lowEntries.prefix(3).map { "\($0.score)/5 — \($0.nextStep)" }
+        return MemorySignal(
+            title: "Needs clearer delivery",
+            detail: "Coach rubric scores for delivery and clarity are consistently low.",
+            score: lowEntries.count,
+            evidenceCount: entries.count,
+            evidence: Array(evidence)
         )
     }
 
@@ -1764,6 +1829,9 @@ final class AppStore: ObservableObject {
         if normalized.contains("structure") || normalized.contains("slow") || normalized.contains("结构") || normalized.contains("节奏") {
             return [.structureBurden, .policyMechanism, .comparativeWeighing]
         }
+        if normalized.contains("delivery") || normalized.contains("signpost") || normalized.contains("表达") {
+            return [.structureBurden, .directClash]
+        }
         return []
     }
 
@@ -1783,6 +1851,9 @@ final class AppStore: ObservableObject {
         }
         if weaknessTitle.contains("structure") || weaknessTitle.contains("Slow") {
             return ["school", "homework", "work", "admissions", "public transit", "structured", "education", "工作", "教育", "学校", "作业", "结构"]
+        }
+        if weaknessTitle.contains("delivery") || weaknessTitle.contains("Delivery") {
+            return ["speech", "debate", "communication", "public speaking", "education", "school", "media", "表达", "沟通", "演讲", "教育", "媒体"]
         }
         return []
     }
