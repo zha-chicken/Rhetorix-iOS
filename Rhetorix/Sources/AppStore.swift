@@ -108,19 +108,21 @@ final class AppStore: ObservableObject {
     }
 
     private var reviewDebateCount: Int {
+        // Users can resume an older unfinished debate from History and finish
+        // it after newer ones, so mastery-completion and post-mastery counting
+        // must follow judging time (result.createdAt), not creation order.
+        let judged = sessions
+            .filter { $0.mode != .aiVsAi && $0.result != nil }
+            .sorted { ($0.result?.createdAt ?? $0.createdAt) < ($1.result?.createdAt ?? $1.createdAt) }
         var unmastered = Set(Self.skillPath)
         var pathMastered = false
-        var completedAfterMastery = 0
-        // Sessions are stored newest-first; walk oldest-first to find the
-        // debate that completed mastery, then count debates after it.
-        for session in sessions.reversed() {
+        var judgedAfterMastery = 0
+        for session in judged {
             if pathMastered {
-                if session.isCompleted, session.mode != .aiVsAi {
-                    completedAfterMastery += 1
-                }
+                judgedAfterMastery += 1
                 continue
             }
-            guard session.mode != .aiVsAi, let rubric = session.result?.rubric else { continue }
+            guard let rubric = session.result?.rubric else { continue }
             for entry in rubric where entry.score >= 4 {
                 unmastered.remove(entry.skill)
             }
@@ -128,7 +130,7 @@ final class AppStore: ObservableObject {
                 pathMastered = true
             }
         }
-        return completedAfterMastery
+        return judgedAfterMastery
     }
     var preferredProvider: AiProvider {
         if let configured = providerConfigs.first(where: { $0.isEnabled && $0.apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false }) {
@@ -161,7 +163,9 @@ final class AppStore: ObservableObject {
                 return config
             }
             autoSpeakAI = false
-            if ProcessInfo.processInfo.arguments.contains("UITEST_SEED_MASTERED") {
+            if ProcessInfo.processInfo.arguments.contains("UITEST_SEED_MASTERED_RESUMED") {
+                seedResumedMasterySequenceForUITests()
+            } else if ProcessInfo.processInfo.arguments.contains("UITEST_SEED_MASTERED") {
                 seedJudgedSessionForUITests(uniformScore: 5)
             } else if ProcessInfo.processInfo.arguments.contains("UITEST_SEED_JUDGED") {
                 seedJudgedSessionForUITests(uniformScore: nil)
@@ -171,10 +175,10 @@ final class AppStore: ObservableObject {
         save()
     }
 
-    // UI-test-only fixture: one judged session so tests can exercise skill-path
-    // mastery states. uniformScore nil uses the mixed mock rubric (4/3/4/4/3).
-    private func seedJudgedSessionForUITests(uniformScore: Int?) {
-        guard let topic = topics.first else { return }
+    // UI-test-only fixtures so tests can exercise skill-path mastery states.
+    // uniformScore nil uses the mixed mock rubric (4/3/4/4/3).
+    private func seededJudgedSession(uniformScore: Int?, createdAt: Date, judgedAt: Date) -> DebateSession? {
+        guard let topic = topics.first else { return nil }
         let mixedScores: [DebateSkill: Int] = [
             .argumentStructure: 4, .evidence: 3, .directClash: 4, .impactWeighing: 4, .delivery: 3
         ]
@@ -186,6 +190,7 @@ final class AppStore: ObservableObject {
             userSide: .support,
             provider: .openAI
         )
+        session.createdAt = createdAt
         session.isCompleted = true
         session.result = DebateResult(
             winner: .user,
@@ -199,9 +204,30 @@ final class AppStore: ObservableObject {
                     strength: "seeded strength",
                     nextStep: "seeded next move"
                 )
-            }
+            },
+            createdAt: judgedAt
         )
+        return session
+    }
+
+    private func seedJudgedSessionForUITests(uniformScore: Int?) {
+        let past = Date().addingTimeInterval(-3600)
+        guard let session = seededJudgedSession(uniformScore: uniformScore, createdAt: past, judgedAt: past) else { return }
         sessions.insert(session, at: 0)
+    }
+
+    // Reproduces a resumed debate: the mastery-completing session is created
+    // later but judged first, while an older-created session is judged after
+    // mastery. Review rotation must count by judging order, so the correct
+    // review skill here is the second path step, not the goal's home skill.
+    private func seedResumedMasterySequenceForUITests() {
+        let now = Date()
+        guard
+            let resumed = seededJudgedSession(uniformScore: 3, createdAt: now.addingTimeInterval(-7200), judgedAt: now),
+            let mastery = seededJudgedSession(uniformScore: 5, createdAt: now.addingTimeInterval(-3600), judgedAt: now.addingTimeInterval(-1800))
+        else { return }
+        sessions.insert(resumed, at: 0)
+        sessions.insert(mastery, at: 0)
     }
 
     func config(for provider: AiProvider) -> ProviderConfig? {

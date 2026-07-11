@@ -174,6 +174,22 @@ final class RhetorixUITests: XCTestCase {
     }
 
     @MainActor
+    func testSkillPathReviewRotationFollowsJudgingOrder() throws {
+        // Fixture: the mastery-completing session was created later but judged
+        // first; an older-created session was resumed and judged after mastery.
+        // Rotation must count by judging order, so one post-mastery review has
+        // happened and the next review is the second path step, not the
+        // goal's home skill.
+        let app = launchApp(extraArguments: ["UITEST_SEED_MASTERED_RESUMED"])
+
+        let today = app.buttons["home.todayPractice"]
+        XCTAssertTrue(today.waitForExistence(timeout: 5))
+        today.tap()
+
+        XCTAssertTrue(app.staticTexts["Path complete · Reviewing: Argument structure"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
     private func launchApp(extraArguments: [String] = []) -> XCUIApplication {
         continueAfterFailure = false
         let app = XCUIApplication()
