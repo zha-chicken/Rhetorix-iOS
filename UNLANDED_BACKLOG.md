@@ -50,7 +50,8 @@ Status: `Implemented baseline`
 Status: `Expanded baseline`
 
 - UI automation covers learning onboarding, Today’s Practice, debate start, debate finish, self-assessment, five-skill rubric, result feedback, speech retry, constructive analysis, and fallacy detection.
-- Remaining coverage: Settings, provider configuration, history resume/open, and Rebuttal Trainer.
+- It also covers skill-path mastery states (judged-debate mastery, guided fast-track, single-score non-mastery, completed-path review rotation), the rubric-based delivery weakness signal, the memory-detail inference-evidence gate, the Settings hub and Voice engine subpage, result-page collapsible sections, and navigation accessibility (back buttons exposed, previous screens absent from the tree).
+- Remaining coverage: provider configuration, history resume/open, and Rebuttal Trainer.
 - Keep build checks but do not treat build success as full functional coverage.
 
 ### 7. Real Device Verification
