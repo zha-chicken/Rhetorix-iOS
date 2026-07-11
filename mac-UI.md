@@ -76,6 +76,9 @@ Color follows a role system, not a hue collection: one brand accent plus three q
 
 Restraint rules:
 
+- Color never decorates text. Eyebrow and section labels, metadata lines, and picker values use secondary or tertiary text; accent hues appear only on interactive or genuinely stateful elements.
+- Neutral states stay neutral: a provider that is simply off reads in muted text, not danger red, and debate side counts use small colored dots beside neutral numerals instead of colored numbers.
+
 - Cards use a neutral border by default. The tinted accent border is an emphasis state reserved for surfaces that carry live round pressure (the debate status card and the practice-focus card), never a default decoration.
 - The ambient backdrop glow appears only on the Live Debate screen; every other screen uses the flat vertical gradient.
 - A typical screen should show the brand accent plus at most one semantic color carrying meaning.
@@ -144,7 +147,7 @@ Accents:
 
 The light theme should feel calm, student-friendly, and readable, not like a marketing landing page.
 
-Primary practice actions use a high-contrast rounded rectangle rather than a generic capsule. The control includes a leading circular action icon, a bold title, one short context line such as skill and duration, and a trailing chevron. It uses a subtle brand gradient, soft shadow, and pressed scale response. This treatment is shared by learning onboarding, Home's guided-practice action, and the final start action on Guided Practice.
+Primary practice actions use a high-contrast rounded rectangle rather than a generic capsule. The control includes a leading action icon, a bold title, one short context line such as skill and duration, and a subdued trailing chevron. It uses a solid brand fill with a soft neutral shadow and a pressed scale response — no gradients or glow. This treatment is shared by learning onboarding, Home's guided-practice action, and the final start action on Guided Practice, and it is the only filled-accent control on any screen.
 
 ## Language System
 

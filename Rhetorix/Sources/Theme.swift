@@ -207,12 +207,7 @@ struct PrimaryActionLabel: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: systemImage)
-                .font(.system(size: 18, weight: .bold))
-                .frame(width: 40, height: 40)
-                .background(
-                    Circle()
-                        .fill(RhetorixColors.primaryActionForeground.opacity(0.12))
-                )
+                .font(.system(size: 17, weight: .semibold))
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
@@ -229,11 +224,7 @@ struct PrimaryActionLabel: View {
 
             Image(systemName: "chevron.right")
                 .font(.caption.bold())
-                .frame(width: 30, height: 30)
-                .background(
-                    Circle()
-                        .fill(RhetorixColors.primaryActionForeground.opacity(0.10))
-                )
+                .opacity(0.55)
         }
         .foregroundStyle(RhetorixColors.primaryActionForeground)
         .multilineTextAlignment(.leading)
@@ -246,26 +237,16 @@ struct RhetorixPrimaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .padding(.vertical, 10)
-            .padding(.horizontal, 12)
-            .frame(maxWidth: .infinity, minHeight: 64)
+            .padding(.horizontal, 14)
+            .frame(maxWidth: .infinity, minHeight: 56)
             .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [RhetorixColors.cyan, RhetorixColors.primaryActionEnd],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(RhetorixColors.brand)
             )
-            .overlay {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(Color.white.opacity(0.22), lineWidth: 1)
-            }
             .shadow(
-                color: RhetorixColors.cyan.opacity(configuration.isPressed ? 0.10 : 0.24),
-                radius: configuration.isPressed ? 5 : 14,
-                y: configuration.isPressed ? 2 : 7
+                color: .black.opacity(configuration.isPressed ? 0.08 : 0.16),
+                radius: configuration.isPressed ? 3 : 8,
+                y: configuration.isPressed ? 1 : 3
             )
             .scaleEffect(configuration.isPressed ? 0.985 : 1)
             .opacity(isEnabled ? 1 : 0.42)
