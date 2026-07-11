@@ -206,6 +206,8 @@ extension AppStore {
         "Needs clearer structure": "需要更清晰结构",
         "Needs stronger impact weighing": "需要更强影响权衡",
         "Needs clearer definitions": "需要更清晰定义",
+        "Needs clearer delivery": "需要更清晰的表达",
+        "Coach rubric scores for delivery and clarity are consistently low.": "教练量表中的表达与清晰度评分持续偏低。",
         "Evidence gaps in analyzed constructives": "已分析立论中的证据缺口",
         "Definition problems in analyzed constructives": "已分析立论中的定义问题",
         "Causal leaps in analyzed constructives": "已分析立论中的因果跳跃",

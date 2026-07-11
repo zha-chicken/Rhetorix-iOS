@@ -233,6 +233,16 @@ final class RhetorixUITests: XCTestCase {
     }
 
     @MainActor
+    func testDeliveryWeaknessSignalFromRubric() throws {
+        // Two judged debates with low coach scores on delivery only: the
+        // rubric-based weakness signal must surface on the Home memory card.
+        let app = launchApp(extraArguments: ["UITEST_SEED_WEAK_DELIVERY"])
+
+        XCTAssertTrue(app.buttons["home.todayPractice"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Needs clearer delivery"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
     private func launchApp(extraArguments: [String] = []) -> XCUIApplication {
         continueAfterFailure = false
         let app = XCUIApplication()
