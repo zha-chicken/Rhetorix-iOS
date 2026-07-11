@@ -2,65 +2,76 @@ import SwiftUI
 import UIKit
 
 enum RhetorixColors {
+    // Chrome. Dark is a neutral near-black where cards read as elevated
+    // surfaces (lighter fills, hairline borders) rather than tinted glass;
+    // light is a cool paper-white sharing the same teal identity.
     static let background = adaptive(
-        light: UIColor(red: 1.00, green: 0.965, blue: 0.972, alpha: 1.0),
-        dark: UIColor(red: 0.075, green: 0.141, blue: 0.169, alpha: 1.0)
+        light: UIColor(red: 0.972, green: 0.980, blue: 0.984, alpha: 1.0),
+        dark: UIColor(red: 0.055, green: 0.063, blue: 0.075, alpha: 1.0)
     )
     static let backgroundDeep = adaptive(
-        light: UIColor(red: 1.00, green: 0.988, blue: 0.980, alpha: 1.0),
-        dark: UIColor(red: 0.055, green: 0.102, blue: 0.125, alpha: 1.0)
+        light: UIColor(red: 0.988, green: 0.992, blue: 0.994, alpha: 1.0),
+        dark: UIColor(red: 0.043, green: 0.051, blue: 0.063, alpha: 1.0)
     )
     static let glass = adaptive(
-        light: UIColor(red: 1.00, green: 0.925, blue: 0.945, alpha: 0.66),
-        dark: UIColor(white: 1.0, alpha: 0.085)
+        light: UIColor(red: 0.955, green: 0.972, blue: 0.978, alpha: 0.72),
+        dark: UIColor(red: 0.098, green: 0.106, blue: 0.125, alpha: 1.0)
     )
     static let glassStrong = adaptive(
-        light: UIColor(red: 1.00, green: 0.875, blue: 0.905, alpha: 0.78),
-        dark: UIColor(white: 1.0, alpha: 0.145)
+        light: UIColor(red: 0.920, green: 0.950, blue: 0.960, alpha: 0.85),
+        dark: UIColor(red: 0.133, green: 0.145, blue: 0.169, alpha: 1.0)
     )
     static let border = adaptive(
-        light: UIColor(red: 0.95, green: 0.47, blue: 0.62, alpha: 0.18),
-        dark: UIColor(white: 1.0, alpha: 0.14)
+        light: UIColor(red: 0.16, green: 0.34, blue: 0.38, alpha: 0.16),
+        dark: UIColor(white: 1.0, alpha: 0.08)
     )
     static let textPrimary = adaptive(
-        light: UIColor(red: 0.135, green: 0.105, blue: 0.115, alpha: 0.96),
+        light: UIColor(red: 0.10, green: 0.14, blue: 0.16, alpha: 0.96),
         dark: UIColor(white: 1.0, alpha: 0.94)
     )
     static let textSecondary = adaptive(
-        light: UIColor(red: 0.36, green: 0.30, blue: 0.33, alpha: 0.76),
+        light: UIColor(red: 0.30, green: 0.38, blue: 0.41, alpha: 0.78),
         dark: UIColor(white: 1.0, alpha: 0.66)
     )
     static let textTertiary = adaptive(
-        light: UIColor(red: 0.54, green: 0.45, blue: 0.49, alpha: 0.64),
+        light: UIColor(red: 0.42, green: 0.50, blue: 0.53, alpha: 0.62),
         dark: UIColor(white: 1.0, alpha: 0.44)
     )
-    static let cyan = adaptive(
-        light: UIColor(red: 0.94, green: 0.25, blue: 0.47, alpha: 1.0),
-        dark: UIColor(red: 0.54, green: 0.88, blue: 0.89, alpha: 1.0)
+
+    // Roles: one brand accent plus three quiet semantic colors. Both themes
+    // resolve each role to the same hue so the product has one identity.
+    static let brand = adaptive(
+        light: UIColor(red: 0.03, green: 0.49, blue: 0.55, alpha: 1.0),
+        dark: UIColor(red: 0.33, green: 0.76, blue: 0.81, alpha: 1.0)
     )
-    static let amber = adaptive(
-        light: UIColor(red: 0.96, green: 0.54, blue: 0.26, alpha: 1.0),
-        dark: UIColor(red: 0.96, green: 0.68, blue: 0.46, alpha: 1.0)
+    static let success = adaptive(
+        light: UIColor(red: 0.12, green: 0.58, blue: 0.42, alpha: 1.0),
+        dark: UIColor(red: 0.42, green: 0.78, blue: 0.60, alpha: 1.0)
     )
-    static let peach = adaptive(
-        light: UIColor(red: 0.96, green: 0.36, blue: 0.50, alpha: 1.0),
-        dark: UIColor(red: 0.95, green: 0.55, blue: 0.48, alpha: 1.0)
+    static let warning = adaptive(
+        light: UIColor(red: 0.80, green: 0.50, blue: 0.13, alpha: 1.0),
+        dark: UIColor(red: 0.94, green: 0.70, blue: 0.42, alpha: 1.0)
     )
-    static let green = adaptive(
-        light: UIColor(red: 0.19, green: 0.66, blue: 0.58, alpha: 1.0),
-        dark: UIColor(red: 0.62, green: 0.76, blue: 0.69, alpha: 1.0)
+    static let danger = adaptive(
+        light: UIColor(red: 0.78, green: 0.24, blue: 0.27, alpha: 1.0),
+        dark: UIColor(red: 0.92, green: 0.49, blue: 0.45, alpha: 1.0)
     )
-    static let salmon = adaptive(
-        light: UIColor(red: 0.92, green: 0.28, blue: 0.42, alpha: 1.0),
-        dark: UIColor(red: 0.90, green: 0.45, blue: 0.42, alpha: 1.0)
-    )
+
+    // Legacy hue names used across screens; they resolve to the role tokens
+    // above so no surface can drift off-palette.
+    static let cyan = brand
+    static let amber = warning
+    static let peach = warning
+    static let green = success
+    static let salmon = danger
+
     static let primaryActionEnd = adaptive(
-        light: UIColor(red: 0.86, green: 0.14, blue: 0.34, alpha: 1.0),
-        dark: UIColor(red: 0.35, green: 0.73, blue: 0.76, alpha: 1.0)
+        light: UIColor(red: 0.02, green: 0.38, blue: 0.44, alpha: 1.0),
+        dark: UIColor(red: 0.20, green: 0.58, blue: 0.63, alpha: 1.0)
     )
     static let primaryActionForeground = adaptive(
         light: UIColor.white,
-        dark: UIColor(red: 0.035, green: 0.12, blue: 0.14, alpha: 1.0)
+        dark: UIColor(red: 0.03, green: 0.10, blue: 0.11, alpha: 1.0)
     )
     static func adaptive(light: UIColor, dark: UIColor) -> Color {
         Color(UIColor { trait in
@@ -69,7 +80,11 @@ enum RhetorixColors {
     }
 }
 
+// The ambient glow is reserved for the live debate screen so atmosphere
+// signals round tension; every other screen keeps the flat gradient.
 struct AppBackdrop: View {
+    var isLive: Bool = false
+
     var body: some View {
         ZStack {
             LinearGradient(
@@ -77,30 +92,30 @@ struct AppBackdrop: View {
                 startPoint: .top,
                 endPoint: .bottom
             )
-            RadialGradient(
-                colors: [RhetorixColors.cyan.opacity(0.18), .clear],
-                center: .topLeading,
-                startRadius: 20,
-                endRadius: 360
-            )
-            RadialGradient(
-                colors: [RhetorixColors.peach.opacity(0.14), .clear],
-                center: .topTrailing,
-                startRadius: 30,
-                endRadius: 420
-            )
+            if isLive {
+                RadialGradient(
+                    colors: [RhetorixColors.brand.opacity(0.16), .clear],
+                    center: .top,
+                    startRadius: 24,
+                    endRadius: 420
+                )
+            }
         }
         .ignoresSafeArea()
     }
 }
 
+// Cards are neutral by default; the tinted accent border is an emphasis
+// state reserved for the few surfaces that carry live round pressure.
 struct GlassCard<Content: View>: View {
-    var accent: Color = RhetorixColors.cyan
+    var accent: Color = RhetorixColors.brand
+    var emphasized: Bool = false
     var padding: CGFloat = 14
     var content: Content
 
-    init(accent: Color = RhetorixColors.cyan, padding: CGFloat = 14, @ViewBuilder content: () -> Content) {
+    init(accent: Color = RhetorixColors.brand, emphasized: Bool = false, padding: CGFloat = 14, @ViewBuilder content: () -> Content) {
         self.accent = accent
+        self.emphasized = emphasized
         self.padding = padding
         self.content = content()
     }
@@ -114,8 +129,15 @@ struct GlassCard<Content: View>: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(LinearGradient(colors: [accent.opacity(0.38), RhetorixColors.border], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1)
+                    .stroke(borderStyle, lineWidth: 1)
             )
+    }
+
+    private var borderStyle: AnyShapeStyle {
+        if emphasized {
+            return AnyShapeStyle(LinearGradient(colors: [accent.opacity(0.45), RhetorixColors.border], startPoint: .topLeading, endPoint: .bottomTrailing))
+        }
+        return AnyShapeStyle(RhetorixColors.border)
     }
 }
 
@@ -186,12 +208,7 @@ struct PrimaryActionLabel: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: systemImage)
-                .font(.system(size: 18, weight: .bold))
-                .frame(width: 40, height: 40)
-                .background(
-                    Circle()
-                        .fill(RhetorixColors.primaryActionForeground.opacity(0.12))
-                )
+                .font(.system(size: 17, weight: .semibold))
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
@@ -208,11 +225,7 @@ struct PrimaryActionLabel: View {
 
             Image(systemName: "chevron.right")
                 .font(.caption.bold())
-                .frame(width: 30, height: 30)
-                .background(
-                    Circle()
-                        .fill(RhetorixColors.primaryActionForeground.opacity(0.10))
-                )
+                .opacity(0.55)
         }
         .foregroundStyle(RhetorixColors.primaryActionForeground)
         .multilineTextAlignment(.leading)
@@ -225,26 +238,16 @@ struct RhetorixPrimaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .padding(.vertical, 10)
-            .padding(.horizontal, 12)
-            .frame(maxWidth: .infinity, minHeight: 64)
+            .padding(.horizontal, 14)
+            .frame(maxWidth: .infinity, minHeight: 56)
             .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [RhetorixColors.cyan, RhetorixColors.primaryActionEnd],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(RhetorixColors.brand)
             )
-            .overlay {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(Color.white.opacity(0.22), lineWidth: 1)
-            }
             .shadow(
-                color: RhetorixColors.cyan.opacity(configuration.isPressed ? 0.10 : 0.24),
-                radius: configuration.isPressed ? 5 : 14,
-                y: configuration.isPressed ? 2 : 7
+                color: .black.opacity(configuration.isPressed ? 0.08 : 0.16),
+                radius: configuration.isPressed ? 3 : 8,
+                y: configuration.isPressed ? 1 : 3
             )
             .scaleEffect(configuration.isPressed ? 0.985 : 1)
             .opacity(isEnabled ? 1 : 0.42)
@@ -407,10 +410,10 @@ extension View {
         modifier(RhetorixFieldStyle())
     }
 
-    func appScreen() -> some View {
+    func appScreen(live: Bool = false) -> some View {
         self
             .foregroundStyle(RhetorixColors.textPrimary)
-            .background(AppBackdrop())
+            .background(AppBackdrop(isLive: live))
             .scrollContentBackground(.hidden)
     }
 }

@@ -390,7 +390,7 @@ extension AppStore {
         "English": "English",
         "中文": "中文",
         "Dark": "深色",
-        "Pink White": "粉白浅色",
+        "Light": "浅色",
         "AI Providers": "AI 提供方",
         "Enabled": "已启用",
         "Disabled": "已禁用",

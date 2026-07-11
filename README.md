@@ -378,8 +378,8 @@ Ollama 已从 Provider 列表移除：iPhone App 无法访问 `localhost` 上的
 
 iOS 版支持两套主题：
 
-- Dark Graphite：深色玻璃拟态风格
-- Pink White：粉白色浅色模式
+- Dark：中性近黑深色模式
+- Light：冷调纸白浅色模式
 
 主题设置保存在本地，并会影响全局背景、文字、卡片、按钮和控件状态。
 

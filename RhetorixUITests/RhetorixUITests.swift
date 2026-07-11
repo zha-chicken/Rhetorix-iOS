@@ -338,6 +338,67 @@ final class RhetorixUITests: XCTestCase {
     }
 
     @MainActor
+    func testScreenshotTour() throws {
+        continueAfterFailure = true
+        let dir = ProcessInfo.processInfo.environment["SHOT_DIR"] ?? "/tmp/rhetorix-shots"
+        try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        func snap(_ name: String) {
+            let png = XCUIScreen.main.screenshot().pngRepresentation
+            try? png.write(to: URL(fileURLWithPath: "\(dir)/\(name).png"))
+        }
+
+        let themeArguments = ProcessInfo.processInfo.environment["SHOT_THEME"] == "light" ? ["UITEST_THEME_LIGHT"] : []
+        let app = XCUIApplication()
+        app.launchArguments = ["UITEST_MODE", "UITEST_RESET_DATA", "UITEST_SEED_JUDGED"] + themeArguments
+        app.launch()
+
+        let continueButton = app.buttons["onboarding.continue"]
+        if continueButton.waitForExistence(timeout: 3) {
+            snap("00-onboarding")
+            if continueButton.isHittable == false { app.swipeUp() }
+            continueButton.tap()
+        }
+
+        XCTAssertTrue(app.buttons["home.todayPractice"].waitForExistence(timeout: 5))
+        snap("01-home-top")
+        app.swipeUp()
+        snap("02-home-bottom")
+
+        app.buttons["home.todayPractice"].tap()
+        XCTAssertTrue(app.staticTexts["Worked example"].waitForExistence(timeout: 5))
+        snap("03-guided-practice")
+        let start = app.buttons["practice.start"]
+        _ = scrollToElement(start, in: app)
+        snap("04-guided-practice-bottom")
+        start.tap()
+        XCTAssertTrue(app.buttons["debate.keyboard"].waitForExistence(timeout: 5))
+        snap("05-live-debate")
+
+        app.terminate()
+        app.launchArguments = ["UITEST_MODE", "UITEST_SEED_JUDGED"] + themeArguments
+        app.launch()
+        XCTAssertTrue(app.buttons["home.startVoiceDebate"].waitForExistence(timeout: 5))
+        app.buttons["home.startVoiceDebate"].tap()
+        XCTAssertTrue(app.buttons["topic.row.0"].waitForExistence(timeout: 5))
+        snap("06-topic-selection")
+        app.buttons["topic.row.0"].tap()
+        XCTAssertTrue(app.buttons["setup.startDebate"].waitForExistence(timeout: 5))
+        snap("07-debate-setup")
+        app.navigationBars.buttons["BackButton"].tap()
+        app.navigationBars.buttons["BackButton"].tap()
+
+        app.tabBars.buttons.element(boundBy: 1).tap()
+        snap("08-history")
+        app.tabBars.buttons.element(boundBy: 2).tap()
+        snap("09-tools")
+        app.tabBars.buttons.element(boundBy: 3).tap()
+        snap("10-settings")
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'OpenAI'")).firstMatch.tap()
+        XCTAssertTrue(app.buttons["Save Configuration"].firstMatch.waitForExistence(timeout: 5))
+        snap("11-provider")
+    }
+
+    @MainActor
     private func launchApp(extraArguments: [String] = []) -> XCUIApplication {
         continueAfterFailure = false
         let app = XCUIApplication()
