@@ -58,6 +58,7 @@ final class RhetorixUITests: XCTestCase {
         judgeReview.tap()
         XCTAssertTrue(app.staticTexts["Why the judge decided"].waitForExistence(timeout: 5))
         judgeReview.tap()
+        XCTAssertTrue(app.staticTexts["Why the judge decided"].waitForNonExistence(timeout: 5))
 
         let retryButton = app.buttons["result.retrySpeech"].firstMatch
         XCTAssertTrue(scrollToElement(retryButton, in: app, maxSwipes: 12))
