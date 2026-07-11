@@ -2163,7 +2163,7 @@ struct SettingsView: View {
                     HStack {
                         Label(store.t("Open Memory Detail"), systemImage: "brain.head.profile")
                         Spacer()
-                        Text("\(store.userProfileMemory.evidenceSessionCount) \(store.t("debates"))")
+                        Text(store.debateCountText(store.userProfileMemory.evidenceSessionCount))
                             .font(.caption)
                             .foregroundStyle(RhetorixColors.textSecondary)
                     }
@@ -2250,6 +2250,7 @@ struct VoiceSettingsView: View {
                                 store.setVolcengineTTSConfig(next)
                             }
                         ), in: 0.7...1.3, step: 0.1)
+                        .accessibilityValue(String(format: "%.1fx", store.volcengineTTSConfig.speedRatio))
                     }
                 }
                 .listRowBackground(RhetorixColors.glass)
@@ -2337,7 +2338,7 @@ struct MemoryProfileDetailView: View {
                             .font(.subheadline)
                             .foregroundStyle(RhetorixColors.textSecondary)
                         HStack(spacing: 8) {
-                            MemoryProfilePill(title: store.t("Evidence"), value: "\(store.userProfileMemory.evidenceSessionCount) \(store.t("debates"))")
+                            MemoryProfilePill(title: store.t("Evidence"), value: store.debateCountText(store.userProfileMemory.evidenceSessionCount))
                             MemoryProfilePill(title: store.t("Turns"), value: "\(store.userProfileMemory.evidenceTurnCount)")
                         }
                         if let mbti = store.userProfileMemory.mbti {
