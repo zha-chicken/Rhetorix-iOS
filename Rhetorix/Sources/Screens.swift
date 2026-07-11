@@ -1293,7 +1293,7 @@ struct DebateMemorySection: View {
     var session: DebateSession
 
     var body: some View {
-        Section(store.t("Round Memory")) {
+        VStack(alignment: .leading, spacing: 10) {
             let timedTurns = session.turns.filter { $0.stageDurationSeconds != nil || $0.inputMode != nil }
             if timedTurns.isEmpty {
                 Text(store.t("No timing memory recorded for this debate yet."))
@@ -1319,6 +1319,9 @@ struct DebateMemorySection: View {
                         .font(.caption2)
                         .foregroundStyle(RhetorixColors.textTertiary)
                     }
+                    .padding(10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(RhetorixColors.glass))
                 }
             }
         }
@@ -1410,6 +1413,48 @@ struct DebateSelfAssessmentView: View {
     }
 }
 
+struct CollapsibleResultSection<Content: View>: View {
+    var title: String
+    var icon: String
+    var expandedLabel: String
+    var collapsedLabel: String
+    @ViewBuilder var content: () -> Content
+    @State private var isExpanded = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Button {
+                withAnimation(.easeOut(duration: 0.2)) { isExpanded.toggle() }
+            } label: {
+                HStack {
+                    Label(title, systemImage: icon)
+                        .font(.headline)
+                        .foregroundStyle(RhetorixColors.textPrimary)
+                    Spacer()
+                    Image(systemName: "chevron.down")
+                        .font(.caption.bold())
+                        .foregroundStyle(RhetorixColors.textTertiary)
+                        .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                }
+                .padding(14)
+                .background(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(RhetorixColors.glass)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(RhetorixColors.border, lineWidth: 1)
+                )
+            }
+            .buttonStyle(.plain)
+            .accessibilityValue(isExpanded ? expandedLabel : collapsedLabel)
+            if isExpanded {
+                content()
+            }
+        }
+    }
+}
+
 struct ResultView: View {
     @EnvironmentObject private var store: AppStore
     @Binding var path: NavigationPath
@@ -1431,34 +1476,59 @@ struct ResultView: View {
                     }
                 }
                 .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
                 if session.result != nil {
                     if let selfAssessment = session.selfAssessment {
-                        SelfAssessmentComparisonSection(selfAssessment: selfAssessment, rubric: session.result?.rubric ?? [])
-                            .listRowBackground(Color.clear)
+                        collapsible(store.t("Your view and the coach's view"), icon: "person.crop.circle.badge.checkmark") {
+                            SelfAssessmentComparisonSection(selfAssessment: selfAssessment, rubric: session.result?.rubric ?? [])
+                        }
                     }
                     DebateRubricSection(rubric: session.result?.rubric ?? [], focusSkill: session.practiceSkill)
                         .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                     ResultFeedbackSection(session: session)
                         .listRowBackground(Color.clear)
-                    DeepDebateReviewSection(result: session.result!)
-                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                    collapsible(store.t("Full judge review"), icon: "scale.3d") {
+                        DeepDebateReviewSection(result: session.result!)
+                    }
                     SpeechRetrySection(path: $path, session: session)
                         .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                 }
-                Section(store.t("Transcript")) {
-                    ForEach(session.turns) { turn in
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(store.speaker(turn.role)).font(.caption.bold()).foregroundStyle(turn.role.color)
-                            AIMarkdownText(turn.content)
-                            if turn.role != .user { AIDisclaimer() }
+                collapsible(store.t("Transcript"), icon: "text.book.closed") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        ForEach(session.turns) { turn in
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(store.speaker(turn.role)).font(.caption.bold()).foregroundStyle(turn.role.color)
+                                AIMarkdownText(turn.content)
+                                if turn.role != .user { AIDisclaimer() }
+                            }
+                            .padding(12)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(RhetorixColors.glass))
                         }
                     }
                 }
-                DebateMemorySection(session: session)
+                collapsible(store.t("Round Memory"), icon: "clock.arrow.circlepath") {
+                    DebateMemorySection(session: session)
+                }
             }
         }
         .navigationTitle(store.t("Debate Result"))
         .appScreen()
+    }
+
+    private func collapsible<Content: View>(_ title: String, icon: String, @ViewBuilder content: @escaping () -> Content) -> some View {
+        CollapsibleResultSection(
+            title: title,
+            icon: icon,
+            expandedLabel: store.t("Expanded"),
+            collapsedLabel: store.t("Collapsed"),
+            content: content
+        )
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
     }
 }
 

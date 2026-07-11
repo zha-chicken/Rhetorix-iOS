@@ -414,6 +414,8 @@ Content:
 - Immediate speech retry: a student can select one of their speeches, apply the coaching correction, submit a revised version, and see a saved before/after score and comparison.
 - Return home action
 
+Layout: the page must not read as one endless scroll. Always visible, in order: the outcome hero, the five-skill rubric, the recommendation feedback controls, and the speech-retry section. Everything long-form is collapsed by default behind tappable glass section headers with a rotating chevron (and an expanded/collapsed accessibility value): the self-assessment comparison, the full judge review (rationale, key clashes, strongest arguments, improvement actions, next focus), the transcript, and the round memory. Collapsed headers keep the actionable parts of the page reachable within a couple of swipes.
+
 Winner handling:
 
 - The model should return a structured winning side when possible.
