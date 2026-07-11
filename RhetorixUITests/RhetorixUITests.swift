@@ -190,6 +190,49 @@ final class RhetorixUITests: XCTestCase {
     }
 
     @MainActor
+    func testSingleStrongScoreDoesNotMasterSkill() throws {
+        // Calibration: one generous judged debate (4+ once) must not master a
+        // skill; it shows partial credit instead.
+        let app = launchApp(extraArguments: ["UITEST_SEED_JUDGED_ONCE"])
+
+        let today = app.buttons["home.todayPractice"]
+        XCTAssertTrue(today.waitForExistence(timeout: 5))
+        today.tap()
+
+        XCTAssertTrue(app.staticTexts["Step 1 / 5"].waitForExistence(timeout: 5))
+
+        let structureNode = app.buttons["Argument structure"]
+        XCTAssertTrue(structureNode.waitForExistence(timeout: 5))
+        XCTAssertNotEqual(structureNode.value as? String, "Mastered")
+        structureNode.tap()
+
+        XCTAssertTrue(app.staticTexts["Strong scores: 1 / 2"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Step 1 / 5"].exists)
+    }
+
+    @MainActor
+    func testGuidedPracticeFastTracksMastery() throws {
+        // One guided practice focused on the first step, scoring 4+ on it,
+        // masters that step alone and advances the curriculum to step 2.
+        let app = launchApp(extraArguments: ["UITEST_SEED_GUIDED_MASTERY"])
+
+        let today = app.buttons["home.todayPractice"]
+        XCTAssertTrue(today.waitForExistence(timeout: 5))
+        today.tap()
+
+        XCTAssertTrue(app.staticTexts["Step 2 / 5"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Next: Evidence and examples"].waitForExistence(timeout: 5))
+
+        let deliveryNode = app.buttons["Delivery and clarity"]
+        XCTAssertTrue(deliveryNode.waitForExistence(timeout: 5))
+        XCTAssertEqual(deliveryNode.value as? String, "Mastered")
+
+        let clashNode = app.buttons["Direct clash and rebuttal"]
+        XCTAssertTrue(clashNode.waitForExistence(timeout: 5))
+        XCTAssertNotEqual(clashNode.value as? String, "Mastered")
+    }
+
+    @MainActor
     private func launchApp(extraArguments: [String] = []) -> XCUIApplication {
         continueAfterFailure = false
         let app = XCUIApplication()
