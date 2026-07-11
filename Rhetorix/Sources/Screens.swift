@@ -1017,7 +1017,7 @@ struct DebateView: View {
         }
         .navigationTitle(store.t("Live Debate"))
         .navigationBarTitleDisplayMode(.inline)
-        .appScreen()
+        .appScreen(live: true)
     }
 
     private func sendInput() {
@@ -1045,7 +1045,7 @@ struct DebatePracticeFocusCard: View {
     var skill: DebateSkill
 
     var body: some View {
-        GlassCard(accent: RhetorixColors.cyan) {
+        GlassCard(accent: RhetorixColors.cyan, emphasized: true) {
             VStack(alignment: .leading, spacing: 8) {
                 Label(store.t("Practice focus"), systemImage: skill.icon)
                     .font(.caption.bold())
@@ -1067,7 +1067,7 @@ struct DebateStatus: View {
     var now: Date
 
     var body: some View {
-        GlassCard(accent: RhetorixColors.amber) {
+        GlassCard(accent: RhetorixColors.amber, emphasized: true) {
             VStack(spacing: 12) {
                 HStack {
                     Text("\(session.turns.filter { $0.role == .support || ($0.role == .user && session.userSide == .support) }.count)").font(.title.bold()).foregroundStyle(RhetorixColors.green)

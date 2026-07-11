@@ -50,7 +50,7 @@ The iPhone version uses the same dark glassmorphism direction as Android:
 - Frosted glass cards and panels
 - Thin translucent borders
 - Mostly white text
-- Muted cyan, amber, peach, green, and salmon accents
+- One teal-cyan brand accent plus quiet semantic colors (success, warning, danger)
 - Compact portrait-first layouts
 - Functional controls with visible state changes
 
@@ -67,6 +67,19 @@ Avoid:
 
 The app supports two real visual themes. The user can switch themes from Settings, and the choice is persisted locally.
 
+Color follows a role system, not a hue collection: one brand accent plus three quiet semantic colors, and both themes resolve each role to the same hue so the product keeps a single identity. Legacy hue names in code (cyan, amber, peach, green, salmon) are aliases onto the role tokens so no surface can drift off-palette.
+
+- Brand (teal-cyan): primary actions, selection, focus states, AI identity
+- Success (green): wins, completion, support-side signals
+- Warning (amber): stage-time pressure, debate tension, neutral highlights
+- Danger (red): errors, refutations, opposition signals, blocked content
+
+Restraint rules:
+
+- Cards use a neutral border by default. The tinted accent border is an emphasis state reserved for surfaces that carry live round pressure (the debate status card and the practice-focus card), never a default decoration.
+- The ambient backdrop glow appears only on the Live Debate screen; every other screen uses the flat vertical gradient.
+- A typical screen should show the brand accent plus at most one semantic color carrying meaning.
+
 ### Dark Graphite Theme
 
 The dark SwiftUI baseline should mirror the Android palette.
@@ -75,14 +88,14 @@ Background:
 
 - Deep graphite teal, close to `#13242B`
 - Deeper analysis backdrop, close to `#0E1A20`
-- Soft cyan and amber radial glow accents
+- A single brand glow appears only behind the Live Debate screen
 
 Glass surfaces:
 
-- Normal cards use translucent dark teal-gray
+- Normal cards use translucent dark teal-gray with a neutral border
 - Raised cards use stronger opacity and brighter borders
 - Muted panels group low-emphasis controls
-- Selected controls use stronger fill plus accent border
+- Selected controls use stronger fill plus brand border
 
 Text:
 
@@ -93,43 +106,41 @@ Text:
 
 Accents:
 
-- Cyan: AI, reasoning analysis, technical signals
-- Amber: debate tension, neutral highlights, relationship labels
-- Peach: donation and support
-- Green: success, support, completion
-- Salmon: errors, refutations, blocked content
+- Brand cyan, close to `#61CCD6`: primary actions, selection, AI identity
+- Warning amber: stage-time pressure, debate tension
+- Success green: wins, completion, support-side signals
+- Danger red: errors, refutations, opposition signals, blocked content
 
 Color should clarify state and relationships, not act as decoration only.
 
-### Pink White Light Theme
+### Cool Paper Light Theme
 
-The light theme is a pink-white Rhetorix variant for users who prefer a bright interface.
+The light theme is a cool paper-white variant of the same identity, not a separate pink product.
 
 Background:
 
-- Warm white and very pale rose surfaces
-- Soft pink and peach radial glow accents
+- Cool near-white surfaces with a very slight teal cast
+- No radial glow accents outside the Live Debate screen
 - No pure flat white page that feels empty or clinical
 
 Surfaces:
 
-- Cards use translucent blush-white fill
-- Borders use pale rose with low opacity
-- Selected controls use stronger pink fill or pink border
+- Cards use translucent cool-white fill with a neutral teal-gray border
+- Selected controls use stronger fill plus a deep-teal brand border
 - Shadows, if used, should stay soft and low contrast
 
 Text:
 
-- Primary text is dark charcoal, not black
-- Secondary text is warm gray-brown
-- Text on saturated pink/coral controls remains white
+- Primary text is dark slate, not black
+- Secondary text is cool gray
+- Text on saturated brand controls remains white
 
 Accents:
 
-- Pink: primary actions, selected state, app identity
-- Peach/orange: debate tension, warning, relationship labels
-- Mint/teal: success and support-side signals
-- Rose/salmon: opposition, refutation, blocked/error states
+- Brand deep teal, close to `#0C7D8C`: primary actions, selected state, app identity
+- Warning amber-bronze: debate tension, stage-time pressure
+- Success green: wins, completion, support-side signals
+- Danger red: opposition, refutation, blocked/error states
 
 The light theme should feel calm, student-friendly, and readable, not like a marketing landing page.
 
