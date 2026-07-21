@@ -1,3 +1,5 @@
 node_modules/
 out/
 .DS_Store
+public/source/*.mov
+public/source/*.mp4
