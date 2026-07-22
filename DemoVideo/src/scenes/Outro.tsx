@@ -7,9 +7,9 @@ import {clamp, deterministic, tween} from '../lib/motion';
 import {COLORS} from '../theme';
 
 const cards = [
-  {file: 'home.png', x: 95, y: 90, rotate: -5, fromX: -650, fromY: -160},
-  {file: 'live.png', x: 1290, y: 94, rotate: 5, fromX: 690, fromY: -170},
-  {file: 'analysis-result.png', x: 112, y: 680, rotate: 4, fromX: -680, fromY: 210},
+  {file: 'home-approved.png', x: 95, y: 90, rotate: -5, fromX: -650, fromY: -160},
+  {file: 'guided-approved.png', x: 1290, y: 94, rotate: 5, fromX: 690, fromY: -170, imageTop: -420},
+  {file: 'coach-approved.png', x: 112, y: 680, rotate: 4, fromX: -680, fromY: 210},
   {file: 'rebuttal-result.png', x: 1310, y: 690, rotate: -4, fromX: 700, fromY: 230},
 ];
 
@@ -45,7 +45,7 @@ export const Outro: React.FC = () => {
                 opacity: Math.min(1, arrive),
               }}
             >
-              <ScreenCrop file={card.file} width={500} height={302} />
+              <ScreenCrop file={card.file} width={500} height={302} imageTop={card.imageTop} />
             </div>
           );
         })}

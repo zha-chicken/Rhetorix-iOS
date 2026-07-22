@@ -8,6 +8,10 @@ struct Still {
 }
 
 let stills: [Still] = [
+    .init(name: "live-clean", seconds: 18.40),
+    .init(name: "analysis-clean", seconds: 66.00),
+    .init(name: "rebuttal-argument-clean", seconds: 90.00),
+    .init(name: "rebuttal-response-clean", seconds: 135.00),
     .init(name: "home", seconds: 0.7),
     .init(name: "guided", seconds: 13.5),
     .init(name: "live", seconds: 18.8),

@@ -1,6 +1,6 @@
 import React from 'react';
 import {Easing, interpolate, useCurrentFrame} from 'remotion';
-import {PhoneFrame, ScreenCrop} from '../components/PhoneFrame';
+import {PhoneFrame, ScreenCrop, StillPatch} from '../components/PhoneFrame';
 import {CopyBlock, Stage} from '../components/Stage';
 import {clamp, easeInOut, tween} from '../lib/motion';
 import {COLORS} from '../theme';
@@ -25,7 +25,20 @@ export const ConstructiveAnalysis: React.FC = () => {
       <div style={{position: 'absolute', right: 225, top: 66, width: 458, height: 940, opacity: enter}}>
         <PhoneFrame source={{kind: 'still', file: 'analysis-input.png'}} />
         <div style={{position: 'absolute', inset: 0, clipPath: `inset(0 0 0 ${position}%)`}}>
-          <PhoneFrame source={{kind: 'still', file: 'analysis-result.png'}} />
+          <PhoneFrame
+            source={{kind: 'still', file: 'analysis-clean.png'}}
+            screenOverlay={(
+              <StillPatch
+                file="analysis-clean.png"
+                left={197}
+                top={313}
+                width={42}
+                height={50}
+                sampleOffsetX={38}
+                borderRadius={8}
+              />
+            )}
+          />
         </div>
         <div
           style={{
@@ -73,6 +86,7 @@ export const RebuttalBuild: React.FC = () => {
   const brake = tween(frame, 39, 54, 0, 1, Easing.bezier(0.12, 0.78, 0.2, 1));
   const revealResponse = tween(frame, 82, 12);
   const zoom = interpolate(sprint + brake, [0, 2], [0.94, 1.02], clamp);
+  const screenShift = interpolate(sprint + brake, [0, 2], [24, -18], clamp);
 
   return (
     <Stage>
@@ -94,9 +108,37 @@ export const RebuttalBuild: React.FC = () => {
           filter: sprint > 0 && brake < 0.35 ? `blur(${(1 - brake / 0.35) * 1.7}px)` : 'none',
         }}
       >
-        <PhoneFrame source={{kind: 'video', startSeconds: 84.6, playbackRate: 2.15}} />
+        <PhoneFrame
+          source={{kind: 'still', file: 'rebuttal-argument-clean.png'}}
+          screenTransform={`translateY(${screenShift}px) scale(1.035)`}
+        />
         <div style={{position: 'absolute', inset: 0, opacity: revealResponse}}>
-          <PhoneFrame source={{kind: 'still', file: 'rebuttal-response.png'}} />
+          <PhoneFrame
+            source={{kind: 'still', file: 'rebuttal-response-clean.png'}}
+            screenOverlay={(
+              <div
+                style={{
+                  position: 'absolute',
+                  left: 18,
+                  top: 816,
+                  width: 384,
+                  height: 60,
+                  borderRadius: 30,
+                  background: COLORS.brand,
+                  color: COLORS.deep,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 10,
+                  fontSize: 18,
+                  fontWeight: 820,
+                }}
+              >
+                <span style={{fontSize: 17}}>✦</span>
+                Submit Rebuttal
+              </div>
+            )}
+          />
         </div>
       </div>
     </Stage>
@@ -224,8 +266,8 @@ export const FallacyDetector: React.FC = () => {
   );
 };
 
-const relay = [
-  {word: 'Debate.', file: 'history.png', label: 'History'},
+const relay: Array<{word: string; file: string; label: string; cropHeight?: number; imageTop?: number}> = [
+  {word: 'Debate.', file: 'history.png', label: 'History', cropHeight: 350, imageTop: -220},
   {word: 'Analyze.', file: 'tools.png', label: 'Tools'},
   {word: 'Remember.', file: 'settings.png', label: 'Learning memory'},
   {word: 'Speak.', file: 'voice.png', label: 'Voice'},
@@ -280,7 +322,12 @@ export const BreadthRelay: React.FC = () => {
           {relay.map((item, index) => (
             <div key={item.file} style={{height: cardHeight, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
               <div style={{position: 'relative'}}>
-                <ScreenCrop file={item.file} width={710} height={500} />
+                <ScreenCrop
+                  file={item.file}
+                  width={710}
+                  height={item.cropHeight ?? 500}
+                  imageTop={item.imageTop}
+                />
                 <div
                   style={{
                     position: 'absolute',

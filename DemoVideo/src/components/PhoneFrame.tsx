@@ -102,12 +102,39 @@ export const PhoneFrame: React.FC<{
   );
 };
 
+export const StillPatch: React.FC<{
+  file: string;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  sampleOffsetX?: number;
+  sampleOffsetY?: number;
+  borderRadius?: number;
+}> = ({file, left, top, width, height, sampleOffsetX = 0, sampleOffsetY = 0, borderRadius = 10}) => (
+  <div style={{position: 'absolute', left, top, width, height, overflow: 'hidden', borderRadius}}>
+    <Img
+      src={staticFile(`stills/${file}`)}
+      style={{
+        position: 'absolute',
+        width: SOURCE_WIDTH,
+        height: 'auto',
+        left: SOURCE_LEFT - left - sampleOffsetX,
+        top: SOURCE_TOP - top - sampleOffsetY,
+      }}
+    />
+  </div>
+);
+
 export const ScreenCrop: React.FC<{
   file: string;
   width: number;
   height: number;
+  imageLeft?: number;
+  imageTop?: number;
+  imageScale?: number;
   style?: React.CSSProperties;
-}> = ({file, width, height, style}) => (
+}> = ({file, width, height, imageLeft, imageTop, imageScale = 1.42, style}) => (
   <div
     style={{
       width,
@@ -123,7 +150,13 @@ export const ScreenCrop: React.FC<{
   >
     <Img
       src={staticFile(`stills/${file}`)}
-      style={{position: 'absolute', width: width * 1.42, height: 'auto', left: width * -0.21, top: height * -0.44}}
+      style={{
+        position: 'absolute',
+        width: width * imageScale,
+        height: 'auto',
+        left: imageLeft ?? width * -0.21,
+        top: imageTop ?? height * -0.44,
+      }}
     />
   </div>
 );

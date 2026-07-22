@@ -1,6 +1,6 @@
 import React from 'react';
 import {Easing, interpolate, useCurrentFrame} from 'remotion';
-import {PhoneFrame} from '../components/PhoneFrame';
+import {PhoneFrame, StillPatch} from '../components/PhoneFrame';
 import {CopyBlock, Eyebrow, Stage} from '../components/Stage';
 import {clamp, deterministic, easeInOut, tween} from '../lib/motion';
 import {COLORS} from '../theme';
@@ -222,7 +222,20 @@ export const LiveDebate: React.FC = () => {
           transform: `perspective(1600px) scale(${0.95 + enter * 0.06}) rotateY(${-4 + enter * 3}deg)`,
         }}
       >
-        <PhoneFrame source={{kind: 'video', startSeconds: 18.15, playbackRate: 0.18}} />
+        <PhoneFrame
+          source={{kind: 'still', file: 'live-clean.png'}}
+          screenOverlay={(
+            <StillPatch
+              file="live-clean.png"
+              left={60}
+              top={104}
+              width={44}
+              height={36}
+              sampleOffsetX={34}
+              borderRadius={12}
+            />
+          )}
+        />
       </div>
       <div
         style={{
