@@ -1,0 +1,22 @@
+{
+  "name": "rhetorix-product-demo",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts RhetorixDemo out/Rhetorix-iOS-demo.mp4 --codec h264 --crf 17 --pixel-format yuv420p",
+    "still": "remotion still src/index.ts RhetorixDemo",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.484",
+    "@remotion/media": "4.0.484",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "remotion": "4.0.484"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "typescript": "^6.0.3"
+  }
+}
