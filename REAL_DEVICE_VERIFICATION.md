@@ -70,7 +70,7 @@ This file tracks everything that must be verified on a physical iPhone. Simulato
 - Gemini config saves API key, model, base URL, and enabled state.
 - DeepSeek config saves API key, model, base URL, and enabled state.
 - Groq config saves API key, model, base URL, and enabled state.
-- Ollama config does not crash even if local server is unavailable.
+- Voicebox voice config does not crash even if the local server is unavailable.
 - Default debate provider uses a configured provider when one exists.
 - If multiple providers are configured, one valid configured provider is selected.
 - Invalid provider config shows a user-facing error rather than crashing.
