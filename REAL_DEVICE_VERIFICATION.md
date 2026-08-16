@@ -143,7 +143,6 @@ This file tracks everything that must be verified on a physical iPhone. Simulato
 - Rebuttal Trainer generates a prompt.
 - Rebuttal Trainer scores a response.
 - Rebuttal Trainer feedback is saved into long-term memory inputs.
-- AI Hallucination Detector opens the external GPTZero URL.
 
 ## UI And Accessibility
 

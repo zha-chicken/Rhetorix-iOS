@@ -382,8 +382,6 @@ extension AppStore {
         "Logic Fallacy Detector": "逻辑谬误检测",
         "Find weak reasoning": "发现薄弱推理",
         "Tools support your debates. Live debate remains the main workflow.": "工具用于辅助辩论，实时辩论仍是主流程。",
-        "AI Hallucination Detector": "AI 幻觉检测",
-        "Open GPTZero hallucination detector": "打开 GPTZero 幻觉检测工具",
         "Appearance": "外观",
         "Theme": "主题",
         "Language": "语言",

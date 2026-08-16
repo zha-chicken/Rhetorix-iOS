@@ -128,6 +128,16 @@ final class RhetorixUITests: XCTestCase {
     }
 
     @MainActor
+    func testToolsDoesNotShowHallucinationDetector() throws {
+        let app = launchApp()
+        app.tabBars.buttons["Tools"].tap()
+
+        XCTAssertTrue(app.buttons["tools.constructiveAnalysis"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["tools.fallacyDetector"].exists)
+        XCTAssertFalse(app.staticTexts["AI Hallucination Detector"].exists)
+    }
+
+    @MainActor
     func testFallacyDetectorShowsNoFindingState() throws {
         let app = launchApp()
         app.tabBars.buttons["Tools"].tap()
