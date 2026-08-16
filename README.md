@@ -288,13 +288,6 @@ MBTI 类型描述参考：[Myers & Briggs Foundation - The 16 MBTI Personality T
 - Constructive Analysis / 立论分析
 - Rebuttal Trainer
 - Logic Fallacy Detector
-- AI Hallucination Detector 外部入口
-
-其中 AI Hallucination Detector 会跳转到 GPTZero 的网页工具：
-
-```text
-https://gptzero.me/hallucination-detector
-```
 
 ### 8. Constructive Analysis / 立论分析
 

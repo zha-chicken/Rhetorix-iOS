@@ -2040,30 +2040,6 @@ struct ToolsView: View {
                         path.append(AppRoute.fallacyDetector)
                     }
                     .accessibilityIdentifier("tools.fallacyDetector")
-                    Link(destination: URL(string: "https://gptzero.me/hallucination-detector")!) {
-                        VStack(spacing: 6) {
-                            Image(systemName: "sparkles")
-                                .font(.headline)
-                                .foregroundStyle(RhetorixColors.peach)
-                            Text(store.t("AI Hallucination Detector"))
-                                .font(.caption2.bold())
-                                .foregroundStyle(RhetorixColors.textSecondary)
-                                .lineLimit(2)
-                                .multilineTextAlignment(.center)
-                                .minimumScaleFactor(0.76)
-                            Image(systemName: "arrow.up.right.square")
-                                .font(.caption)
-                                .foregroundStyle(RhetorixColors.textTertiary)
-                        }
-                        .frame(maxWidth: .infinity, minHeight: 62)
-                        .padding(8)
-                        .background(RoundedRectangle(cornerRadius: 14).fill(RhetorixColors.glass))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14)
-                                .stroke(RhetorixColors.peach.opacity(0.22), lineWidth: 1)
-                        )
-                    }
-                    .buttonStyle(.plain)
                 }
             }
             .padding()

@@ -283,7 +283,6 @@ The Tools page is a real destination, not only a group of home cards. It include
 - Constructive Analysis
 - Rebuttal Trainer
 - Fallacy Detector
-- AI Hallucination Detector external link
 
 Tools are supporting workflows. They should not visually compete with the main live debate path.
 
@@ -486,9 +485,7 @@ Tool entries:
 - Constructive Analysis
 - Rebuttal Trainer
 - Fallacy Detector
-- AI Hallucination Detector
 
-The hallucination detector opens `https://gptzero.me/hallucination-detector` externally. Do not create a fake internal detector unless the feature is implemented.
 The Tools page should look useful but secondary. It must not replace live debate as the app's perceived center.
 
 ### Constructive Analysis
